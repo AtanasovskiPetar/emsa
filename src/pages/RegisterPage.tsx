@@ -1,49 +1,40 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth";
+import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { Role } from "@/constants/enums";
 
 export function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: ({ name, email, password }: { name: string; email: string; password: string }) =>
+      apiClient.post<{ token: string }>(ApiRoutes.AUTH_REGISTER, { name, email, password }),
+  });
+
+  function handleSubmit(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
     const form = new FormData(e.currentTarget);
-    const name = form.get("name") as string;
-    const email = form.get("email") as string;
-    const password = form.get("password") as string;
 
-    try {
-      const res = await fetch(ApiRoutes.AUTH_REGISTER, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Registration failed");
-        return;
+    mutate(
+      {
+        name: form.get("name") as string,
+        email: form.get("email") as string,
+        password: form.get("password") as string,
+      },
+      {
+        onSuccess: ({ token }) => {
+          const user = login(token);
+          navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
+        },
       }
-
-      login(data.token);
-      navigate(PageRoutes.HOME);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    );
   }
 
   return (
@@ -90,10 +81,10 @@ export function RegisterPage() {
               />
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error.message}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full mt-1">
-              {loading ? "Creating account..." : "Create account"}
+            <Button type="submit" disabled={isPending} className="w-full mt-1">
+              {isPending ? "Creating account..." : "Create account"}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
