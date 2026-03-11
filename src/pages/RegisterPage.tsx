@@ -1,11 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { registerSchema, type RegisterSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { Role } from "@/constants/enums";
 
@@ -13,28 +23,23 @@ export function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const { mutate, isPending, error } = useMutation({
-    mutationFn: ({ name, email, password }: { name: string; email: string; password: string }) =>
-      apiClient.post<{ token: string }>(ApiRoutes.AUTH_REGISTER, { name, email, password }),
+  const form = useForm<RegisterSchema>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "" },
   });
 
-  function handleSubmit(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: (values: RegisterSchema) =>
+      apiClient.post<{ token: string }>(ApiRoutes.AUTH_REGISTER, values),
+  });
 
-    mutate(
-      {
-        name: form.get("name") as string,
-        email: form.get("email") as string,
-        password: form.get("password") as string,
+  function onSubmit(values: RegisterSchema) {
+    mutate(values, {
+      onSuccess: ({ token }) => {
+        const user = login(token);
+        navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
       },
-      {
-        onSuccess: ({ token }) => {
-          const user = login(token);
-          navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
-        },
-      }
-    );
+    });
   }
 
   return (
@@ -45,55 +50,72 @@ export function RegisterPage() {
           <CardDescription>Fill in your details to get started</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <FormField
+                control={form.control}
                 name="name"
-                type="text"
-                placeholder="John Doe"
-                required
-                autoComplete="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" autoComplete="name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+              <FormField
+                control={form.control}
                 name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
+              <FormField
+                control={form.control}
                 name="password"
-                type="password"
-                required
-                autoComplete="new-password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            {error && <p className="text-sm text-destructive">{error.message}</p>}
+              {error && <p className="text-sm text-destructive">{error.message}</p>}
 
-            <Button type="submit" disabled={isPending} className="w-full mt-1">
-              {isPending ? "Creating account..." : "Create account"}
-            </Button>
+              <Button type="submit" disabled={isPending} className="w-full mt-1">
+                {isPending ? "Creating account..." : "Create account"}
+              </Button>
 
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to={PageRoutes.LOGIN} className="font-medium text-foreground hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </form>
+              <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link
+                  to={PageRoutes.LOGIN}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

@@ -1,11 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { loginSchema, type LoginSchema } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { Role } from "@/constants/enums";
 
@@ -13,27 +23,23 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const { mutate, isPending, error } = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      apiClient.post<{ token: string }>(ApiRoutes.AUTH_LOGIN, { email, password }),
+  const form = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
   });
 
-  function handleSubmit(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: (values: LoginSchema) =>
+      apiClient.post<{ token: string }>(ApiRoutes.AUTH_LOGIN, values),
+  });
 
-    mutate(
-      {
-        email: form.get("email") as string,
-        password: form.get("password") as string,
+  function onSubmit(values: LoginSchema) {
+    mutate(values, {
+      onSuccess: ({ token }) => {
+        const user = login(token);
+        navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
       },
-      {
-        onSuccess: ({ token }) => {
-          const user = login(token);
-          navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
-        },
-      }
-    );
+    });
   }
 
   return (
@@ -44,36 +50,48 @@ export function LoginPage() {
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <FormField
+                control={form.control}
                 name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
+              <FormField
+                control={form.control}
                 name="password"
-                type="password"
-                required
-                autoComplete="current-password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="current-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            {error && <p className="text-sm text-destructive">{error.message}</p>}
+              {error && <p className="text-sm text-destructive">{error.message}</p>}
 
-            <Button type="submit" disabled={isPending} className="w-full">
-              {isPending ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
+              <Button type="submit" disabled={isPending} className="w-full">
+                {isPending ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          </Form>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
