@@ -1,0 +1,23 @@
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { env } from "./env";
+
+const secret = new TextEncoder().encode(env.JWT_SECRET);
+
+export interface JwtUser extends JWTPayload {
+  sub: string;
+  email: string;
+  role: string;
+}
+
+export async function signJwt(payload: Omit<JwtUser, keyof JWTPayload>): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(env.JWT_EXPIRES_IN)
+    .sign(secret);
+}
+
+export async function verifyJwt(token: string): Promise<JwtUser> {
+  const { payload } = await jwtVerify(token, secret);
+  return payload as JwtUser;
+}

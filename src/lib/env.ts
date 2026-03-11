@@ -17,4 +17,9 @@ export const env = {
   DB_NAME: required("DB_NAME"),
   DB_SCHEMA: required("DB_SCHEMA"),
   DB_PASS: required("DB_PASS"),
+  JWT_SECRET: required("JWT_SECRET"),
+  JWT_EXPIRES_IN: optional("JWT_EXPIRES_IN", "7d"),
+  GOOGLE_CLIENT_ID: required("GOOGLE_CLIENT_ID"),
+  GOOGLE_CLIENT_SECRET: required("GOOGLE_CLIENT_SECRET"),
+  GOOGLE_REDIRECT_URI: required("GOOGLE_REDIRECT_URI"),
 } as const;

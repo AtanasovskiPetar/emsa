@@ -1,13 +1,15 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { env } from "./lib/env";
+import { authRoutes } from "./routes/auth";
 
 const server = serve({
   port: env.PORT,
   routes: {
     // Serve index.html for all unmatched routes.
     "/*": index,
-
+    
+    ...authRoutes,
     "/api/hello": {
       async GET(req) {
         return Response.json({
