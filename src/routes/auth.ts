@@ -1,0 +1,155 @@
+import { eq } from "drizzle-orm";
+import { db } from "../lib/db";
+import { users } from "../db/schema";
+import { signJwt } from "../lib/jwt";
+import { env } from "../lib/env";
+import { Role, Provider } from "../constants/enums";
+import { ApiRoutes } from "../constants/routes";
+
+// POST /api/auth/register
+async function register(req: Request): Promise<Response> {
+  const { name, email, password } = await req.json();
+
+  if (!name || !email || !password) {
+    return Response.json({ error: "Name, email and password are required" }, { status: 400 });
+  }
+
+  const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existing) {
+    return Response.json({ error: "Email already in use" }, { status: 409 });
+  }
+
+  const passwordHash = await Bun.password.hash(password);
+
+  const [user] = await db
+    .insert(users)
+    .values({ name, email, passwordHash, provider: Provider.CREDENTIALS, role: Role.USER })
+    .returning();
+
+  if (!user) {
+    return Response.json({ error: "Failed to create user" }, { status: 500 });
+  }
+
+  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
+  return Response.json({ token }, { status: 201 });
+}
+
+// POST /api/auth/login
+async function login(req: Request): Promise<Response> {
+  const { email, password } = await req.json();
+
+  if (!email || !password) {
+    return Response.json({ error: "Email and password are required" }, { status: 400 });
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+  if (!user || user.provider !== Provider.CREDENTIALS || !user.passwordHash) {
+    return Response.json({ error: "Invalid credentials" }, { status: 401 });
+  }
+
+  const valid = await Bun.password.verify(password, user.passwordHash);
+  if (!valid) {
+    return Response.json({ error: "Invalid credentials" }, { status: 401 });
+  }
+
+  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
+  return Response.json({ token });
+}
+
+// POST /api/auth/logout
+function logout(_req: Request): Response {
+  return Response.json({ success: true });
+}
+
+// GET /api/auth/google
+function googleRedirect(_req: Request): Response {
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: env.GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent",
+  });
+
+  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+}
+
+// GET /api/auth/google/callback
+async function googleCallback(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+
+  if (!code) {
+    return Response.json({ error: "Missing authorization code" }, { status: 400 });
+  }
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: env.GOOGLE_REDIRECT_URI,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    return Response.json({ error: "Failed to exchange authorization code" }, { status: 502 });
+  }
+
+  const { access_token } = (await tokenRes.json()) as { access_token: string };
+
+  const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+
+  if (!profileRes.ok) {
+    return Response.json({ error: "Failed to fetch Google profile" }, { status: 502 });
+  }
+
+  const profile = (await profileRes.json()) as { sub: string; email: string; name: string };
+
+  const [existing] = await db.select().from(users).where(eq(users.email, profile.email)).limit(1);
+
+  let user = existing;
+
+  if (!user) {
+    const [created] = await db
+      .insert(users)
+      .values({
+        name: profile.name,
+        email: profile.email,
+        googleId: profile.sub,
+        provider: Provider.GOOGLE,
+        role: Role.USER,
+      })
+      .returning();
+    user = created;
+  } else if (!user.googleId) {
+    const [updated] = await db
+      .update(users)
+      .set({ googleId: profile.sub, updatedAt: new Date() })
+      .where(eq(users.id, user.id))
+      .returning();
+    user = updated;
+  }
+
+  if (!user) {
+    return Response.json({ error: "Failed to resolve user" }, { status: 500 });
+  }
+
+  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
+  return Response.redirect(`/auth/callback?token=${token}`);
+}
+
+export const authRoutes = {
+  [ApiRoutes.AUTH_REGISTER]: { POST: register },
+  [ApiRoutes.AUTH_LOGIN]: { POST: login },
+  [ApiRoutes.AUTH_LOGOUT]: { POST: logout },
+  [ApiRoutes.AUTH_GOOGLE]: { GET: googleRedirect },
+  [ApiRoutes.AUTH_GOOGLE_CALLBACK]: { GET: googleCallback },
+};
