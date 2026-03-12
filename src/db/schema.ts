@@ -3,7 +3,7 @@ import { pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-
 import { Provider, Role } from "@/constants/enums";
 
 export const providerEnum = pgEnum("provider", [Provider.CREDENTIALS, Provider.GOOGLE]);
-export const roleEnum = pgEnum("role", [Role.USER, Role.ADMIN]);
+export const roleEnum = pgEnum("role", [Role.USER, Role.ADMIN, Role.SUPER_ADMIN]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
