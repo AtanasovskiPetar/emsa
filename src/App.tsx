@@ -1,13 +1,15 @@
 import "@/index.css";
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { AuthProvider } from "@/context/auth";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { PageRoutes } from "@/constants/routes";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Role } from "@/constants/enums";
+import { PageRoutes } from "@/constants/routes";
+import { AuthProvider } from "@/context/auth";
 
 const STALE_TIME_5_MINUTES = 1000 * 60 * 5;
 
@@ -22,10 +24,16 @@ const queryClient = new QueryClient({
 
 const HomePage = lazy(() => import("@/pages/HomePage").then((m) => ({ default: m.HomePage })));
 const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })));
-const RegisterPage = lazy(() => import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage })));
+const RegisterPage = lazy(() =>
+  import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
+);
 const AdminPage = lazy(() => import("@/pages/AdminPage").then((m) => ({ default: m.AdminPage })));
-const AuthCallbackPage = lazy(() => import("@/pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
-const UnauthorizedPage = lazy(() => import("@/pages/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage })));
+const AuthCallbackPage = lazy(() =>
+  import("@/pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage }))
+);
+const UnauthorizedPage = lazy(() =>
+  import("@/pages/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage }))
+);
 
 export default function App() {
   return (

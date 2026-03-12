@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/auth";
-import { PageRoutes } from "@/constants/routes";
-import type { Role } from "@/constants/enums";
 import type { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+
+import type { Role } from "@/constants/enums";
+import { PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
 
 interface Props {
   children: ReactNode;

@@ -1,4 +1,5 @@
-import { pgTable, pgEnum, uuid, varchar, text, timestamp } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+
 import { Provider, Role } from "@/constants/enums";
 
 export const providerEnum = pgEnum("provider", [Provider.CREDENTIALS, Provider.GOOGLE]);

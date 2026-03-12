@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth";
-import { PageRoutes } from "@/constants/routes";
+
 import { Role } from "@/constants/enums";
+import { PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
 
 export function AuthCallbackPage() {
   const { user, login } = useAuth();

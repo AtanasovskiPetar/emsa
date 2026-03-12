@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import { users } from "../db/schema";
-import { signJwt } from "../lib/jwt";
-import { env } from "../lib/env";
-import { Role, Provider } from "../constants/enums";
+
+import { Provider, Role } from "../constants/enums";
 import { ApiRoutes } from "../constants/routes";
+import { users } from "../db/schema";
+import { db } from "../lib/db";
+import { env } from "../lib/env";
+import { signJwt } from "../lib/jwt";
 
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {

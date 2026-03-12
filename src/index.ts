@@ -1,4 +1,5 @@
 import { serve } from "bun";
+
 import index from "./index.html";
 import { env } from "./lib/env";
 import { authRoutes } from "./routes/auth";

@@ -3,6 +3,7 @@ import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import prettierPlugin from "eslint-plugin-prettier";
 import prettierConfig from "eslint-config-prettier";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 export default tseslint.config(
   {
@@ -15,6 +16,7 @@ export default tseslint.config(
       react: reactPlugin,
       "react-hooks": reactHooksPlugin,
       prettier: prettierPlugin,
+      "simple-import-sort": simpleImportSort,
     },
     languageOptions: {
       parserOptions: {
@@ -29,6 +31,8 @@ export default tseslint.config(
       ...reactHooksPlugin.configs.recommended.rules,
       "prettier/prettier": "error",
       "react/react-in-jsx-scope": "off",
+      "simple-import-sort/imports": "error",
+      "simple-import-sort/exports": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
