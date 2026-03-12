@@ -6,6 +6,7 @@ const secret = new TextEncoder().encode(env.JWT_SECRET);
 
 export interface JwtUser extends JWTPayload {
   sub: string;
+  name: string;
   email: string;
   role: string;
 }

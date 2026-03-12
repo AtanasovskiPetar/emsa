@@ -3,6 +3,8 @@ export const PageRoutes = {
   LOGIN: "/login",
   REGISTER: "/register",
   ADMIN: "/admin",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  ADMIN_DASHBOARD_SEGMENT: "dashboard",
   UNAUTHORIZED: "/unauthorized",
   AUTH_CALLBACK: "/auth/callback",
 } as const;

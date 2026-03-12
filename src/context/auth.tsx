@@ -2,8 +2,9 @@ import { createContext, type ReactNode, useContext, useState } from "react";
 
 import type { Role } from "@/constants/enums";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
+  name: string;
   email: string;
   role: Role;
 }
@@ -20,7 +21,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function decodeToken(token: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return { id: payload.sub, email: payload.email, role: payload.role };
+    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role };
   } catch {
     return null;
   }
