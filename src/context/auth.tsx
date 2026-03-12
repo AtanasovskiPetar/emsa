@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { Role } from "@/constants/enums";
 
 interface AuthUser {
@@ -10,7 +10,6 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
-  isLoading: boolean;
   login: (token: string) => AuthUser | null;
   logout: () => void;
 }
@@ -26,24 +25,26 @@ function decodeToken(token: string): AuthUser | null {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+function getStoredToken(): string | null {
+  const stored = localStorage.getItem("token");
+  if (!stored) return null;
+  const valid = decodeToken(stored);
+  if (!valid) {
+    localStorage.removeItem("token");
+    return null;
+  }
+  return stored;
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem("token");
-    if (stored) {
-      const decoded = decodeToken(stored);
-      if (decoded) {
-        setToken(stored);
-        setUser(decoded);
-      } else {
-        localStorage.removeItem("token");
-      }
-    }
-    setIsLoading(false);
-  }, []);
+function getStoredUser(): AuthUser | null {
+  const stored = localStorage.getItem("token");
+  if (!stored) return null;
+  return decodeToken(stored);
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(getStoredToken);
+  const [user, setUser] = useState<AuthUser | null>(getStoredUser);
 
   function login(newToken: string): AuthUser | null {
     const decoded = decodeToken(newToken);
@@ -61,9 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>
   );
 }
 

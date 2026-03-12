@@ -107,10 +107,7 @@ export function RegisterPage() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link
-                  to={PageRoutes.LOGIN}
-                  className="font-medium text-foreground hover:underline"
-                >
+                <Link to={PageRoutes.LOGIN} className="font-medium text-foreground hover:underline">
                   Sign in
                 </Link>
               </p>

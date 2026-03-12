@@ -10,9 +10,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ children, requiredRole }: Props) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) return null;
+  const { user } = useAuth();
 
   if (!user) return <Navigate to={PageRoutes.LOGIN} replace />;
 

@@ -5,7 +5,7 @@ import { PageRoutes } from "@/constants/routes";
 import { Role } from "@/constants/enums";
 
 export function AuthCallbackPage() {
-  const { user, login, isLoading } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,12 +17,12 @@ export function AuthCallbackPage() {
     } else {
       navigate(PageRoutes.LOGIN, { replace: true });
     }
-  }, []);
+  }, [login, navigate]);
 
   useEffect(() => {
-    if (isLoading || !user) return;
+    if (!user) return;
     navigate(user.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME, { replace: true });
-  }, [user, isLoading]);
+  }, [user, navigate]);
 
   return null;
 }
