@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "@/context/auth";
+
 import { Button } from "@/components/ui/button";
 import { PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
 
 export function HomePage() {
   const { user, logout } = useAuth();

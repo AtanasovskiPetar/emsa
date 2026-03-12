@@ -1,18 +1,20 @@
 import { eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import { users } from "../db/schema";
-import { signJwt } from "../lib/jwt";
-import { env } from "../lib/env";
-import { Role, Provider } from "../constants/enums";
+
+import { Provider, Role } from "../constants/enums";
 import { ApiRoutes } from "../constants/routes";
+import { users } from "../db/schema";
+import { db } from "../lib/db";
+import { env } from "../lib/env";
+import { signJwt } from "../lib/jwt";
+import { loginSchema, registerSchema } from "../lib/schemas";
 
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {
-  const { name, email, password } = await req.json();
-
-  if (!name || !email || !password) {
-    return Response.json({ error: "Name, email and password are required" }, { status: 400 });
+  const body = registerSchema.safeParse(await req.json());
+  if (!body.success) {
+    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
   }
+  const { name, email, password } = body.data;
 
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
@@ -36,11 +38,11 @@ async function register(req: Request): Promise<Response> {
 
 // POST /api/auth/login
 async function login(req: Request): Promise<Response> {
-  const { email, password } = await req.json();
-
-  if (!email || !password) {
-    return Response.json({ error: "Email and password are required" }, { status: 400 });
+  const body = loginSchema.safeParse(await req.json());
+  if (!body.success) {
+    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
   }
+  const { email, password } = body.data;
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 

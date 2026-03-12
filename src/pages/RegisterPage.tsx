@@ -1,12 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/context/auth";
-import { apiClient } from "@/lib/api-client";
-import { registerSchema, type RegisterSchema } from "@/lib/schemas";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -16,8 +13,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { Input } from "@/components/ui/input";
 import { Role } from "@/constants/enums";
+import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
+import { apiClient } from "@/lib/api-client";
+import { type RegisterSchema, registerSchema } from "@/lib/schemas";
 
 export function RegisterPage() {
   const { login } = useAuth();
@@ -107,10 +108,7 @@ export function RegisterPage() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link
-                  to={PageRoutes.LOGIN}
-                  className="font-medium text-foreground hover:underline"
-                >
+                <Link to={PageRoutes.LOGIN} className="font-medium text-foreground hover:underline">
                   Sign in
                 </Link>
               </p>

@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/auth";
-import { PageRoutes } from "@/constants/routes";
-import type { Role } from "@/constants/enums";
 import type { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+
+import type { Role } from "@/constants/enums";
+import { PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
 
 interface Props {
   children: ReactNode;
@@ -10,9 +11,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ children, requiredRole }: Props) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) return null;
+  const { user } = useAuth();
 
   if (!user) return <Navigate to={PageRoutes.LOGIN} replace />;
 

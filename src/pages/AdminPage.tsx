@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageRoutes } from "@/constants/routes";
+import { useAuth } from "@/context/auth";
 
 export function AdminPage() {
   const { user, logout } = useAuth();

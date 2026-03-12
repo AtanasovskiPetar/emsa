@@ -1,5 +1,6 @@
-import { drizzle } from "drizzle-orm/bun-sql";
 import { SQL } from "bun";
+import { drizzle } from "drizzle-orm/bun-sql";
+
 import { env } from "./env";
 
 const sql = new SQL({
