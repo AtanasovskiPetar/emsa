@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "active_member" boolean DEFAULT false NOT NULL;
