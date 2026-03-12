@@ -39,6 +39,9 @@ const AdminLayout = lazy(() =>
 const DashboardPage = lazy(() =>
   import("@/pages/admin/DashboardPage").then((m) => ({ default: m.DashboardPage }))
 );
+const UsersPage = lazy(() =>
+  import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage }))
+);
 
 export default function App() {
   return (
@@ -64,6 +67,14 @@ export default function App() {
                 >
                   <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
                   <Route path={PageRoutes.ADMIN_DASHBOARD_SEGMENT} element={<DashboardPage />} />
+                  <Route
+                    path={PageRoutes.ADMIN_USERS_SEGMENT}
+                    element={
+                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                        <UsersPage />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Route>
               </Routes>
             </Suspense>

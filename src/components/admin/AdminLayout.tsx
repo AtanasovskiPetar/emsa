@@ -1,7 +1,8 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
+import { hasAccess } from "@/components/ProtectedRoute";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +19,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
 
@@ -26,6 +28,13 @@ const navItems = [
     title: "Dashboard",
     url: PageRoutes.ADMIN_DASHBOARD,
     icon: LayoutDashboard,
+    requiredRole: Role.ADMIN,
+  },
+  {
+    title: "Users",
+    url: PageRoutes.ADMIN_USERS,
+    icon: Users,
+    requiredRole: Role.SUPER_ADMIN,
   },
 ];
 
@@ -67,19 +76,21 @@ export function AdminLayout() {
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
-                      <NavLink
-                        to={item.url}
-                        className={({ isActive }) => (isActive ? "font-medium" : "")}
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {navItems
+                  .filter((item) => user && hasAccess(user.role, item.requiredRole))
+                  .map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild tooltip={item.title}>
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) => (isActive ? "font-medium" : "")}
+                        >
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
