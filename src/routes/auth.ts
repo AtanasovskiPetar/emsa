@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { Provider, Role } from "../constants/enums";
+import { Role } from "../constants/enums";
 import { ApiRoutes, PageRoutes } from "../constants/routes";
 import { users } from "../db/schema";
 import { db } from "../lib/db";
@@ -25,7 +25,7 @@ async function register(req: Request): Promise<Response> {
 
   const [user] = await db
     .insert(users)
-    .values({ name, email, passwordHash, provider: Provider.CREDENTIALS, role: Role.USER })
+    .values({ name, email, passwordHash, role: Role.USER })
     .returning();
 
   if (!user) {
@@ -51,7 +51,7 @@ async function login(req: Request): Promise<Response> {
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-  if (!user || user.provider !== Provider.CREDENTIALS || !user.passwordHash) {
+  if (!user || !user.passwordHash) {
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
@@ -136,7 +136,6 @@ async function googleCallback(req: Request): Promise<Response> {
         name: profile.name,
         email: profile.email,
         googleId: profile.sub,
-        provider: Provider.GOOGLE,
         role: Role.USER,
       })
       .returning();
