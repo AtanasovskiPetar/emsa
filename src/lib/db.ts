@@ -1,5 +1,6 @@
 import { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
+import * as schema from "@/db/schema";
 
 import { env } from "./env";
 
@@ -11,4 +12,4 @@ const sql = new SQL({
   database: env.DB_NAME,
 });
 
-export const db = drizzle(sql, { schema: {}, logger: env.ENV === "development" });
+export const db = drizzle(sql, { schema, logger: env.ENV === "development" });

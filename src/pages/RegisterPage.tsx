@@ -19,7 +19,7 @@ import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { type RegisterSchema, registerSchema } from "@/lib/schemas";
+import { type RegisterSchema, registerSchema } from "@/constants/schemas";
 
 export function RegisterPage() {
   const { login } = useAuth();

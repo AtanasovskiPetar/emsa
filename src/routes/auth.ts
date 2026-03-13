@@ -6,7 +6,7 @@ import { users } from "../db/schema";
 import { db } from "../lib/db";
 import { env } from "../lib/env";
 import { signJwt } from "../lib/jwt";
-import { loginSchema, registerSchema } from "../lib/schemas";
+import { loginSchema, registerSchema } from "../constants/schemas";
 
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {

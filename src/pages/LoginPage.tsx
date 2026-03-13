@@ -19,7 +19,7 @@ import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { type LoginSchema, loginSchema } from "@/lib/schemas";
+import { type LoginSchema, loginSchema } from "@/constants/schemas";
 
 export function LoginPage() {
   const { login } = useAuth();

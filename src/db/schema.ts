@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { Role } from "@/constants/enums";
@@ -16,3 +17,16 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const pillars = pgTable("pillars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  directorId: uuid("director_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const pillarsRelations = relations(pillars, ({ one }) => ({
+  director: one(users, { fields: [pillars.directorId], references: [users.id] }),
+}));

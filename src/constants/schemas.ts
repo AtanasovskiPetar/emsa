@@ -1,0 +1,43 @@
+import { z } from "zod";
+
+import { Role } from "@/constants/enums";
+
+export const loginSchema = z.object({
+  email: z.email({ message: "Invalid email address" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+export type LoginSchema = z.infer<typeof loginSchema>;
+
+export const registerSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.email({ message: "Invalid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+});
+
+export type RegisterSchema = z.infer<typeof registerSchema>;
+
+export const updateUserSchema = z
+  .object({
+    role: z.enum(Object.values(Role) as [Role, ...Role[]]).optional(),
+    activeMember: z.boolean().optional(),
+  })
+  .refine((data) => data.role !== undefined || data.activeMember !== undefined, {
+    message: "At least one field must be provided",
+  });
+
+export type UpdateUserPayload = z.infer<typeof updateUserSchema>;
+
+export const pillarSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  directorId: z.uuid("Director must be a valid user"),
+});
+
+export const updatePillarSchema = pillarSchema.partial().refine(
+  (data) =>
+    data.name !== undefined || data.description !== undefined || data.directorId !== undefined,
+  { message: "At least one field must be provided" }
+);
+
+export type PillarFormValues = z.infer<typeof pillarSchema>;
