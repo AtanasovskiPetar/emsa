@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, Mountain, Users } from "lucide-react";
+import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
@@ -20,8 +22,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Role } from "@/constants/enums";
-import { PageRoutes } from "@/constants/routes";
+import { PageRoutes, ApiRoutes } from "@/constants/routes";
+import { type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { apiClient } from "@/lib/api-client";
 
 const navItems = [
   {
@@ -45,9 +49,20 @@ const navItems = [
 ];
 
 export function AdminLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const { data: profile } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
+  });
+
+  useEffect(() => {
+    if (profile?.imageUrl !== undefined) {
+      updateUser({ imageUrl: profile.imageUrl });
+    }
+  }, [profile?.imageUrl]);
 
   const pageTitle = navItems.find((item) => item.url === pathname)?.title ?? "Admin";
 

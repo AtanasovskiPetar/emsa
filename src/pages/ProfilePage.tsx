@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LogOut } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,10 +19,12 @@ import { Input } from "@/components/ui/input";
 import { ApiRoutes } from "@/constants/routes";
 import { updateMeSchema, type UpdateMePayload } from "@/constants/schemas";
 import { type UserProfile } from "@/constants/types";
+import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
+  const { logout, updateUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -81,12 +84,10 @@ export function ProfilePage() {
         onSuccess: (updated) => {
           setPendingFile(null);
           setPreviewUrl(null);
-          if (pendingFile && imageUrl) {
-            queryClient.setQueryData(["me"], {
-              ...updated,
-              imageUrl: `${imageUrl}?t=${Date.now()}`,
-            });
-          }
+          const finalImageUrl =
+            pendingFile && imageUrl ? `${imageUrl}?t=${Date.now()}` : updated.imageUrl;
+          queryClient.setQueryData(["me"], { ...updated, imageUrl: finalImageUrl });
+          updateUser({ name: updated.name, imageUrl: finalImageUrl });
         },
       }
     );
@@ -107,9 +108,15 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-sm text-muted-foreground">Manage your personal information</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Profile</h1>
+          <p className="text-sm text-muted-foreground">Manage your personal information</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={logout}>
+          <LogOut className="size-4" />
+          Log out
+        </Button>
       </div>
 
       <Card>

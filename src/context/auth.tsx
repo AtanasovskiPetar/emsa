@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: Role;
+  imageUrl: string | null;
 }
 
 interface AuthContextValue {
@@ -14,6 +15,7 @@ interface AuthContextValue {
   token: string | null;
   login: (token: string) => AuthUser | null;
   logout: () => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -21,7 +23,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function decodeToken(token: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role };
+    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role, imageUrl: null };
   } catch {
     return null;
   }
@@ -63,8 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  function updateUser(patch: Partial<AuthUser>) {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
