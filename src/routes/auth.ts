@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { Provider, Role } from "../constants/enums";
-import { ApiRoutes } from "../constants/routes";
+import { Role } from "../constants/enums";
+import { ApiRoutes, PageRoutes } from "../constants/routes";
 import { users } from "../db/schema";
 import { db } from "../lib/db";
 import { env } from "../lib/env";
@@ -25,14 +25,19 @@ async function register(req: Request): Promise<Response> {
 
   const [user] = await db
     .insert(users)
-    .values({ name, email, passwordHash, provider: Provider.CREDENTIALS, role: Role.USER })
+    .values({ name, email, passwordHash, role: Role.USER })
     .returning();
 
   if (!user) {
     return Response.json({ error: "Failed to create user" }, { status: 500 });
   }
 
-  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
+  const token = await signJwt({
+    sub: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
   return Response.json({ token }, { status: 201 });
 }
 
@@ -46,7 +51,7 @@ async function login(req: Request): Promise<Response> {
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-  if (!user || user.provider !== Provider.CREDENTIALS || !user.passwordHash) {
+  if (!user || !user.passwordHash) {
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
@@ -55,7 +60,12 @@ async function login(req: Request): Promise<Response> {
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
+  const token = await signJwt({
+    sub: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
   return Response.json({ token });
 }
 
@@ -126,7 +136,6 @@ async function googleCallback(req: Request): Promise<Response> {
         name: profile.name,
         email: profile.email,
         googleId: profile.sub,
-        provider: Provider.GOOGLE,
         role: Role.USER,
       })
       .returning();
@@ -144,8 +153,13 @@ async function googleCallback(req: Request): Promise<Response> {
     return Response.json({ error: "Failed to resolve user" }, { status: 500 });
   }
 
-  const token = await signJwt({ sub: user.id, email: user.email, role: user.role });
-  return Response.redirect(`/auth/callback?token=${token}`);
+  const token = await signJwt({
+    sub: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  });
+  return Response.redirect(`${PageRoutes.AUTH_CALLBACK}?token=${token}`);
 }
 
 export const authRoutes = {

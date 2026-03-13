@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
+import { hasAccess } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -38,7 +39,7 @@ export function LoginPage() {
     mutate(values, {
       onSuccess: ({ token }) => {
         const user = login(token);
-        navigate(user?.role === Role.ADMIN ? PageRoutes.ADMIN : PageRoutes.HOME);
+        navigate(user && hasAccess(user.role, Role.ADMIN) ? PageRoutes.ADMIN : PageRoutes.HOME);
       },
     });
   }

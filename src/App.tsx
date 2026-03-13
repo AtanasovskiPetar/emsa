@@ -3,7 +3,7 @@ import "@/index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -27,12 +27,20 @@ const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default:
 const RegisterPage = lazy(() =>
   import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
 );
-const AdminPage = lazy(() => import("@/pages/AdminPage").then((m) => ({ default: m.AdminPage })));
 const AuthCallbackPage = lazy(() =>
   import("@/pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage }))
 );
 const UnauthorizedPage = lazy(() =>
   import("@/pages/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage }))
+);
+const AdminLayout = lazy(() =>
+  import("@/components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout }))
+);
+const DashboardPage = lazy(() =>
+  import("@/pages/admin/DashboardPage").then((m) => ({ default: m.DashboardPage }))
+);
+const UsersPage = lazy(() =>
+  import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage }))
 );
 
 export default function App() {
@@ -46,16 +54,28 @@ export default function App() {
                 <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
                 <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
                 <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
+                <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+                <Route path={PageRoutes.HOME} element={<HomePage />} />
+
                 <Route
                   path={PageRoutes.ADMIN}
                   element={
                     <ProtectedRoute requiredRole={Role.ADMIN}>
-                      <AdminPage />
+                      <AdminLayout />
                     </ProtectedRoute>
                   }
-                />
-                <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
-                <Route path={PageRoutes.HOME} element={<HomePage />} />
+                >
+                  <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
+                  <Route path={PageRoutes.ADMIN_DASHBOARD_SEGMENT} element={<DashboardPage />} />
+                  <Route
+                    path={PageRoutes.ADMIN_USERS_SEGMENT}
+                    element={
+                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                        <UsersPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
               </Routes>
             </Suspense>
           </BrowserRouter>
