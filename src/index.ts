@@ -4,6 +4,7 @@ import index from "./index.html";
 import { env } from "./lib/env";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { userRoutes } from "./routes/users";
 
 const server = serve({
   port: env.PORT,
@@ -11,6 +12,7 @@ const server = serve({
     "/*": index,
     ...authRoutes,
     ...adminRoutes,
+    ...userRoutes,
   },
 
   development: process.env.NODE_ENV !== "production" && {

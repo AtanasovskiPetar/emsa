@@ -123,7 +123,12 @@ async function googleCallback(req: Request): Promise<Response> {
     return Response.json({ error: "Failed to fetch Google profile" }, { status: 502 });
   }
 
-  const profile = (await profileRes.json()) as { sub: string; email: string; name: string };
+  const profile = (await profileRes.json()) as {
+    sub: string;
+    email: string;
+    name: string;
+    picture?: string;
+  };
 
   const [existing] = await db.select().from(users).where(eq(users.email, profile.email)).limit(1);
 
@@ -136,6 +141,7 @@ async function googleCallback(req: Request): Promise<Response> {
         name: profile.name,
         email: profile.email,
         googleId: profile.sub,
+        imageUrl: profile.picture ?? null,
         role: Role.USER,
       })
       .returning();
@@ -143,7 +149,11 @@ async function googleCallback(req: Request): Promise<Response> {
   } else if (!user.googleId) {
     const [updated] = await db
       .update(users)
-      .set({ googleId: profile.sub, updatedAt: new Date() })
+      .set({
+        googleId: profile.sub,
+        imageUrl: user.imageUrl ?? profile.picture ?? null,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, user.id))
       .returning();
     user = updated;

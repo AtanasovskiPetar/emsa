@@ -22,4 +22,8 @@ export const env = {
   GOOGLE_CLIENT_ID: required("GOOGLE_CLIENT_ID"),
   GOOGLE_CLIENT_SECRET: required("GOOGLE_CLIENT_SECRET"),
   GOOGLE_REDIRECT_URI: required("GOOGLE_REDIRECT_URI"),
+  AWS_ACCESS_KEY_ID: required("AWS_ACCESS_KEY_ID"),
+  AWS_SECRET_ACCESS_KEY: required("AWS_SECRET_ACCESS_KEY"),
+  AWS_REGION: required("AWS_REGION"),
+  AWS_S3_BUCKET: required("AWS_S3_BUCKET"),
 } as const;

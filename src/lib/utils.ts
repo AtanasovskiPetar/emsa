@@ -7,10 +7,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const ROLE_HIERARCHY: Record<Role, number> = {
+  [Role.USER]: 0,
+  [Role.ADMIN]: 1,
+  [Role.SUPER_ADMIN]: 2,
+};
+
 export function hasAccess(userRole: Role, requiredRole: Role): boolean {
-  if (userRole === requiredRole) return true;
-  if (userRole === Role.SUPER_ADMIN) return true;
-  return false;
+  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {

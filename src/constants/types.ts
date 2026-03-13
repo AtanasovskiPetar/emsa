@@ -9,6 +9,16 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
 export interface Pillar {
   id: string;
   name: string;
