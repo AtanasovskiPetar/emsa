@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { hasAccess } from "@/components/ProtectedRoute";
+import { hasAccess } from "@/lib/utils";
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";

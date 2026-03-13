@@ -4,16 +4,11 @@ import { Navigate } from "react-router-dom";
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
+import { hasAccess } from "@/lib/utils";
 
 interface Props {
   children: ReactNode;
   requiredRole?: Role;
-}
-
-export function hasAccess(userRole: Role, requiredRole: Role): boolean {
-  if (userRole === requiredRole) return true;
-  if (userRole === Role.SUPER_ADMIN) return true;
-  return false;
 }
 
 export function ProtectedRoute({ children, requiredRole }: Props) {

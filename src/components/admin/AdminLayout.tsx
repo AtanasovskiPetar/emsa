@@ -2,7 +2,7 @@ import { LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
-import { hasAccess } from "@/components/ProtectedRoute";
+import { hasAccess } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
