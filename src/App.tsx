@@ -45,6 +45,9 @@ const UsersPage = lazy(() =>
 const PillarsPage = lazy(() =>
   import("@/pages/admin/PillarsPage").then((m) => ({ default: m.PillarsPage }))
 );
+const ProfilePage = lazy(() =>
+  import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage }))
+);
 
 export default function App() {
   return (
@@ -59,6 +62,14 @@ export default function App() {
                 <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                 <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
                 <Route path={PageRoutes.HOME} element={<HomePage />} />
+                <Route
+                  path={PageRoutes.PROFILE}
+                  element={
+                    <ProtectedRoute requiredRole={Role.USER}>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
                   path={PageRoutes.ADMIN}

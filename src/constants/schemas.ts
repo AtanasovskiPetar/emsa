@@ -41,3 +41,18 @@ export const updatePillarSchema = pillarSchema.partial().refine(
 );
 
 export type PillarFormValues = z.infer<typeof pillarSchema>;
+
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+export const updateMeSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
+    phone: z.string().min(1).optional().nullable(),
+    imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
+  })
+  .refine(
+    (data) => data.name !== undefined || data.phone !== undefined || data.imageUrl !== undefined,
+    { message: "At least one field must be provided" }
+  );
+
+export type UpdateMePayload = z.infer<typeof updateMeSchema>;

@@ -1,12 +1,17 @@
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import type { Role } from "@/constants/enums";
+import { ApiRoutes } from "@/constants/routes";
+import type { UserProfile } from "@/constants/types";
+import { ApiError, apiClient } from "@/lib/api-client";
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   role: Role;
+  imageUrl: string | null;
 }
 
 interface AuthContextValue {
@@ -14,6 +19,7 @@ interface AuthContextValue {
   token: string | null;
   login: (token: string) => AuthUser | null;
   logout: () => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -21,7 +27,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function decodeToken(token: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role };
+    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role, imageUrl: null };
   } catch {
     return null;
   }
@@ -48,6 +54,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
 
+  const { data: meData, error: meError } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
+    enabled: !!token,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (!meData) return;
+    setUser((prev) => (prev ? { ...prev, name: meData.name, imageUrl: meData.imageUrl } : prev));
+  }, [meData]);
+
+  useEffect(() => {
+    if (!meError) return;
+    if (meError instanceof ApiError && meError.status === 401) {
+      localStorage.removeItem("token");
+      setToken(null);
+      setUser(null);
+    }
+  }, [meError]);
+
   function login(newToken: string): AuthUser | null {
     const decoded = decodeToken(newToken);
     if (!decoded) return null;
@@ -63,8 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

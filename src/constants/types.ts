@@ -6,6 +6,17 @@ export interface AdminUser {
   email: string;
   role: Role;
   activeMember: boolean;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone: string | null;
+  imageUrl: string | null;
   createdAt: string;
 }
 

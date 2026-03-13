@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   googleId: varchar("google_id", { length: 255 }).unique(),
   phone: varchar("phone", { length: 50 }).unique(),
   role: roleEnum("role").notNull().default(Role.USER),
+  imageUrl: varchar("image_url", { length: 2048 }),
   activeMember: boolean("active_member").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

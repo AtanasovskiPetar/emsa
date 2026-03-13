@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
+import { UserAvatar } from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,7 +65,12 @@ function useColumns(
     {
       accessorKey: "name",
       header: "Name",
-      cell: ({ row }) => <span className="font-medium">{row.getValue("name")}</span>,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <UserAvatar name={row.original.name} imageUrl={row.original.imageUrl} className="size-7" />
+          <span className="font-medium">{row.getValue("name")}</span>
+        </div>
+      ),
     },
     {
       accessorKey: "email",

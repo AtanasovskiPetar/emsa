@@ -8,6 +8,17 @@ import { env } from "@/lib/env";
 import { signJwt } from "@/lib/jwt";
 import { loginSchema, registerSchema } from "@/constants/schemas";
 
+const OAUTH_STATE_COOKIE = "oauth_state";
+
+function parseCookies(header: string): Record<string, string> {
+  return Object.fromEntries(
+    header.split(";").map((c) => {
+      const [k, ...v] = c.trim().split("=");
+      return [k?.trim() ?? "", v.join("=")];
+    })
+  );
+}
+
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {
   const body = registerSchema.safeParse(await req.json());
@@ -76,6 +87,8 @@ function logout(_req: Request): Response {
 
 // GET /api/auth/google
 function googleRedirect(_req: Request): Response {
+  const state = crypto.randomUUID();
+
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: env.GOOGLE_REDIRECT_URI,
@@ -83,15 +96,30 @@ function googleRedirect(_req: Request): Response {
     scope: "openid email profile",
     access_type: "offline",
     prompt: "consent",
+    state,
   });
 
-  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
+      "Set-Cookie": `${OAUTH_STATE_COOKIE}=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
+    },
+  });
 }
 
 // GET /api/auth/google/callback
 async function googleCallback(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+
+  const cookies = parseCookies(req.headers.get("Cookie") ?? "");
+  const storedState = cookies[OAUTH_STATE_COOKIE];
+
+  if (!state || !storedState || state !== storedState) {
+    return Response.json({ error: "Invalid state parameter" }, { status: 400 });
+  }
 
   if (!code) {
     return Response.json({ error: "Missing authorization code" }, { status: 400 });
@@ -123,7 +151,12 @@ async function googleCallback(req: Request): Promise<Response> {
     return Response.json({ error: "Failed to fetch Google profile" }, { status: 502 });
   }
 
-  const profile = (await profileRes.json()) as { sub: string; email: string; name: string };
+  const profile = (await profileRes.json()) as {
+    sub: string;
+    email: string;
+    name: string;
+    picture?: string;
+  };
 
   const [existing] = await db.select().from(users).where(eq(users.email, profile.email)).limit(1);
 
@@ -136,6 +169,7 @@ async function googleCallback(req: Request): Promise<Response> {
         name: profile.name,
         email: profile.email,
         googleId: profile.sub,
+        imageUrl: profile.picture ?? null,
         role: Role.USER,
       })
       .returning();
@@ -143,7 +177,11 @@ async function googleCallback(req: Request): Promise<Response> {
   } else if (!user.googleId) {
     const [updated] = await db
       .update(users)
-      .set({ googleId: profile.sub, updatedAt: new Date() })
+      .set({
+        googleId: profile.sub,
+        imageUrl: user.imageUrl ?? profile.picture ?? null,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, user.id))
       .returning();
     user = updated;
@@ -159,7 +197,13 @@ async function googleCallback(req: Request): Promise<Response> {
     email: user.email,
     role: user.role,
   });
-  return Response.redirect(`${PageRoutes.AUTH_CALLBACK}?token=${token}`);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${PageRoutes.AUTH_CALLBACK}#token=${token}`,
+      "Set-Cookie": `${OAUTH_STATE_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+    },
+  });
 }
 
 export const authRoutes = {
