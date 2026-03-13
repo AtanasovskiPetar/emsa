@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,7 +21,6 @@ import { ALLOWED_IMAGE_TYPES, updateMeSchema, type UpdateMePayload } from "@/con
 import { type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { getInitials } from "@/lib/utils";
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
@@ -118,10 +117,7 @@ export function ProfilePage() {
           <CardDescription>Click to upload a new profile picture</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
-          <Avatar className="size-20">
-            <AvatarImage src={previewUrl ?? profile.imageUrl ?? undefined} alt={profile.name} />
-            <AvatarFallback className="text-lg">{getInitials(profile.name)}</AvatarFallback>
-          </Avatar>
+          <UserAvatar name={profile.name} imageUrl={previewUrl ?? profile.imageUrl} className="size-20 text-lg" />
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"

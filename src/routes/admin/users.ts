@@ -13,6 +13,7 @@ const userColumns = {
   email: users.email,
   role: users.role,
   activeMember: users.activeMember,
+  imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
 

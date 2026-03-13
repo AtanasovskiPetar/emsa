@@ -6,6 +6,7 @@ export interface AdminUser {
   email: string;
   role: Role;
   activeMember: boolean;
+  imageUrl: string | null;
   createdAt: string;
 }
 
