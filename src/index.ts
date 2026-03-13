@@ -8,32 +8,9 @@ import { authRoutes } from "./routes/auth";
 const server = serve({
   port: env.PORT,
   routes: {
-    // Serve index.html for all unmatched routes.
     "/*": index,
-
     ...authRoutes,
     ...adminRoutes,
-    "/api/hello": {
-      async GET(_req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "GET",
-        });
-      },
-      async PUT(_req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "PUT",
-        });
-      },
-    },
-
-    "/api/hello/:name": async (req) => {
-      const name = req.params.name;
-      return Response.json({
-        message: `Hello, ${name}!`,
-      });
-    },
   },
 
   development: process.env.NODE_ENV !== "production" && {

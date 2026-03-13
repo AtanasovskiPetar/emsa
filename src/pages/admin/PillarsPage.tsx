@@ -7,9 +7,20 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -27,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -36,30 +46,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Role } from "@/constants/enums";
+import { PillarDialog } from "@/components/admin/PillarDialog";
 import { ApiRoutes } from "@/constants/routes";
-import { type UpdateUserPayload } from "@/constants/schemas";
-import { type AdminUser } from "@/constants/types";
+import { type PillarFormValues } from "@/constants/schemas";
+import { type AdminUser, type Pillar } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 import { getPageNumbers } from "@/lib/utils";
-
-const ROLE_LABELS: Record<Role, string> = {
-  [Role.USER]: "User",
-  [Role.ADMIN]: "Admin",
-  [Role.SUPER_ADMIN]: "Super Admin",
-};
-
-const ROLE_BADGE_VARIANT: Record<Role, "default" | "secondary" | "outline"> = {
-  [Role.USER]: "outline",
-  [Role.ADMIN]: "secondary",
-  [Role.SUPER_ADMIN]: "default",
-};
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function useColumns(
-  updateUser: (args: { id: string; payload: UpdateUserPayload }) => void
-): ColumnDef<AdminUser>[] {
+  onEdit: (pillar: Pillar) => void,
+  onDelete: (pillar: Pillar) => void
+): ColumnDef<Pillar>[] {
   return [
     {
       accessorKey: "name",
@@ -67,82 +66,113 @@ function useColumns(
       cell: ({ row }) => <span className="font-medium">{row.getValue("name")}</span>,
     },
     {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.getValue("email")}</span>,
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const role = row.getValue<Role>("role");
-        return (
-          <Select
-            value={role}
-            onValueChange={(value) =>
-              updateUser({ id: row.original.id, payload: { role: value as Role } })
-            }
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue>
-                <Badge variant={ROLE_BADGE_VARIANT[role]}>{ROLE_LABELS[role]}</Badge>
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.values(Role).map((r) => (
-                <SelectItem key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-      },
-    },
-    {
-      accessorKey: "activeMember",
-      header: "Active Member",
+      accessorKey: "description",
+      header: "Description",
       cell: ({ row }) => (
-        <Switch
-          checked={row.getValue("activeMember")}
-          onCheckedChange={(checked) =>
-            updateUser({ id: row.original.id, payload: { activeMember: checked } })
-          }
-        />
+        <span className="line-clamp-2 max-w-xs text-sm text-muted-foreground">
+          {row.getValue("description")}
+        </span>
       ),
     },
     {
+      accessorKey: "directorName",
+      header: "Director",
+      cell: ({ row }) => <span className="text-sm">{row.getValue("directorName") ?? "—"}</span>,
+    },
+    {
       accessorKey: "createdAt",
-      header: "Joined",
+      header: "Created",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {new Date(row.getValue<string>("createdAt")).toLocaleDateString()}
         </span>
       ),
     },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(row.original)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      ),
+    },
   ];
 }
 
-export function UsersPage() {
+export function PillarsPage() {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingPillar, setEditingPillar] = useState<Pillar | undefined>(undefined);
+  const [deletingPillar, setDeletingPillar] = useState<Pillar | undefined>(undefined);
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: pillars = [], isLoading } = useQuery({
+    queryKey: ["admin", "pillars"],
+    queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
+  });
+
+  const { data: users = [] } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
   });
 
-  const { mutate: updateUser } = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
-      apiClient.patch<AdminUser>(`${ApiRoutes.ADMIN_USERS}/${id}`, payload),
+  const { mutate: createPillar, isPending: isCreating } = useMutation({
+    mutationFn: (body: PillarFormValues) => apiClient.post<Pillar>(ApiRoutes.ADMIN_PILLARS, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
+      setDialogOpen(false);
     },
   });
 
-  const columns = useColumns(updateUser);
+  const { mutate: updatePillar, isPending: isUpdating } = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: PillarFormValues }) =>
+      apiClient.patch<Pillar>(`${ApiRoutes.ADMIN_PILLARS}/${id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
+      setDialogOpen(false);
+    },
+  });
+
+  const { mutate: deletePillar, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`${ApiRoutes.ADMIN_PILLARS}/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
+      setDeletingPillar(undefined);
+    },
+  });
+
+  function handleEdit(pillar: Pillar) {
+    setEditingPillar(pillar);
+    setDialogOpen(true);
+  }
+
+  function handleDialogOpenChange(open: boolean) {
+    setDialogOpen(open);
+    if (!open) setEditingPillar(undefined);
+  }
+
+  function handleSubmit(values: PillarFormValues) {
+    if (editingPillar) {
+      updatePillar({ id: editingPillar.id, body: values });
+    } else {
+      createPillar(values);
+    }
+  }
+
+  const columns = useColumns(handleEdit, setDeletingPillar);
 
   const table = useReactTable({
-    data: users,
+    data: pillars,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -157,29 +187,35 @@ export function UsersPage() {
 
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading users...</div>;
+    return <div className="text-sm text-muted-foreground">Loading pillars...</div>;
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Users</h2>
+          <h2 className="text-lg font-semibold">Pillars</h2>
           <p className="text-sm text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} of {users.length} users
+            {table.getFilteredRowModel().rows.length} of {pillars.length} pillars
           </p>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or email..."
-            value={(table.getState().globalFilter as string) ?? ""}
-            onChange={(e) => {
-              table.setGlobalFilter(e.target.value);
-              table.setPageIndex(0);
-            }}
-            className="pl-8"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Search pillars..."
+              value={(table.getState().globalFilter as string) ?? ""}
+              onChange={(e) => {
+                table.setGlobalFilter(e.target.value);
+                table.setPageIndex(0);
+              }}
+              className="pl-8"
+            />
+          </div>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="size-4" />
+            New Pillar
+          </Button>
         </div>
       </div>
 
@@ -203,7 +239,7 @@ export function UsersPage() {
                   colSpan={columns.length}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No users found.
+                  No pillars found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -252,13 +288,10 @@ export function UsersPage() {
                   onClick={() => table.previousPage()}
                   aria-disabled={!table.getCanPreviousPage()}
                   className={
-                    !table.getCanPreviousPage()
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                    !table.getCanPreviousPage() ? "pointer-events-none opacity-50" : "cursor-pointer"
                   }
                 />
               </PaginationItem>
-
               {getPageNumbers(totalPages, currentPage).map((n, i) =>
                 n === "ellipsis" ? (
                   <PaginationItem key={`ellipsis-${i}`}>
@@ -276,7 +309,6 @@ export function UsersPage() {
                   </PaginationItem>
                 )
               )}
-
               <PaginationItem>
                 <PaginationNext
                   onClick={() => table.nextPage()}
@@ -290,6 +322,40 @@ export function UsersPage() {
           </Pagination>
         )}
       </div>
+
+      <PillarDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        pillar={editingPillar}
+        users={users}
+        onSubmit={handleSubmit}
+        isPending={isCreating || isUpdating}
+      />
+
+      <AlertDialog
+        open={!!deletingPillar}
+        onOpenChange={(open) => !open && setDeletingPillar(undefined)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Pillar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deletingPillar?.name}</strong>? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => deletingPillar && deletePillar(deletingPillar.id)}
+              disabled={isDeleting}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

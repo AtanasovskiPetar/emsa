@@ -1,8 +1,8 @@
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
-import { hasAccess } from "@/components/ProtectedRoute";
+import { hasAccess } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,12 @@ const navItems = [
     title: "Users",
     url: PageRoutes.ADMIN_USERS,
     icon: Users,
+    requiredRole: Role.SUPER_ADMIN,
+  },
+  {
+    title: "Pillars",
+    url: PageRoutes.ADMIN_PILLARS,
+    icon: Mountain,
     requiredRole: Role.SUPER_ADMIN,
   },
 ];

@@ -1,5 +1,6 @@
 import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 
+import { type Role } from "@/constants/enums";
 import { env } from "./env";
 
 const secret = new TextEncoder().encode(env.JWT_SECRET);
@@ -8,7 +9,7 @@ export interface JwtUser extends JWTPayload {
   sub: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
 }
 
 export async function signJwt(payload: Omit<JwtUser, keyof JWTPayload>): Promise<string> {

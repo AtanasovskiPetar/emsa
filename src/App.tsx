@@ -42,6 +42,9 @@ const DashboardPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage }))
 );
+const PillarsPage = lazy(() =>
+  import("@/pages/admin/PillarsPage").then((m) => ({ default: m.PillarsPage }))
+);
 
 export default function App() {
   return (
@@ -72,6 +75,14 @@ export default function App() {
                     element={
                       <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
                         <UsersPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={PageRoutes.ADMIN_PILLARS_SEGMENT}
+                    element={
+                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                        <PillarsPage />
                       </ProtectedRoute>
                     }
                   />
