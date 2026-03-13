@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 
 import type { Role } from "@/constants/enums";
 
@@ -65,9 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  function updateUser(patch: Partial<AuthUser>) {
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...patch } : prev));
-  }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>

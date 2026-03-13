@@ -42,6 +42,8 @@ export const updatePillarSchema = pillarSchema.partial().refine(
 
 export type PillarFormValues = z.infer<typeof pillarSchema>;
 
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 export const updateMeSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),

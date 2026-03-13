@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { updateMeSchema } from "@/constants/schemas";
+import { ALLOWED_IMAGE_TYPES, updateMeSchema } from "@/constants/schemas";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { parseBody, withRole } from "@/lib/middleware";
@@ -48,8 +48,7 @@ const getPresignedUrl = withRole(Role.USER, async (req, user) => {
   const url = new URL(req.url);
   const contentType = url.searchParams.get("contentType") ?? "image/jpeg";
 
-  const allowed = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowed.includes(contentType)) {
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
     return Response.json({ error: "Unsupported image type" }, { status: 400 });
   }
 

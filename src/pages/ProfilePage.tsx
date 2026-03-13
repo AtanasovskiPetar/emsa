@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ApiRoutes } from "@/constants/routes";
-import { updateMeSchema, type UpdateMePayload } from "@/constants/schemas";
+import { ALLOWED_IMAGE_TYPES, updateMeSchema, type UpdateMePayload } from "@/constants/schemas";
 import { type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { getInitials } from "@/lib/utils";
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
@@ -30,6 +31,12 @@ export function ProfilePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const { data: profile, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
@@ -38,16 +45,11 @@ export function ProfilePage() {
   const { mutate: updateMe, isPending } = useMutation({
     mutationFn: (payload: UpdateMePayload) =>
       apiClient.patch<UserProfile>(ApiRoutes.USERS_ME, payload),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["me"], updated);
-    },
   });
 
   const form = useForm<UpdateMePayload>({
     resolver: zodResolver(updateMeSchema),
-    values: profile
-      ? { name: profile.name, phone: profile.phone ?? undefined, imageUrl: profile.imageUrl ?? undefined }
-      : undefined,
+    values: profile ? { name: profile.name, phone: profile.phone ?? undefined } : undefined,
   });
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -59,7 +61,8 @@ export function ProfilePage() {
   }
 
   async function handleSubmit(values: UpdateMePayload) {
-    let imageUrl = values.imageUrl;
+    const payload: UpdateMePayload = { name: values.name, phone: values.phone };
+    let uploadedImageUrl: string | null = null;
 
     if (pendingFile) {
       setIsUploading(true);
@@ -67,30 +70,32 @@ export function ProfilePage() {
         const { uploadUrl, fileUrl } = await apiClient.get<{ uploadUrl: string; fileUrl: string }>(
           `${ApiRoutes.UPLOAD_PRESIGNED}?contentType=${encodeURIComponent(pendingFile.type)}`
         );
-        await fetch(uploadUrl, {
+        const res = await fetch(uploadUrl, {
           method: "PUT",
           body: pendingFile,
           headers: { "Content-Type": pendingFile.type },
         });
-        imageUrl = fileUrl;
-      } finally {
+        if (!res.ok) throw new Error("Upload failed");
+        uploadedImageUrl = fileUrl;
+        payload.imageUrl = fileUrl;
+      } catch {
         setIsUploading(false);
+        return;
       }
+      setIsUploading(false);
     }
 
-    updateMe(
-      { ...values, imageUrl },
-      {
-        onSuccess: (updated) => {
-          setPendingFile(null);
-          setPreviewUrl(null);
-          const finalImageUrl =
-            pendingFile && imageUrl ? `${imageUrl}?t=${Date.now()}` : updated.imageUrl;
-          queryClient.setQueryData(["me"], { ...updated, imageUrl: finalImageUrl });
-          updateUser({ name: updated.name, imageUrl: finalImageUrl });
-        },
-      }
-    );
+    updateMe(payload, {
+      onSuccess: (updated) => {
+        setPendingFile(null);
+        setPreviewUrl(null);
+        const finalImageUrl = uploadedImageUrl
+          ? `${uploadedImageUrl}?t=${Date.now()}`
+          : updated.imageUrl;
+        queryClient.setQueryData(["me"], { ...updated, imageUrl: finalImageUrl });
+        updateUser({ name: updated.name, imageUrl: finalImageUrl });
+      },
+    });
   }
 
   if (isLoading) {
@@ -98,13 +103,6 @@ export function ProfilePage() {
   }
 
   if (!profile) return null;
-
-  const initials = profile.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -127,7 +125,7 @@ export function ProfilePage() {
         <CardContent className="flex items-center gap-4">
           <Avatar className="size-20">
             <AvatarImage src={previewUrl ?? profile.imageUrl ?? undefined} alt={profile.name} />
-            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+            <AvatarFallback className="text-lg">{getInitials(profile.name)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-2">
             <Button
@@ -143,7 +141,7 @@ export function ProfilePage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={ALLOWED_IMAGE_TYPES.join(",")}
             className="hidden"
             onChange={handleAvatarChange}
           />
@@ -157,10 +155,7 @@ export function ProfilePage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleSubmit)}
-              className="space-y-4"
-            >
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -181,11 +176,7 @@ export function ProfilePage() {
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value ?? ""}
-                        placeholder="+1 234 567 8900"
-                      />
+                      <Input {...field} value={field.value ?? ""} placeholder="+1 234 567 8900" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

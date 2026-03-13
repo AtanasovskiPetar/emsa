@@ -59,10 +59,10 @@ export function AdminLayout() {
   });
 
   useEffect(() => {
-    if (profile?.imageUrl !== undefined) {
+    if (profile?.imageUrl !== undefined && profile.imageUrl !== user?.imageUrl) {
       updateUser({ imageUrl: profile.imageUrl });
     }
-  }, [profile?.imageUrl]);
+  }, [profile?.imageUrl, user?.imageUrl, updateUser]);
 
   const pageTitle = navItems.find((item) => item.url === pathname)?.title ?? "Admin";
 
