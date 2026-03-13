@@ -62,7 +62,6 @@ export function ProfilePage() {
 
   async function handleSubmit(values: UpdateMePayload) {
     const payload: UpdateMePayload = { name: values.name, phone: values.phone };
-    let uploadedImageUrl: string | null = null;
 
     if (pendingFile) {
       setIsUploading(true);
@@ -76,7 +75,6 @@ export function ProfilePage() {
           headers: { "Content-Type": pendingFile.type },
         });
         if (!res.ok) throw new Error("Upload failed");
-        uploadedImageUrl = fileUrl;
         payload.imageUrl = fileUrl;
       } catch {
         setIsUploading(false);
@@ -89,11 +87,8 @@ export function ProfilePage() {
       onSuccess: (updated) => {
         setPendingFile(null);
         setPreviewUrl(null);
-        const finalImageUrl = uploadedImageUrl
-          ? `${uploadedImageUrl}?t=${Date.now()}`
-          : updated.imageUrl;
-        queryClient.setQueryData(["me"], { ...updated, imageUrl: finalImageUrl });
-        updateUser({ name: updated.name, imageUrl: finalImageUrl });
+        queryClient.setQueryData(["me"], updated);
+        updateUser({ name: updated.name, imageUrl: updated.imageUrl });
       },
     });
   }

@@ -1,6 +1,10 @@
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import type { Role } from "@/constants/enums";
+import { ApiRoutes } from "@/constants/routes";
+import type { UserProfile } from "@/constants/types";
+import { ApiError, apiClient } from "@/lib/api-client";
 
 export interface AuthUser {
   id: string;
@@ -49,6 +53,28 @@ function getStoredUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
+
+  const { data: meData, error: meError } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
+    enabled: !!token,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (!meData) return;
+    setUser((prev) => (prev ? { ...prev, name: meData.name, imageUrl: meData.imageUrl } : prev));
+  }, [meData]);
+
+  useEffect(() => {
+    if (!meError) return;
+    if (meError instanceof ApiError && meError.status === 401) {
+      localStorage.removeItem("token");
+      setToken(null);
+      setUser(null);
+    }
+  }, [meError]);
 
   function login(newToken: string): AuthUser | null {
     const decoded = decodeToken(newToken);
