@@ -51,6 +51,7 @@ import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { getPageNumbers } from "@/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -139,7 +140,6 @@ export function PillarsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
       setDialogOpen(false);
-      setEditingPillar(undefined);
     },
   });
 
@@ -185,13 +185,6 @@ export function PillarsPage() {
   const totalPages = table.getPageCount();
   const currentPage = pageIndex + 1;
 
-  function getPageNumbers(): (number | "ellipsis")[] {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
-    if (currentPage >= totalPages - 3)
-      return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-    return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
-  }
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading pillars...</div>;
@@ -299,7 +292,7 @@ export function PillarsPage() {
                   }
                 />
               </PaginationItem>
-              {getPageNumbers().map((n, i) =>
+              {getPageNumbers(totalPages, currentPage).map((n, i) =>
                 n === "ellipsis" ? (
                   <PaginationItem key={`ellipsis-${i}`}>
                     <PaginationEllipsis />

@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
 
-import { Role } from "../../constants/enums";
-import { ApiRoutes } from "../../constants/routes";
-import { pillarSchema, updatePillarSchema } from "../../constants/schemas";
-import { pillars, users } from "../../db/schema";
-import { db } from "../../lib/db";
-import { withRole } from "../../lib/middleware";
+import { Role } from "@/constants/enums";
+import { ApiRoutes } from "@/constants/routes";
+import { pillarSchema, updatePillarSchema } from "@/constants/schemas";
+import { pillars, users } from "@/db/schema";
+import { db } from "@/lib/db";
+import { parseBody, withRole } from "@/lib/middleware";
 
 const getPillars = withRole(Role.SUPER_ADMIN, async () => {
   const rows = await db
@@ -26,12 +26,9 @@ const getPillars = withRole(Role.SUPER_ADMIN, async () => {
 });
 
 const createPillar = withRole(Role.SUPER_ADMIN, async (req) => {
-  const body = pillarSchema.safeParse(await req.json());
-  if (!body.success) {
-    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
-  }
+  const data = await parseBody(req, pillarSchema);
 
-  const [pillar] = await db.insert(pillars).values(body.data).returning();
+  const [pillar] = await db.insert(pillars).values(data).returning();
   if (!pillar) {
     return Response.json({ error: "Failed to create pillar" }, { status: 500 });
   }
@@ -41,15 +38,11 @@ const createPillar = withRole(Role.SUPER_ADMIN, async (req) => {
 
 const updatePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
-
-  const body = updatePillarSchema.safeParse(await req.json());
-  if (!body.success) {
-    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
-  }
+  const data = await parseBody(req, updatePillarSchema);
 
   const [updated] = await db
     .update(pillars)
-    .set({ ...body.data, updatedAt: new Date() })
+    .set({ ...data, updatedAt: new Date() })
     .where(eq(pillars.id, id))
     .returning();
 

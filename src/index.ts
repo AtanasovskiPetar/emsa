@@ -2,7 +2,7 @@ import { serve } from "bun";
 
 import index from "./index.html";
 import { env } from "./lib/env";
-import { adminRoutes } from "./routes/admin/index";
+import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 
 const server = serve({
