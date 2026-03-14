@@ -34,6 +34,7 @@ export const ApiRoutes = {
   ADMIN_DASHBOARD: "/api/admin/dashboard",
   ADMIN_ORGANIZATION: "/api/admin/organization",
   ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",
+  ORGANIZATION: "/api/organization",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;

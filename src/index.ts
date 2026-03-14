@@ -4,6 +4,7 @@ import index from "./index.html";
 import { env } from "./lib/env";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { organizationRoutes } from "./routes/organization";
 import { userRoutes } from "./routes/users";
 
 const server = serve({
@@ -11,6 +12,7 @@ const server = serve({
   routes: {
     "/*": index,
     ...authRoutes,
+    ...organizationRoutes,
     ...adminRoutes,
     ...userRoutes,
   },

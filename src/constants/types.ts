@@ -38,6 +38,11 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface OrganizationPublic {
+  name: string;
+  logoUrl: string | null;
+}
+
 export interface Organization {
   id: number;
   name: string;

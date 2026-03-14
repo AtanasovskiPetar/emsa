@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Building2, FolderOpen, House, LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -20,9 +21,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Role } from "@/constants/enums";
-import { PageRoutes } from "@/constants/routes";
+import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
-import { hasAccess } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
+import { cn, hasAccess } from "@/lib/utils";
 
 const navItems = [
   {
@@ -104,6 +107,11 @@ export function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { data: org } = useQuery({
+    queryKey: ["organization"],
+    queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
+    staleTime: Infinity,
+  });
 
   const pageTitle = navItems.find((item) => item.url === pathname)?.title ?? "Admin";
 
@@ -120,8 +128,17 @@ export function AdminLayout() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <NavLink to={PageRoutes.ADMIN_DASHBOARD}>
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <LayoutDashboard className="size-4" />
+                  <div
+                    className={cn(
+                      "flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg text-sidebar-primary-foreground",
+                      !org?.logoUrl && "bg-sidebar-primary"
+                    )}
+                  >
+                    {org?.logoUrl ? (
+                      <img src={org.logoUrl} alt="Logo" className="size-full object-cover" />
+                    ) : (
+                      <LayoutDashboard className="size-4" />
+                    )}
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
                     <span className="font-semibold">Admin Panel</span>
