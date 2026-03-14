@@ -53,8 +53,11 @@ const getPresignedUrl = withRole(Role.USER, async (req, user) => {
   }
 
   const ext = contentType.split("/")[1] ?? "jpg";
-  const result = await getPresignedUploadUrl(`avatars/${user.sub}.${ext}`, contentType);
-  return Response.json(result);
+  const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
+    `avatars/${user.sub}.${ext}`,
+    contentType
+  );
+  return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
 });
 
 export const userRoutes = {
