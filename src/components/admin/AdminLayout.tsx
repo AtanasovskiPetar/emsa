@@ -1,4 +1,4 @@
-import { FolderOpen, LayoutDashboard, Mountain, Users } from "lucide-react";
+import { Building2, FolderOpen, LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
@@ -30,6 +30,12 @@ const navItems = [
     url: PageRoutes.ADMIN_DASHBOARD,
     icon: LayoutDashboard,
     requiredRole: Role.ADMIN,
+  },
+  {
+    title: "Organization",
+    url: PageRoutes.ADMIN_ORGANIZATION,
+    icon: Building2,
+    requiredRole: Role.SUPER_ADMIN,
   },
   {
     title: "Users",

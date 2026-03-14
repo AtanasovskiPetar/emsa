@@ -10,6 +10,7 @@ import {
 import { ImageIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { ProjectDialog } from "@/components/admin/ProjectDialog";
 import {
   AlertDialog,
@@ -25,22 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -52,16 +37,7 @@ import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
 import { type Project } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
-import { getPageNumbers } from "@/lib/utils";
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { stripHtml } from "@/lib/utils";
 
 function useColumns(
   onEdit: (project: Project) => void,
@@ -204,12 +180,8 @@ export function ProjectsPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: "includesString",
-    initialState: { pagination: { pageSize: PAGE_SIZE_OPTIONS[0] } },
+    initialState: { pagination: { pageSize: 10 } },
   });
-
-  const { pageIndex, pageSize } = table.getState().pagination;
-  const totalPages = table.getPageCount();
-  const currentPage = pageIndex + 1;
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading projects...</div>;
@@ -282,73 +254,7 @@ export function ProjectsPage() {
         </Table>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Rows per page</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value));
-              table.setPageIndex(0);
-            }}
-          >
-            <SelectTrigger className="w-16">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {totalPages > 1 && (
-          <Pagination className="mx-0 w-auto">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => table.previousPage()}
-                  aria-disabled={!table.getCanPreviousPage()}
-                  className={
-                    !table.getCanPreviousPage()
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-              {getPageNumbers(totalPages, currentPage).map((n, i) =>
-                n === "ellipsis" ? (
-                  <PaginationItem key={`ellipsis-${i}`}>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={n}>
-                    <PaginationLink
-                      isActive={n === currentPage}
-                      onClick={() => table.setPageIndex(n - 1)}
-                      className="cursor-pointer"
-                    >
-                      {n}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => table.nextPage()}
-                  aria-disabled={!table.getCanNextPage()}
-                  className={
-                    !table.getCanNextPage() ? "pointer-events-none opacity-50" : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
-      </div>
+      <DataTablePagination table={table} />
 
       <ProjectDialog
         open={dialogOpen}

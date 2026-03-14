@@ -50,6 +50,20 @@
       "when": 1773482431021,
       "tag": "0006_safe_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773518744674,
+      "tag": "0007_futuristic_harpoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773520659557,
+      "tag": "0008_glorious_sentinel",
+      "breakpoints": true
     }
   ]
 }

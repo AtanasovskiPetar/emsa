@@ -11,6 +11,8 @@ export const PageRoutes = {
   ADMIN_PILLARS_SEGMENT: "pillars",
   ADMIN_PROJECTS: "/admin/projects",
   ADMIN_PROJECTS_SEGMENT: "projects",
+  ADMIN_ORGANIZATION: "/admin/organization",
+  ADMIN_ORGANIZATION_SEGMENT: "organization",
   PROFILE: "/profile",
   UNAUTHORIZED: "/unauthorized",
   AUTH_CALLBACK: "/auth/callback",
@@ -29,6 +31,8 @@ export const ApiRoutes = {
   ADMIN_PROJECTS: "/api/admin/projects",
   ADMIN_PROJECT_BY_ID: "/api/admin/projects/:id",
   ADMIN_PROJECTS_UPLOAD: "/api/admin/projects/upload",
+  ADMIN_ORGANIZATION: "/api/admin/organization",
+  ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;

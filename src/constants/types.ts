@@ -1,5 +1,10 @@
 import type { Role } from "@/constants/enums";
 
+export type ImageEntry =
+  | { type: "none" }
+  | { type: "existing"; url: string }
+  | { type: "new"; file: File; previewUrl: string };
+
 export interface AdminUser {
   id: string;
   name: string;
@@ -30,6 +35,14 @@ export interface Project {
   pillarName: string | null;
   images: string[];
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface Organization {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  aboutUs: string;
   updatedAt: string;
 }
 
