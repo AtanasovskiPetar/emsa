@@ -191,15 +191,15 @@ export function PillarsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Pillars</h2>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {pillars.length} pillars
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search pillars..."
@@ -208,7 +208,7 @@ export function PillarsPage() {
                 table.setGlobalFilter(e.target.value);
                 table.setPageIndex(0);
               }}
-              className="pl-8"
+              className="w-full pl-8 sm:w-64"
             />
           </div>
           <Button onClick={() => setDialogOpen(true)}>
@@ -218,7 +218,7 @@ export function PillarsPage() {
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -256,7 +256,7 @@ export function PillarsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page</span>
           <Select

@@ -134,6 +134,7 @@ function useColumns(
         <Switch
           checked={row.getValue("activeMember")}
           disabled={!isSuperAdmin}
+          className="data-[state=checked]:bg-green-500"
           onCheckedChange={(checked) =>
             updateUser({ id: row.original.id, payload: { activeMember: checked } })
           }
@@ -192,14 +193,14 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Users</h2>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {users.length} users
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Select
             value={
               table.getColumn("activeMember")?.getFilterValue() === undefined
@@ -214,7 +215,7 @@ export function UsersPage() {
               table.setPageIndex(0);
             }}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-full sm:w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -223,7 +224,7 @@ export function UsersPage() {
               <SelectItem value="inactive">Inactive only</SelectItem>
             </SelectContent>
           </Select>
-          <div className="relative w-64">
+          <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or email..."
@@ -232,13 +233,13 @@ export function UsersPage() {
                 table.setGlobalFilter(e.target.value);
                 table.setPageIndex(0);
               }}
-              className="pl-8"
+              className="w-full pl-8 sm:w-64"
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -276,7 +277,7 @@ export function UsersPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page</span>
           <Select
