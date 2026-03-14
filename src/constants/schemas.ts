@@ -44,6 +44,25 @@ export const updatePillarSchema = pillarSchema
 
 export type PillarFormValues = z.infer<typeof pillarSchema>;
 
+export const projectSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().default(""),
+  startingAt: z.string().min(1, "Starting date is required"),
+  pillarId: z.uuid().nullable().optional(),
+  imageUrls: z.array(z.url()).default([]),
+});
+
+export const updateProjectSchema = z.object({
+  title: z.string().min(1, "Title is required").optional(),
+  description: z.string().optional(),
+  startingAt: z.string().optional(),
+  pillarId: z.uuid().nullable().optional(),
+  imageUrls: z.array(z.url()).optional(),
+});
+
+export type ProjectFormValues = z.infer<typeof projectSchema>;
+export type UpdateProjectPayload = z.infer<typeof updateProjectSchema>;
+
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const updateMeSchema = z

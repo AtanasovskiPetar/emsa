@@ -52,8 +52,12 @@ const getPresignedUrl = withRole(Role.USER, async (req, user) => {
     return Response.json({ error: "Unsupported image type" }, { status: 400 });
   }
 
-  const result = await getPresignedUploadUrl(user.sub, contentType);
-  return Response.json(result);
+  const ext = contentType.split("/")[1] ?? "jpg";
+  const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
+    `avatars/${user.sub}.${ext}`,
+    contentType
+  );
+  return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
 });
 
 export const userRoutes = {
