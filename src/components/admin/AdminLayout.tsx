@@ -34,7 +34,7 @@ const navItems = [
     title: "Users",
     url: PageRoutes.ADMIN_USERS,
     icon: Users,
-    requiredRole: Role.SUPER_ADMIN,
+    requiredRole: Role.ADMIN,
   },
   {
     title: "Pillars",
