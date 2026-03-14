@@ -29,6 +29,9 @@ export function ProfilePage() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
   useEffect(() => {
     return () => {
@@ -54,9 +57,14 @@ export function ProfilePage() {
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError("File size must be 5MB or less.");
+      return;
+    }
+    setFileError(null);
     setPendingFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleSubmit(values: UpdateMePayload) {
@@ -132,6 +140,7 @@ export function ProfilePage() {
               {isUploading ? "Uploading..." : pendingFile ? "Photo selected" : "Change photo"}
             </Button>
             <p className="text-xs text-muted-foreground">JPG, PNG or WebP. Max 5MB.</p>
+            {fileError && <p className="text-xs text-destructive">{fileError}</p>}
           </div>
           <input
             ref={fileInputRef}
