@@ -46,6 +46,17 @@ export interface Organization {
   updatedAt: string;
 }
 
+export interface DashboardStats {
+  users: { total: number; active: number; inactive: number };
+  projects: {
+    total: number;
+    upcoming: number;
+    thisMonth: number;
+    next: { title: string; startingAt: string } | null;
+  };
+  pillars: { total: number };
+}
+
 export interface Pillar {
   id: string;
   name: string;
