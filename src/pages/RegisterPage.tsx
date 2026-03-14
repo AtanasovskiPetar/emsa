@@ -3,7 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
-import { hasAccess } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,9 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { type RegisterSchema, registerSchema } from "@/constants/schemas";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { type RegisterSchema, registerSchema } from "@/constants/schemas";
+import { hasAccess } from "@/lib/utils";
 
 export function RegisterPage() {
   const { login } = useAuth();

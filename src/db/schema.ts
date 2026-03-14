@@ -23,7 +23,9 @@ export const pillars = pgTable("pillars", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description").notNull(),
-  directorId: uuid("director_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  directorId: uuid("director_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

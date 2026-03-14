@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { loginSchema, registerSchema } from "@/constants/schemas";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { signJwt } from "@/lib/jwt";
-import { loginSchema, registerSchema } from "@/constants/schemas";
 
 const OAUTH_STATE_COOKIE = "oauth_state";
 

@@ -2,7 +2,6 @@ import { LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
-import { hasAccess } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +21,7 @@ import {
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
+import { hasAccess } from "@/lib/utils";
 
 const navItems = [
   {

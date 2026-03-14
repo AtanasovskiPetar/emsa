@@ -10,6 +10,7 @@ import {
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { PillarDialog } from "@/components/admin/PillarDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PillarDialog } from "@/components/admin/PillarDialog";
 import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
@@ -185,7 +185,6 @@ export function PillarsPage() {
   const totalPages = table.getPageCount();
   const currentPage = pageIndex + 1;
 
-
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading pillars...</div>;
   }
@@ -288,7 +287,9 @@ export function PillarsPage() {
                   onClick={() => table.previousPage()}
                   aria-disabled={!table.getCanPreviousPage()}
                   className={
-                    !table.getCanPreviousPage() ? "pointer-events-none opacity-50" : "cursor-pointer"
+                    !table.getCanPreviousPage()
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
                   }
                 />
               </PaginationItem>

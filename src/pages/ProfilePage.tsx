@@ -1,10 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,8 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { UserAvatar } from "@/components/UserAvatar";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, updateMeSchema, type UpdateMePayload } from "@/constants/schemas";
+import { ALLOWED_IMAGE_TYPES, type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
 import { type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
@@ -117,7 +117,11 @@ export function ProfilePage() {
           <CardDescription>Click to upload a new profile picture</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
-          <UserAvatar name={profile.name} imageUrl={previewUrl ?? profile.imageUrl} className="size-20 text-lg" />
+          <UserAvatar
+            name={profile.name}
+            imageUrl={previewUrl ?? profile.imageUrl}
+            className="size-20 text-lg"
+          />
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"

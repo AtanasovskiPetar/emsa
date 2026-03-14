@@ -34,11 +34,13 @@ export const pillarSchema = z.object({
   directorId: z.uuid("Director must be a valid user"),
 });
 
-export const updatePillarSchema = pillarSchema.partial().refine(
-  (data) =>
-    data.name !== undefined || data.description !== undefined || data.directorId !== undefined,
-  { message: "At least one field must be provided" }
-);
+export const updatePillarSchema = pillarSchema
+  .partial()
+  .refine(
+    (data) =>
+      data.name !== undefined || data.description !== undefined || data.directorId !== undefined,
+    { message: "At least one field must be provided" }
+  );
 
 export type PillarFormValues = z.infer<typeof pillarSchema>;
 

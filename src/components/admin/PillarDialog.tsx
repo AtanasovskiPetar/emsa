@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { pillarSchema, type PillarFormValues } from "@/constants/schemas";
+import { type PillarFormValues, pillarSchema } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
 
 interface PillarDialogProps {
@@ -38,7 +38,14 @@ interface PillarDialogProps {
   isPending: boolean;
 }
 
-export function PillarDialog({ open, onOpenChange, pillar, users, onSubmit, isPending }: PillarDialogProps) {
+export function PillarDialog({
+  open,
+  onOpenChange,
+  pillar,
+  users,
+  onSubmit,
+  isPending,
+}: PillarDialogProps) {
   const form = useForm<PillarFormValues>({
     resolver: zodResolver(pillarSchema),
     values: pillar

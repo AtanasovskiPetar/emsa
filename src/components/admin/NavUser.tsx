@@ -1,7 +1,6 @@
 import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import { UserAvatar } from "@/components/UserAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +15,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { AuthUser } from "@/context/auth";
+import { UserAvatar } from "@/components/UserAvatar";
 import { PageRoutes } from "@/constants/routes";
+import type { AuthUser } from "@/context/auth";
 
 interface NavUserProps {
   user: Pick<AuthUser, "name" | "email" | "imageUrl">;
   onLogout: () => void;
 }
-
 
 export function NavUser({ user, onLogout }: NavUserProps) {
   const { isMobile } = useSidebar();

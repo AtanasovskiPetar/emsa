@@ -1,6 +1,7 @@
 import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 
 import { type Role } from "@/constants/enums";
+
 import { env } from "./env";
 
 const secret = new TextEncoder().encode(env.JWT_SECRET);
