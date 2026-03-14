@@ -21,6 +21,18 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  startingAt: string;
+  pillarId: string | null;
+  pillarName: string | null;
+  images: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Pillar {
   id: string;
   name: string;

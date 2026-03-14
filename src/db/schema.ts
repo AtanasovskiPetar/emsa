@@ -1,5 +1,14 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 import { Role } from "@/constants/enums";
 
@@ -32,4 +41,33 @@ export const pillars = pgTable("pillars", {
 
 export const pillarsRelations = relations(pillars, ({ one }) => ({
   director: one(users, { fields: [pillars.directorId], references: [users.id] }),
+}));
+
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull().default(""),
+  startingAt: timestamp("starting_at").notNull(),
+  pillarId: uuid("pillar_id").references(() => pillars.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const projectImages = pgTable("project_images", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  url: varchar("url", { length: 2048 }).notNull(),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  pillar: one(pillars, { fields: [projects.pillarId], references: [pillars.id] }),
+  images: many(projectImages),
+}));
+
+export const projectImagesRelations = relations(projectImages, ({ one }) => ({
+  project: one(projects, { fields: [projectImages.projectId], references: [projects.id] }),
 }));
