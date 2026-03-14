@@ -17,6 +17,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
@@ -43,6 +44,32 @@ const navItems = [
     requiredRole: Role.SUPER_ADMIN,
   },
 ];
+
+function NavItems() {
+  const { user } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      {navItems
+        .filter((item) => user && hasAccess(user.role, item.requiredRole))
+        .map((item) => (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild tooltip={item.title}>
+              <NavLink
+                to={item.url}
+                className={({ isActive }) => (isActive ? "font-medium" : "")}
+                onClick={() => isMobile && setOpenMobile(false)}
+              >
+                <item.icon />
+                <span>{item.title}</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+    </SidebarMenu>
+  );
+}
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -81,23 +108,7 @@ export function AdminLayout() {
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems
-                  .filter((item) => user && hasAccess(user.role, item.requiredRole))
-                  .map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={item.title}>
-                        <NavLink
-                          to={item.url}
-                          className={({ isActive }) => (isActive ? "font-medium" : "")}
-                        >
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-              </SidebarMenu>
+              <NavItems />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
