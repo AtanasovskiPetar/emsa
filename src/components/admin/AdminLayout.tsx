@@ -1,4 +1,4 @@
-import { Building2, FolderOpen, LayoutDashboard, Mountain, Users } from "lucide-react";
+import { Building2, FolderOpen, House, LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
@@ -83,6 +83,23 @@ function NavItems() {
   );
 }
 
+function BackToSiteItem() {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild tooltip="Back to Site">
+          <NavLink to={PageRoutes.HOME} onClick={() => isMobile && setOpenMobile(false)}>
+            <House />
+            <span>Back to Site</span>
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -121,6 +138,11 @@ export function AdminLayout() {
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <NavItems />
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <BackToSiteItem />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
