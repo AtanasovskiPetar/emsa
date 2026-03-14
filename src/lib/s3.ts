@@ -27,6 +27,7 @@ export async function getPresignedUploadUrl(
   return { uploadUrl, fileUrl };
 }
 
-export async function deleteS3Object(key: string): Promise<void> {
+export async function deleteS3Object(fileUrl: string): Promise<void> {
+  const key = new URL(fileUrl).pathname.slice(1);
   await s3.send(new DeleteObjectCommand({ Bucket: env.AWS_S3_BUCKET, Key: key }));
 }
