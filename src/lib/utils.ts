@@ -2,6 +2,8 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import { Role } from "@/constants/enums";
+import { type ImageEntry } from "@/constants/types";
+import { apiClient } from "@/lib/api-client";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,6 +27,45 @@ export function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+export function getImageSrc(img: ImageEntry): string | null {
+  if (img.type === "existing") return img.url;
+  if (img.type === "new") return img.previewUrl;
+  return null;
+}
+
+export function getImageId(img: Exclude<ImageEntry, { type: "none" }>): string {
+  return img.type === "existing" ? img.url : img.previewUrl;
+}
+
+export function toDatetimeLocalValue(isoString: string): string {
+  const d = new Date(isoString);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export async function uploadImageToS3(file: File, uploadRoute: string): Promise<string> {
+  const { uploadUrl, fileUrl } = await apiClient.get<{
+    uploadUrl: string;
+    fileUrl: string;
+    key: string;
+  }>(`${uploadRoute}?contentType=${encodeURIComponent(file.type)}`);
+
+  await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type },
+  });
+
+  return fileUrl;
 }
 
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {

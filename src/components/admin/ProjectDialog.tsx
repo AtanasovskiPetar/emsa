@@ -42,8 +42,9 @@ import {
 } from "@/components/ui/select";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
-import { type Pillar, type Project } from "@/constants/types";
+import { type ImageEntry, type Pillar, type Project } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { getImageId, getImageSrc, toDatetimeLocalValue, uploadImageToS3 } from "@/lib/utils";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -54,20 +55,10 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type ImageEntry =
-  | { type: "existing"; url: string }
-  | { type: "new"; file: File; previewUrl: string };
-
-function getImageId(img: ImageEntry): string {
-  return img.type === "existing" ? img.url : img.previewUrl;
-}
-
-function getImageSrc(img: ImageEntry): string {
-  return img.type === "existing" ? img.url : img.previewUrl;
-}
+type ActiveImageEntry = Exclude<ImageEntry, { type: "none" }>;
 
 interface SortableImageProps {
-  img: ImageEntry;
+  img: ActiveImageEntry;
   onRemove: () => void;
 }
 
@@ -88,7 +79,7 @@ function SortableImage({ img, onRemove }: SortableImageProps) {
       className="group relative aspect-square"
     >
       <img
-        src={getImageSrc(img)}
+        src={getImageSrc(img)!}
         alt=""
         className="size-full rounded-md border object-cover"
         draggable={false}
@@ -120,12 +111,6 @@ interface ProjectDialogProps {
   isPending: boolean;
 }
 
-function toDatetimeLocalValue(isoString: string): string {
-  const d = new Date(isoString);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function ProjectDialog({
   open,
   onOpenChange,
@@ -137,7 +122,7 @@ export function ProjectDialog({
     queryKey: ["admin", "pillars"],
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
-  const [images, setImages] = useState<ImageEntry[]>([]);
+  const [images, setImages] = useState<ActiveImageEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -211,19 +196,7 @@ export function ProjectDialog({
         if (img.type === "existing") {
           imageUrls.push(img.url);
         } else {
-          const { uploadUrl, fileUrl } = await apiClient.get<{
-            uploadUrl: string;
-            fileUrl: string;
-            key: string;
-          }>(`${ApiRoutes.ADMIN_PROJECTS_UPLOAD}?contentType=${encodeURIComponent(img.file.type)}`);
-
-          await fetch(uploadUrl, {
-            method: "PUT",
-            body: img.file,
-            headers: { "Content-Type": img.file.type },
-          });
-
-          imageUrls.push(fileUrl);
+          imageUrls.push(await uploadImageToS3(img.file, ApiRoutes.ADMIN_PROJECTS_UPLOAD));
         }
       }
 

@@ -71,3 +71,11 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 export const projectImagesRelations = relations(projectImages, ({ one }) => ({
   project: one(projects, { fields: [projectImages.projectId], references: [projects.id] }),
 }));
+
+export const organization = pgTable("organization", {
+  id: integer("id").primaryKey().default(1),
+  name: varchar("name", { length: 255 }).notNull().default(""),
+  logoUrl: varchar("logo_url", { length: 2048 }),
+  aboutUs: text("about_us").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
