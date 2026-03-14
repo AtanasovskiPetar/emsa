@@ -31,8 +31,10 @@ export const ApiRoutes = {
   ADMIN_PROJECTS: "/api/admin/projects",
   ADMIN_PROJECT_BY_ID: "/api/admin/projects/:id",
   ADMIN_PROJECTS_UPLOAD: "/api/admin/projects/upload",
+  ADMIN_DASHBOARD: "/api/admin/dashboard",
   ADMIN_ORGANIZATION: "/api/admin/organization",
   ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",
+  ORGANIZATION: "/api/organization",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;

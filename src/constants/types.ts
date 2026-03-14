@@ -38,12 +38,28 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface OrganizationPublic {
+  name: string;
+  logoUrl: string | null;
+}
+
 export interface Organization {
   id: number;
   name: string;
   logoUrl: string | null;
   aboutUs: string;
   updatedAt: string;
+}
+
+export interface DashboardStats {
+  users: { total: number; active: number; inactive: number };
+  projects: {
+    total: number;
+    upcoming: number;
+    thisMonth: number;
+    next: { title: string; startingAt: string } | null;
+  };
+  pillars: { total: number };
 }
 
 export interface Pillar {

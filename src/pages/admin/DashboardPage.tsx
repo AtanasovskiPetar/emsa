@@ -1,39 +1,176 @@
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, ChevronRight, FolderOpen, Mountain, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageRoutes } from "@/constants/routes";
+import { Card, CardContent } from "@/components/ui/card";
+import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { type DashboardStats } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+const TODAY = new Date().toLocaleDateString("en-US", {
+  weekday: "long",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+interface StatRowProps {
+  label: string;
+  value: number;
+  accent?: boolean;
+}
+
+function StatRow({ label, value, accent }: StatRowProps) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("font-semibold", accent && "text-emerald-600")}>{value}</span>
+    </div>
+  );
+}
+
+interface StatCardProps {
+  title: string;
+  total: number;
+  totalLabel: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  rows: { label: string; value: number; accent?: boolean }[];
+  footer?: React.ReactNode;
+  onClick: () => void;
+}
+
+function StatCard({
+  title,
+  total,
+  totalLabel,
+  icon,
+  iconBg,
+  rows,
+  footer,
+  onClick,
+}: StatCardProps) {
+  return (
+    <Card
+      onClick={onClick}
+      className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className={cn("flex size-10 items-center justify-center rounded-lg", iconBg)}>
+              {icon}
+            </div>
+            <span className="text-sm font-medium">{title}</span>
+          </div>
+          <ChevronRight className="size-4 text-muted-foreground/50" />
+        </div>
+
+        <div className="mt-4">
+          <div className="text-4xl font-bold tracking-tight">{total}</div>
+          <div className="mt-0.5 text-sm text-muted-foreground">{totalLabel}</div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+          {rows.map((row) => (
+            <StatRow key={row.label} label={row.label} value={row.value} accent={row.accent} />
+          ))}
+        </div>
+
+        {footer && <div className="mt-4 border-t pt-4">{footer}</div>}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (!user) return null;
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => apiClient.get<DashboardStats>(ApiRoutes.ADMIN_DASHBOARD),
+  });
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading...</div>;
+  }
+
+  if (!stats) return null;
+
+  const nextProject = stats.projects.next;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Session</CardTitle>
-        <CardDescription>Currently logged in as</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-1 text-sm">
-        <p>
-          <span className="text-muted-foreground">Email:</span> {user.email}
-        </p>
-        <p>
-          <span className="text-muted-foreground">Role:</span> {user.role}
-        </p>
-        <p>
-          <span className="text-muted-foreground">ID:</span>{" "}
-          <span className="font-mono text-xs">{user.id}</span>
-        </p>
-        <div className="mt-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(PageRoutes.PROFILE)}>
-            Edit Profile
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-xl font-semibold">
+          {getGreeting()}
+          {user ? `, ${user.name.split(" ")[0]}` : ""}!
+        </h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">{TODAY}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Users"
+          total={stats.users.total}
+          totalLabel="Total members"
+          icon={<Users className="size-5 text-sky-600" />}
+          iconBg="bg-sky-100"
+          rows={[
+            { label: "Active", value: stats.users.active, accent: true },
+            { label: "Inactive", value: stats.users.inactive },
+          ]}
+          onClick={() => navigate(PageRoutes.ADMIN_USERS)}
+        />
+
+        <StatCard
+          title="Projects"
+          total={stats.projects.total}
+          totalLabel="Total projects"
+          icon={<FolderOpen className="size-5 text-emerald-600" />}
+          iconBg="bg-emerald-100"
+          rows={[
+            { label: "Upcoming", value: stats.projects.upcoming, accent: true },
+            { label: "This month", value: stats.projects.thisMonth },
+          ]}
+          footer={
+            nextProject ? (
+              <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                <CalendarDays className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  Next: <span className="font-medium text-foreground">{nextProject.title}</span>
+                  {" · "}
+                  {new Date(nextProject.startingAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+            ) : null
+          }
+          onClick={() => navigate(PageRoutes.ADMIN_PROJECTS)}
+        />
+
+        <StatCard
+          title="Pillars"
+          total={stats.pillars.total}
+          totalLabel="Total pillars"
+          icon={<Mountain className="size-5 text-violet-600" />}
+          iconBg="bg-violet-100"
+          rows={[]}
+          onClick={() => navigate(PageRoutes.ADMIN_PILLARS)}
+        />
+      </div>
+    </div>
   );
 }

@@ -1,15 +1,36 @@
 import "@/index.css";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Role } from "@/constants/enums";
-import { PageRoutes } from "@/constants/routes";
+import { ApiRoutes, PageRoutes } from "@/constants/routes";
+import { type OrganizationPublic } from "@/constants/types";
 import { AuthProvider } from "@/context/auth";
+import { apiClient } from "@/lib/api-client";
+
+function OrganizationMeta() {
+  const { data: org } = useQuery({
+    queryKey: ["organization"],
+    queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (!org) return;
+    if (org.name) document.title = org.name;
+    if (org.logoUrl) {
+      const favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+      if (favicon) favicon.href = org.logoUrl;
+    }
+  }, [org]);
+
+  return null;
+}
 
 const STALE_TIME_5_MINUTES = 1000 * 60 * 5;
 
@@ -59,6 +80,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <OrganizationMeta />
         <AuthProvider>
           <BrowserRouter>
             <Suspense fallback={null}>
