@@ -11,13 +11,14 @@ const userColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
+  phone: users.phone,
   role: users.role,
   activeMember: users.activeMember,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
 
-const getUsers = withRole(Role.SUPER_ADMIN, async () => {
+const getUsers = withRole(Role.ADMIN, async () => {
   const allUsers = await db.select(userColumns).from(users).orderBy(users.createdAt);
   return Response.json(allUsers);
 });

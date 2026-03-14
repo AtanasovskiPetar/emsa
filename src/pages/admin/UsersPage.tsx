@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
-import { UserAvatar } from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,12 +36,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import { type UpdateUserPayload } from "@/constants/schemas";
 import { type AdminUser } from "@/constants/types";
+import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { getPageNumbers } from "@/lib/utils";
+import { getPageNumbers, hasAccess } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, string> = {
   [Role.USER]: "User",
@@ -59,7 +60,8 @@ const ROLE_BADGE_VARIANT: Record<Role, "default" | "secondary" | "outline"> = {
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function useColumns(
-  updateUser: (args: { id: string; payload: UpdateUserPayload }) => void
+  updateUser: (args: { id: string; payload: UpdateUserPayload }) => void,
+  isSuperAdmin: boolean
 ): ColumnDef<AdminUser>[] {
   return [
     {
@@ -67,7 +69,11 @@ function useColumns(
       header: "Name",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <UserAvatar name={row.original.name} imageUrl={row.original.imageUrl} className="size-7" />
+          <UserAvatar
+            name={row.original.name}
+            imageUrl={row.original.imageUrl}
+            className="size-7"
+          />
           <span className="font-medium">{row.getValue("name")}</span>
         </div>
       ),
@@ -78,10 +84,22 @@ function useColumns(
       cell: ({ row }) => <span className="text-muted-foreground">{row.getValue("email")}</span>,
     },
     {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue<string | null>("phone") ?? "—"}
+        </span>
+      ),
+    },
+    {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
         const role = row.getValue<Role>("role");
+        if (!isSuperAdmin) {
+          return <Badge variant={ROLE_BADGE_VARIANT[role]}>{ROLE_LABELS[role]}</Badge>;
+        }
         return (
           <Select
             value={role}
@@ -108,9 +126,15 @@ function useColumns(
     {
       accessorKey: "activeMember",
       header: "Active Member",
+      filterFn: (row, columnId, filterValue: boolean | undefined) => {
+        if (filterValue === undefined) return true;
+        return row.getValue(columnId) === filterValue;
+      },
       cell: ({ row }) => (
         <Switch
           checked={row.getValue("activeMember")}
+          disabled={!isSuperAdmin}
+          className="data-[state=checked]:bg-green-500"
           onCheckedChange={(checked) =>
             updateUser({ id: row.original.id, payload: { activeMember: checked } })
           }
@@ -130,6 +154,8 @@ function useColumns(
 }
 
 export function UsersPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = !!user && hasAccess(user.role, Role.SUPER_ADMIN);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -145,7 +171,7 @@ export function UsersPage() {
     },
   });
 
-  const columns = useColumns(updateUser);
+  const columns = useColumns(updateUser, isSuperAdmin);
 
   const table = useReactTable({
     data: users,
@@ -161,35 +187,59 @@ export function UsersPage() {
   const totalPages = table.getPageCount();
   const currentPage = pageIndex + 1;
 
-
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading users...</div>;
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Users</h2>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {users.length} users
           </p>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or email..."
-            value={(table.getState().globalFilter as string) ?? ""}
-            onChange={(e) => {
-              table.setGlobalFilter(e.target.value);
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Select
+            value={
+              table.getColumn("activeMember")?.getFilterValue() === undefined
+                ? "all"
+                : table.getColumn("activeMember")?.getFilterValue()
+                  ? "active"
+                  : "inactive"
+            }
+            onValueChange={(value) => {
+              const filterValue = value === "all" ? undefined : value === "active" ? true : false;
+              table.getColumn("activeMember")?.setFilterValue(filterValue);
               table.setPageIndex(0);
             }}
-            className="pl-8"
-          />
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All members</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Inactive only</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={(table.getState().globalFilter as string) ?? ""}
+              onChange={(e) => {
+                table.setGlobalFilter(e.target.value);
+                table.setPageIndex(0);
+              }}
+              className="w-full pl-8 sm:w-64"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -227,7 +277,7 @@ export function UsersPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page</span>
           <Select

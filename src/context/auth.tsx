@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import type { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import type { UserProfile } from "@/constants/types";
-import { ApiError, apiClient } from "@/lib/api-client";
+import { apiClient, ApiError } from "@/lib/api-client";
 
 export interface AuthUser {
   id: string;
@@ -27,7 +35,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function decodeToken(token: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return { id: payload.sub, name: payload.name, email: payload.email, role: payload.role, imageUrl: null };
+    return {
+      id: payload.sub,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role,
+      imageUrl: null,
+    };
   } catch {
     return null;
   }
@@ -62,13 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    if (!meData) return;
-    setUser((prev) => (prev ? { ...prev, name: meData.name, imageUrl: meData.imageUrl } : prev));
-  }, [meData]);
+  const hydratedUser = useMemo(() => {
+    if (!user || !meData) return user;
+    return { ...user, name: meData.name, imageUrl: meData.imageUrl };
+  }, [user, meData]);
 
   useEffect(() => {
-    if (!meError) return;
     if (meError instanceof ApiError && meError.status === 401) {
       localStorage.removeItem("token");
       setToken(null);
@@ -96,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user: hydratedUser, token, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

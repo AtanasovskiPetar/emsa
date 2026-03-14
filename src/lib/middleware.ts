@@ -4,10 +4,15 @@ import { type Role } from "@/constants/enums";
 import { type JwtUser, verifyJwt } from "@/lib/jwt";
 import { hasAccess } from "@/lib/utils";
 
-type BunRequest<P extends Record<string, string> = Record<string, string>> = Request & { params: P };
+type BunRequest<P extends Record<string, string> = Record<string, string>> = Request & {
+  params: P;
+};
 
 export class HttpError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string
+  ) {
     super(message);
     this.name = "HttpError";
   }

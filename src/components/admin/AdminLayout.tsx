@@ -2,7 +2,6 @@ import { LayoutDashboard, Mountain, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
-import { hasAccess } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -18,10 +17,12 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
+import { hasAccess } from "@/lib/utils";
 
 const navItems = [
   {
@@ -34,7 +35,7 @@ const navItems = [
     title: "Users",
     url: PageRoutes.ADMIN_USERS,
     icon: Users,
-    requiredRole: Role.SUPER_ADMIN,
+    requiredRole: Role.ADMIN,
   },
   {
     title: "Pillars",
@@ -43,6 +44,32 @@ const navItems = [
     requiredRole: Role.SUPER_ADMIN,
   },
 ];
+
+function NavItems() {
+  const { user } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      {navItems
+        .filter((item) => user && hasAccess(user.role, item.requiredRole))
+        .map((item) => (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild tooltip={item.title}>
+              <NavLink
+                to={item.url}
+                className={({ isActive }) => (isActive ? "font-medium" : "")}
+                onClick={() => isMobile && setOpenMobile(false)}
+              >
+                <item.icon />
+                <span>{item.title}</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+    </SidebarMenu>
+  );
+}
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -81,23 +108,7 @@ export function AdminLayout() {
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems
-                  .filter((item) => user && hasAccess(user.role, item.requiredRole))
-                  .map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={item.title}>
-                        <NavLink
-                          to={item.url}
-                          className={({ isActive }) => (isActive ? "font-medium" : "")}
-                        >
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-              </SidebarMenu>
+              <NavItems />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
@@ -107,7 +118,7 @@ export function AdminLayout() {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="min-h-screen">
+      <SidebarInset className="min-h-screen min-w-0">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <span className="text-sm font-medium">{pageTitle}</span>

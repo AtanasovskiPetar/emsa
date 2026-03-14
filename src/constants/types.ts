@@ -4,6 +4,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   role: Role;
   activeMember: boolean;
   imageUrl: string | null;

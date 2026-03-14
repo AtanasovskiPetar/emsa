@@ -10,6 +10,7 @@ import {
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { PillarDialog } from "@/components/admin/PillarDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PillarDialog } from "@/components/admin/PillarDialog";
 import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
@@ -185,22 +185,21 @@ export function PillarsPage() {
   const totalPages = table.getPageCount();
   const currentPage = pageIndex + 1;
 
-
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading pillars...</div>;
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Pillars</h2>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {pillars.length} pillars
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search pillars..."
@@ -209,7 +208,7 @@ export function PillarsPage() {
                 table.setGlobalFilter(e.target.value);
                 table.setPageIndex(0);
               }}
-              className="pl-8"
+              className="w-full pl-8 sm:w-64"
             />
           </div>
           <Button onClick={() => setDialogOpen(true)}>
@@ -219,7 +218,7 @@ export function PillarsPage() {
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -257,7 +256,7 @@ export function PillarsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page</span>
           <Select
@@ -288,7 +287,9 @@ export function PillarsPage() {
                   onClick={() => table.previousPage()}
                   aria-disabled={!table.getCanPreviousPage()}
                   className={
-                    !table.getCanPreviousPage() ? "pointer-events-none opacity-50" : "cursor-pointer"
+                    !table.getCanPreviousPage()
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
                   }
                 />
               </PaginationItem>

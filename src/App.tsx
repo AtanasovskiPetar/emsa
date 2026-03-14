@@ -84,7 +84,7 @@ export default function App() {
                   <Route
                     path={PageRoutes.ADMIN_USERS_SEGMENT}
                     element={
-                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                      <ProtectedRoute requiredRole={Role.ADMIN}>
                         <UsersPage />
                       </ProtectedRoute>
                     }
