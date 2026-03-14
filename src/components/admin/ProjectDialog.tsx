@@ -1,6 +1,16 @@
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { ImagePlus, X } from "lucide-react";
+import { GripVertical, ImagePlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -48,6 +58,60 @@ type ImageEntry =
   | { type: "existing"; url: string }
   | { type: "new"; file: File; previewUrl: string };
 
+function getImageId(img: ImageEntry): string {
+  return img.type === "existing" ? img.url : img.previewUrl;
+}
+
+function getImageSrc(img: ImageEntry): string {
+  return img.type === "existing" ? img.url : img.previewUrl;
+}
+
+interface SortableImageProps {
+  img: ImageEntry;
+  onRemove: () => void;
+}
+
+function SortableImage({ img, onRemove }: SortableImageProps) {
+  const id = getImageId(img);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+      className="group relative aspect-square"
+    >
+      <img
+        src={getImageSrc(img)}
+        alt=""
+        className="size-full rounded-md border object-cover"
+        draggable={false}
+      />
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute left-1 top-1 flex size-5 cursor-grab items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+      >
+        <GripVertical className="size-3" />
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        <X className="size-3" />
+      </button>
+    </div>
+  );
+}
+
 interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,6 +141,8 @@ export function ProjectDialog({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     values: project
@@ -95,6 +161,16 @@ export function ProjectDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setImages((prev) => {
+      const oldIndex = prev.findIndex((img) => getImageId(img) === active.id);
+      const newIndex = prev.findIndex((img) => getImageId(img) === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -164,6 +240,7 @@ export function ProjectDialog({
   }
 
   const isSubmitting = isUploading || isPending;
+  const imageIds = images.map(getImageId);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -252,24 +329,23 @@ export function ProjectDialog({
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium">Images</span>
                 {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {images.map((img, i) => (
-                      <div key={i} className="group relative aspect-square">
-                        <img
-                          src={img.type === "existing" ? img.url : img.previewUrl}
-                          alt=""
-                          className="size-full rounded-md border object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(i)}
-                          className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <X className="size-3" />
-                        </button>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext items={imageIds} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {images.map((img, i) => (
+                          <SortableImage
+                            key={getImageId(img)}
+                            img={img}
+                            onRemove={() => removeImage(i)}
+                          />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
                 <input
                   ref={fileInputRef}
