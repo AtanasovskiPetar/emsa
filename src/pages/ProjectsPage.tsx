@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Layers } from "lucide-react";
+import { CalendarClock, Layers } from "lucide-react";
 import { useState } from "react";
 
 import { ProjectCard } from "@/components/ProjectCard";
@@ -8,9 +8,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes } from "@/constants/routes";
 import { type PublicPillar, type PublicProject } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+
+function sortByDateDesc(projects: PublicProject[]): PublicProject[] {
+  return [...projects].sort(
+    (a, b) => new Date(b.startingAt).getTime() - new Date(a.startingAt).getTime()
+  );
+}
 
 export function ProjectsPage() {
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const [onlyUpcoming, setOnlyUpcoming] = useState(false);
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["public-projects"],
@@ -22,57 +30,126 @@ export function ProjectsPage() {
     queryFn: () => apiClient.get<PublicPillar[]>(ApiRoutes.PILLARS),
   });
 
-  const filtered = selectedPillar
-    ? (projects ?? []).filter((p) => p.pillarId === selectedPillar)
-    : (projects ?? []);
+  const now = new Date();
+  const filtered = sortByDateDesc(
+    (projects ?? []).filter((p) => {
+      if (selectedPillar && p.pillarId !== selectedPillar) return false;
+      if (onlyUpcoming && new Date(p.startingAt) < now) return false;
+      return true;
+    })
+  );
+
+  const upcomingCount = (projects ?? []).filter((p) => new Date(p.startingAt) >= now).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Projects</h1>
-        <p className="mt-2 text-muted-foreground">Discover all our initiatives and events</p>
+    <div className="relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute right-0 top-0 size-[500px] -translate-y-1/4 translate-x-1/4 rounded-full bg-primary/8 blur-[120px]" />
+        <div className="absolute left-0 top-1/3 size-[400px] -translate-x-1/4 rounded-full bg-chart-2/8 blur-[100px]" />
       </div>
 
-      {pillars && pillars.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-2">
-          <Button
-            variant={selectedPillar === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedPillar(null)}
-          >
-            All
-          </Button>
-          {pillars.map((pillar) => (
-            <Button
-              key={pillar.id}
-              variant={selectedPillar === pillar.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedPillar(pillar.id)}
-            >
-              {pillar.name}
-            </Button>
-          ))}
+      <div className="relative mx-auto max-w-6xl px-4 py-16">
+        {/* Header */}
+        <div className="mb-12">
+          <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+            <span className="h-px w-6 bg-primary" />
+            Projects
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h1 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent">
+              Initiatives &amp; Events
+            </h1>
+            <span className="text-sm text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "project" : "projects"}
+            </span>
+          </div>
         </div>
-      )}
 
-      {projectsLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
-        </div>
-      ) : filtered.length ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} />
-          ))}
-        </div>
-      ) : (
-        <div className="py-16 text-center text-muted-foreground">
-          <Layers className="mx-auto mb-3 size-10 opacity-30" />
-          <p className="text-sm">No projects found.</p>
-        </div>
-      )}
+        {/* Filters */}
+        {(pillars && pillars.length > 0) || upcomingCount > 0 ? (
+          <div className="mb-10 flex flex-wrap items-center gap-2">
+            {/* Upcoming toggle */}
+            <button
+              onClick={() => setOnlyUpcoming((v) => !v)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
+                onlyUpcoming
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              )}
+            >
+              <CalendarClock className="size-3.5" />
+              Upcoming
+              {upcomingCount > 0 && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                    onlyUpcoming ? "bg-white/20" : "bg-primary/10 text-primary"
+                  )}
+                >
+                  {upcomingCount}
+                </span>
+              )}
+            </button>
+
+            {pillars && pillars.length > 0 && (
+              <>
+                <span className="h-4 w-px bg-border" />
+
+                <Button
+                  variant={selectedPillar === null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPillar(null)}
+                >
+                  All pillars
+                </Button>
+                {pillars.map((pillar) => (
+                  <Button
+                    key={pillar.id}
+                    variant={selectedPillar === pillar.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPillar(pillar.id)}
+                  >
+                    {pillar.name}
+                  </Button>
+                ))}
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {/* Grid */}
+        {projectsLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-48 rounded-xl" />
+            ))}
+          </div>
+        ) : filtered.length ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((p, i) => (
+              <ProjectCard key={p.id} project={p} index={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="py-24 text-center">
+            <Layers className="mx-auto mb-4 size-12 text-muted-foreground/30" />
+            <p className="text-sm font-medium text-muted-foreground">No projects found.</p>
+            {(selectedPillar || onlyUpcoming) && (
+              <button
+                className="mt-3 text-xs text-primary hover:underline"
+                onClick={() => {
+                  setSelectedPillar(null);
+                  setOnlyUpcoming(false);
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
