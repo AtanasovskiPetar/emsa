@@ -212,32 +212,26 @@ export function HomePage() {
 
       {/* About */}
       {org?.aboutUs && (
-        <section id="about" className="relative overflow-hidden border-t bg-primary/5 pb-0 pt-20">
+        <section id="about" className="relative overflow-hidden border-t bg-primary/5 py-20">
           {/* Decorative ring */}
           <div className="pointer-events-none absolute -right-32 -top-32 size-[500px] rounded-full border border-primary/10" />
           <div className="pointer-events-none absolute -right-20 -top-20 size-[300px] rounded-full border border-chart-2/10" />
 
           <div className="relative mx-auto max-w-6xl px-4">
-            <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
-              {/* Left: label + heading */}
-              <div className="flex flex-col gap-4 lg:items-end lg:text-right">
-                <div className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-                  About Us
-                  <span className="h-px w-6 bg-primary" />
-                </div>
-                <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
-                  Who we are
-                </h2>
+            <div className="mb-12">
+              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <span className="h-px w-6 bg-primary" />
+                About Us
               </div>
-
-              {/* Right: content */}
-              <div className="border-l-2 border-primary/30 pl-6">
-                <div
-                  className="prose prose-neutral max-w-none text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: org.aboutUs }}
-                />
-              </div>
+              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+                Who we are
+              </h2>
             </div>
+
+            <div
+              className="prose prose-neutral max-w-none text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: org.aboutUs }}
+            />
           </div>
         </section>
       )}
