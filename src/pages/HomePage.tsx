@@ -163,16 +163,63 @@ export function HomePage() {
 
       {/* About */}
       {org?.aboutUs && (
-        <section id="about" className="border-t py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <h2 className="mb-8 text-2xl font-semibold">About Us</h2>
-            <div
-              className="prose prose-neutral max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: org.aboutUs }}
-            />
+        <section id="about" className="relative overflow-hidden border-t bg-primary/5 py-20">
+          {/* Decorative ring */}
+          <div className="pointer-events-none absolute -right-32 -top-32 size-[500px] rounded-full border border-primary/10" />
+          <div className="pointer-events-none absolute -right-20 -top-20 size-[300px] rounded-full border border-chart-2/10" />
+
+          <div className="relative mx-auto max-w-6xl px-4">
+            <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
+              {/* Left: label + heading */}
+              <div className="flex flex-col gap-4 lg:items-end lg:text-right">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+                  About Us
+                  <span className="h-px w-6 bg-primary" />
+                </div>
+                <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+                  Who we are
+                </h2>
+              </div>
+
+              {/* Right: content */}
+              <div className="border-l-2 border-primary/30 pl-6">
+                <div
+                  className="prose prose-neutral max-w-none text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: org.aboutUs }}
+                />
+              </div>
+            </div>
           </div>
         </section>
       )}
+
+      {/* Pillars */}
+      <section className="border-t py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold">Our Pillars</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The focus areas that drive our work
+            </p>
+          </div>
+
+          {pillarsLoading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : pillars?.length ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {pillars.map((p) => (
+                <PillarCard key={p.id} pillar={p} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No pillars yet.</p>
+          )}
+        </div>
+      </section>
 
       {/* Projects preview */}
       <section className="border-t bg-muted/30 py-16">
@@ -206,34 +253,6 @@ export function HomePage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No projects yet.</p>
-          )}
-        </div>
-      </section>
-
-      {/* Pillars */}
-      <section className="border-t py-16">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold">Our Pillars</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The focus areas that drive our work
-            </p>
-          </div>
-
-          {pillarsLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-40 rounded-xl" />
-              ))}
-            </div>
-          ) : pillars?.length ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {pillars.map((p) => (
-                <PillarCard key={p.id} pillar={p} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No pillars yet.</p>
           )}
         </div>
       </section>
