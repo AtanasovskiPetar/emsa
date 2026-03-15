@@ -108,12 +108,8 @@
           "name": "pillars_director_id_users_id_fk",
           "tableFrom": "pillars",
           "tableTo": "users",
-          "columnsFrom": [
-            "director_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["director_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -168,12 +164,8 @@
           "name": "project_images_project_id_projects_id_fk",
           "tableFrom": "project_images",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -241,12 +233,8 @@
           "name": "projects_pillar_id_pillars_id_fk",
           "tableFrom": "projects",
           "tableTo": "pillars",
-          "columnsFrom": [
-            "pillar_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pillar_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -341,23 +329,17 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "users_google_id_unique": {
           "name": "users_google_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "google_id"
-          ]
+          "columns": ["google_id"]
         },
         "users_phone_unique": {
           "name": "users_phone_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "phone"
-          ]
+          "columns": ["phone"]
         }
       },
       "policies": {},
@@ -369,11 +351,7 @@
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "USER",
-        "ADMIN",
-        "SUPER_ADMIN"
-      ]
+      "values": ["USER", "ADMIN", "SUPER_ADMIN"]
     }
   },
   "schemas": {},

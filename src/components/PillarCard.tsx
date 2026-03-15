@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageRoutes } from "@/constants/routes";
@@ -53,11 +53,12 @@ export function PillarCard({ pillar, index, className }: PillarCardProps) {
           {/* Content */}
           <div className="relative z-10 flex h-full flex-col gap-3">
             <h3 className="text-base font-semibold">{pillar.name}</h3>
-            <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">{pillar.description}</p>
+            <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">
+              {pillar.description}
+            </p>
             {pillar.directorName && (
               <p className="text-xs text-muted-foreground">
-                Director:{" "}
-                <span className="font-medium text-foreground">{pillar.directorName}</span>
+                Director: <span className="font-medium text-foreground">{pillar.directorName}</span>
               </p>
             )}
           </div>
