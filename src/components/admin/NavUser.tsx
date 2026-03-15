@@ -1,5 +1,5 @@
 import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
   DropdownMenu,
@@ -26,7 +26,6 @@ interface NavUserProps {
 
 export function NavUser({ user, onLogout }: NavUserProps) {
   const { isMobile } = useSidebar();
-  const navigate = useNavigate();
 
   return (
     <SidebarMenu>
@@ -61,13 +60,17 @@ export function NavUser({ user, onLogout }: NavUserProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate(PageRoutes.PROFILE)}>
-              <UserRound />
-              Profile
+            <DropdownMenuItem asChild>
+              <Link to={PageRoutes.PROFILE}>
+                <UserRound />
+                Profile
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onLogout}>
-              <LogOut />
-              Log out
+            <DropdownMenuItem asChild>
+              <Link to={PageRoutes.LOGIN} onClick={onLogout}>
+                <LogOut />
+                Log out
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

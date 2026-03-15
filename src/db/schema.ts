@@ -76,6 +76,7 @@ export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),
   logoUrl: varchar("logo_url", { length: 2048 }),
+  description: text("description").notNull().default(""),
   aboutUs: text("about_us").notNull().default(""),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

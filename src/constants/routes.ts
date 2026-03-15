@@ -14,6 +14,9 @@ export const PageRoutes = {
   ADMIN_ORGANIZATION: "/admin/organization",
   ADMIN_ORGANIZATION_SEGMENT: "organization",
   PROFILE: "/profile",
+  PROJECTS: "/projects",
+  PROJECT_DETAIL: "/projects/:id",
+  PILLAR_DETAIL: "/pillars/:id",
   UNAUTHORIZED: "/unauthorized",
   AUTH_CALLBACK: "/auth/callback",
 } as const;
@@ -35,6 +38,10 @@ export const ApiRoutes = {
   ADMIN_ORGANIZATION: "/api/admin/organization",
   ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",
   ORGANIZATION: "/api/organization",
+  PROJECTS: "/api/projects",
+  PROJECT_BY_ID: "/api/projects/:id",
+  PILLARS: "/api/pillars",
+  PILLAR_BY_ID: "/api/pillars/:id",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;

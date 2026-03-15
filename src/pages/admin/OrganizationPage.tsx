@@ -7,6 +7,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiRoutes } from "@/constants/routes";
 import { type UpdateOrganizationPayload } from "@/constants/schemas";
 import { type ImageEntry, type Organization } from "@/constants/types";
@@ -71,6 +72,7 @@ function ImageUpload({ label, state, onChange }: ImageUploadProps) {
 
 type FormValues = {
   name: string;
+  description: string;
   aboutUs: string;
 };
 
@@ -85,13 +87,14 @@ export function OrganizationPage() {
   });
 
   const { register, setValue, watch, handleSubmit } = useForm<FormValues>({
-    defaultValues: { name: "", aboutUs: "" },
+    defaultValues: { name: "", description: "", aboutUs: "" },
   });
 
   // Populate form when data loads
   useEffect(() => {
     if (!org) return;
     setValue("name", org.name);
+    setValue("description", org.description);
     setValue("aboutUs", org.aboutUs);
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
@@ -114,7 +117,12 @@ export function OrganizationPage() {
             ? logo.url
             : null;
 
-      save({ name: values.name, aboutUs: values.aboutUs, logoUrl });
+      save({
+        name: values.name,
+        description: values.description,
+        aboutUs: values.aboutUs,
+        logoUrl,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -142,6 +150,16 @@ export function OrganizationPage() {
         </div>
 
         <ImageUpload label="Logo" state={logo} onChange={setLogo} />
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            placeholder="A short description shown in the hero section of the public site"
+            rows={3}
+            {...register("description")}
+          />
+        </div>
 
         <div className="flex flex-col gap-2">
           <Label>About Us</Label>

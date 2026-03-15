@@ -41,12 +41,37 @@ export interface Project {
 export interface OrganizationPublic {
   name: string;
   logoUrl: string | null;
+  description: string;
+  aboutUs: string;
+}
+
+export interface PublicProject {
+  id: string;
+  title: string;
+  description: string;
+  startingAt: string;
+  pillarId: string | null;
+  pillarName: string | null;
+  images: string[];
+}
+
+export interface PublicPillar {
+  id: string;
+  name: string;
+  description: string;
+  directorName: string | null;
+  directorImageUrl: string | null;
+}
+
+export interface PublicPillarDetail extends PublicPillar {
+  projects: PublicProject[];
 }
 
 export interface Organization {
   id: number;
   name: string;
   logoUrl: string | null;
+  description: string;
   aboutUs: string;
   updatedAt: string;
 }
