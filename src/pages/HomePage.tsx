@@ -226,16 +226,19 @@ export function HomePage() {
       </section>
 
       {/* Projects preview */}
-      <section className="border-t bg-muted/30 py-16">
+      <section className="border-t py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="mb-8 flex items-end justify-between">
+          <div className="mb-12 flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-semibold">Projects</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Upcoming events and recent initiatives
-              </p>
+              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <span className="h-px w-6 bg-primary" />
+                Projects
+              </div>
+              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+                Upcoming events &amp; recent initiatives
+              </h2>
             </div>
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" asChild className="shrink-0">
               <Link to={PageRoutes.PROJECTS}>
                 View all
                 <ArrowRight className="ml-1 size-4" />
@@ -244,16 +247,25 @@ export function HomePage() {
           </div>
 
           {projectsLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-64 rounded-xl" />
-              ))}
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+              <Skeleton className="h-72 rounded-xl" />
+              <div className="flex flex-col gap-6">
+                <Skeleton className="h-32 rounded-xl" />
+                <Skeleton className="h-32 rounded-xl" />
+              </div>
             </div>
           ) : previewProjects.length ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {previewProjects.map((p) => (
-                <ProjectCard key={p.id} project={p} />
-              ))}
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+              {previewProjects[0] && (
+                <ProjectCard project={previewProjects[0]} index={0} featured />
+              )}
+              {previewProjects.length > 1 && (
+                <div className="flex flex-col gap-6">
+                  {previewProjects.slice(1).map((p, i) => (
+                    <ProjectCard key={p.id} project={p} index={i + 1} />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No projects yet.</p>
