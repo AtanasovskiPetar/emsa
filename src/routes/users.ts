@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, updateMeSchema } from "@/constants/schemas";
+import { ALLOWED_IMAGE_TYPES, updateMeSchema, updateUserSchema } from "@/constants/schemas";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { parseBody, withRole } from "@/lib/middleware";
@@ -18,6 +18,18 @@ const meColumns = {
   createdAt: users.createdAt,
 };
 
+const adminUserColumns = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  phone: users.phone,
+  role: users.role,
+  activeMember: users.activeMember,
+  imageUrl: users.imageUrl,
+  createdAt: users.createdAt,
+};
+
+// Self
 const getMe = withRole(Role.USER, async (_req, user) => {
   const [me] = await db.select(meColumns).from(users).where(eq(users.id, user.sub)).limit(1);
 
@@ -45,8 +57,7 @@ const updateMe = withRole(Role.USER, async (req, user) => {
 });
 
 const getPresignedUrl = withRole(Role.USER, async (req, user) => {
-  const url = new URL(req.url);
-  const contentType = url.searchParams.get("contentType") ?? "image/jpeg";
+  const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
 
   if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
     return Response.json({ error: "Unsupported image type" }, { status: 400 });
@@ -60,7 +71,32 @@ const getPresignedUrl = withRole(Role.USER, async (req, user) => {
   return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
 });
 
+// Admin
+const getUsers = withRole(Role.ADMIN, async () => {
+  const allUsers = await db.select(adminUserColumns).from(users).orderBy(users.createdAt);
+  return Response.json(allUsers);
+});
+
+const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
+  const { id } = req.params;
+  const data = await parseBody(req, updateUserSchema);
+
+  const [updated] = await db
+    .update(users)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(users.id, id))
+    .returning(adminUserColumns);
+
+  if (!updated) {
+    return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return Response.json(updated);
+});
+
 export const userRoutes = {
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
+  [ApiRoutes.ADMIN_USERS]: { GET: getUsers },
+  [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser },
 };

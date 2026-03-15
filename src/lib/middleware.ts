@@ -4,7 +4,7 @@ import { type Role } from "@/constants/enums";
 import { type JwtUser, verifyJwt } from "@/lib/jwt";
 import { hasAccess } from "@/lib/utils";
 
-type BunRequest<P extends Record<string, string> = Record<string, string>> = Request & {
+export type BunRequest<P extends Record<string, string> = Record<string, string>> = Request & {
   params: P;
 };
 

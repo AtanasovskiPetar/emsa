@@ -7,6 +7,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
@@ -43,7 +44,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Public
+const PublicLayout = lazy(() =>
+  import("@/components/PublicLayout").then((m) => ({ default: m.PublicLayout }))
+);
 const HomePage = lazy(() => import("@/pages/HomePage").then((m) => ({ default: m.HomePage })));
+const ProjectsPage = lazy(() =>
+  import("@/pages/ProjectsPage").then((m) => ({ default: m.ProjectsPage }))
+);
+const ProjectDetailPage = lazy(() =>
+  import("@/pages/ProjectDetailPage").then((m) => ({ default: m.ProjectDetailPage }))
+);
+const PillarDetailPage = lazy(() =>
+  import("@/pages/PillarDetailPage").then((m) => ({ default: m.PillarDetailPage }))
+);
+
+// Auth / misc
 const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() =>
   import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
@@ -54,26 +70,28 @@ const AuthCallbackPage = lazy(() =>
 const UnauthorizedPage = lazy(() =>
   import("@/pages/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage }))
 );
+const ProfilePage = lazy(() =>
+  import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage }))
+);
+
+// Admin
 const AdminLayout = lazy(() =>
   import("@/components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout }))
 );
 const DashboardPage = lazy(() =>
   import("@/pages/admin/DashboardPage").then((m) => ({ default: m.DashboardPage }))
 );
-const UsersPage = lazy(() =>
+const AdminUsersPage = lazy(() =>
   import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage }))
 );
-const PillarsPage = lazy(() =>
+const AdminPillarsPage = lazy(() =>
   import("@/pages/admin/PillarsPage").then((m) => ({ default: m.PillarsPage }))
 );
-const ProjectsPage = lazy(() =>
+const AdminProjectsPage = lazy(() =>
   import("@/pages/admin/ProjectsPage").then((m) => ({ default: m.ProjectsPage }))
 );
 const OrganizationPage = lazy(() =>
   import("@/pages/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage }))
-);
-const ProfilePage = lazy(() =>
-  import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage }))
 );
 
 export default function App() {
@@ -83,22 +101,32 @@ export default function App() {
         <OrganizationMeta />
         <AuthProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Suspense fallback={null}>
               <Routes>
+                {/* Public site */}
+                <Route element={<PublicLayout />}>
+                  <Route path={PageRoutes.HOME} element={<HomePage />} />
+                  <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
+                  <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
+                  <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
+                  <Route
+                    path={PageRoutes.PROFILE}
+                    element={
+                      <ProtectedRoute requiredRole={Role.USER}>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
+
+                {/* Auth */}
                 <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
                 <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
                 <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                 <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
-                <Route path={PageRoutes.HOME} element={<HomePage />} />
-                <Route
-                  path={PageRoutes.PROFILE}
-                  element={
-                    <ProtectedRoute requiredRole={Role.USER}>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
 
+                {/* Admin */}
                 <Route
                   path={PageRoutes.ADMIN}
                   element={
@@ -113,7 +141,7 @@ export default function App() {
                     path={PageRoutes.ADMIN_USERS_SEGMENT}
                     element={
                       <ProtectedRoute requiredRole={Role.ADMIN}>
-                        <UsersPage />
+                        <AdminUsersPage />
                       </ProtectedRoute>
                     }
                   />
@@ -121,7 +149,7 @@ export default function App() {
                     path={PageRoutes.ADMIN_PILLARS_SEGMENT}
                     element={
                       <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
-                        <PillarsPage />
+                        <AdminPillarsPage />
                       </ProtectedRoute>
                     }
                   />
@@ -137,7 +165,7 @@ export default function App() {
                     path={PageRoutes.ADMIN_PROJECTS_SEGMENT}
                     element={
                       <ProtectedRoute requiredRole={Role.ADMIN}>
-                        <ProjectsPage />
+                        <AdminProjectsPage />
                       </ProtectedRoute>
                     }
                   />

@@ -5,10 +5,67 @@ import { ApiRoutes } from "@/constants/routes";
 import { ALLOWED_IMAGE_TYPES, projectSchema, updateProjectSchema } from "@/constants/schemas";
 import { pillars, projectImages, projects } from "@/db/schema";
 import { db } from "@/lib/db";
-import { HttpError, parseBody, withRole } from "@/lib/middleware";
+import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
 import { deleteS3Object, getPresignedUploadUrl } from "@/lib/s3";
 
-const getProjects = withRole(Role.ADMIN, async () => {
+// Public
+const getProjects = async () => {
+  const rows = await db
+    .select({
+      id: projects.id,
+      title: projects.title,
+      description: projects.description,
+      startingAt: projects.startingAt,
+      pillarId: projects.pillarId,
+      pillarName: pillars.name,
+    })
+    .from(projects)
+    .leftJoin(pillars, eq(projects.pillarId, pillars.id))
+    .orderBy(projects.startingAt);
+
+  const allImages = await db
+    .select({ projectId: projectImages.projectId, url: projectImages.url })
+    .from(projectImages)
+    .orderBy(projectImages.order);
+
+  const imagesByProject = allImages.reduce<Record<string, string[]>>((acc, img) => {
+    (acc[img.projectId] ??= []).push(img.url);
+    return acc;
+  }, {});
+
+  return Response.json(rows.map((p) => ({ ...p, images: imagesByProject[p.id] ?? [] })));
+};
+
+const getProjectById = async (req: BunRequest<{ id: string }>) => {
+  const { id } = req.params;
+
+  const [row] = await db
+    .select({
+      id: projects.id,
+      title: projects.title,
+      description: projects.description,
+      startingAt: projects.startingAt,
+      pillarId: projects.pillarId,
+      pillarName: pillars.name,
+    })
+    .from(projects)
+    .leftJoin(pillars, eq(projects.pillarId, pillars.id))
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+
+  const images = await db
+    .select({ url: projectImages.url })
+    .from(projectImages)
+    .where(eq(projectImages.projectId, id))
+    .orderBy(projectImages.order);
+
+  return Response.json({ ...row, images: images.map((i) => i.url) });
+};
+
+// Admin
+const getProjectsAdmin = withRole(Role.ADMIN, async () => {
   const rows = await db
     .select({
       id: projects.id,
@@ -172,7 +229,9 @@ const getProjectUploadUrl = withRole(Role.ADMIN, async (req) => {
 });
 
 export const projectRoutes = {
+  [ApiRoutes.PROJECTS]: { GET: getProjects },
+  [ApiRoutes.PROJECT_BY_ID]: { GET: getProjectById },
   [ApiRoutes.ADMIN_PROJECTS_UPLOAD]: { GET: getProjectUploadUrl },
-  [ApiRoutes.ADMIN_PROJECTS]: { GET: getProjects, POST: createProject },
+  [ApiRoutes.ADMIN_PROJECTS]: { GET: getProjectsAdmin, POST: createProject },
   [ApiRoutes.ADMIN_PROJECT_BY_ID]: { PATCH: updateProject, DELETE: deleteProject },
 };

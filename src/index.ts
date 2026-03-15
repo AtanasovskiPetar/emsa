@@ -2,9 +2,11 @@ import { serve } from "bun";
 
 import index from "./index.html";
 import { env } from "./lib/env";
-import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { dashboardRoutes } from "./routes/dashboard";
 import { organizationRoutes } from "./routes/organization";
+import { pillarRoutes } from "./routes/pillars";
+import { projectRoutes } from "./routes/projects";
 import { userRoutes } from "./routes/users";
 
 const server = serve({
@@ -13,8 +15,10 @@ const server = serve({
     "/*": index,
     ...authRoutes,
     ...organizationRoutes,
-    ...adminRoutes,
+    ...pillarRoutes,
+    ...projectRoutes,
     ...userRoutes,
+    ...dashboardRoutes,
   },
 
   development: process.env.NODE_ENV !== "production" && {
