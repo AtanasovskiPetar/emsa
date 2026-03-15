@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Building2, FolderOpen, House, LayoutDashboard, Mountain, Users } from "lucide-react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { NavUser } from "@/components/admin/NavUser";
 import {
@@ -24,6 +24,7 @@ import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { useLogout } from "@/hooks/use-logout";
 import { apiClient } from "@/lib/api-client";
 import { cn, hasAccess } from "@/lib/utils";
 
@@ -104,8 +105,8 @@ function BackToSiteItem() {
 }
 
 export function AdminLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const handleLogout = useLogout();
   const { pathname } = useLocation();
   const { data: org } = useQuery({
     queryKey: ["organization"],
@@ -114,11 +115,6 @@ export function AdminLayout() {
   });
 
   const pageTitle = navItems.find((item) => item.url === pathname)?.title ?? "Admin";
-
-  function handleLogout() {
-    logout();
-    navigate(PageRoutes.LOGIN);
-  }
 
   return (
     <SidebarProvider className="min-h-screen w-full">

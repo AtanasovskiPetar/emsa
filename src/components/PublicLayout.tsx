@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Menu, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,17 +12,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+  MobileNav,
+  MobileNavHeader,
+  MobileNavMenu,
+  MobileNavToggle,
+  Navbar,
+  NavBody,
+} from "@/components/ui/resizable-navbar";
+import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { useLogout } from "@/hooks/use-logout";
 import { apiClient } from "@/lib/api-client";
 import { cn, hasAccess } from "@/lib/utils";
 
@@ -31,37 +34,69 @@ const navLinks = [
   { label: "Projects", to: PageRoutes.PROJECTS },
 ];
 
-function MobileNavLinks({ onClick }: { onClick?: () => void }) {
+function OrgLogo({ org }: { org?: OrganizationPublic }) {
   return (
-    <>
-      {navLinks.map((link) => (
+    <Link to={PageRoutes.HOME} className="relative z-20 flex items-center px-2 py-1">
+      {org?.logoUrl ? (
+        <img src={org.logoUrl} alt="Logo" className="size-8 rounded object-cover" />
+      ) : (
+        <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+          {org?.name?.charAt(0) ?? "E"}
+        </div>
+      )}
+    </Link>
+  );
+}
+
+function DesktopNavLinks() {
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  return (
+    <motion.div
+      onMouseLeave={() => setHovered(null)}
+      className="absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium lg:flex"
+    >
+      {navLinks.map((link, idx) => (
         <NavLink
           key={link.to}
           to={link.to}
           end={link.to === PageRoutes.HOME}
-          onClick={onClick}
-          className={({ isActive }) =>
-            cn(
-              "block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-              isActive ? "bg-accent text-foreground" : "text-muted-foreground"
-            )
-          }
+          onMouseEnter={() => setHovered(idx)}
+          className="relative px-4 py-2"
         >
-          {link.label}
+          {({ isActive }) => (
+            <>
+              {hovered === idx && (
+                <motion.div
+                  layoutId="hovered"
+                  className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
+                />
+              )}
+              <span
+                className={cn(
+                  "relative z-20 text-neutral-600 dark:text-neutral-300",
+                  isActive && "font-semibold text-primary"
+                )}
+              >
+                {link.label}
+              </span>
+              {isActive && (
+                <motion.span
+                  layoutId="activeIndicator"
+                  className="absolute bottom-1 left-1/2 block h-0.5 w-3 -translate-x-1/2 rounded-full bg-primary"
+                />
+              )}
+            </>
+          )}
         </NavLink>
       ))}
-    </>
+    </motion.div>
   );
 }
 
 function UserMenu() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    navigate(PageRoutes.LOGIN);
-  }
+  const { user } = useAuth();
+  const handleLogout = useLogout();
 
   if (!user) {
     return (
@@ -104,6 +139,62 @@ function UserMenu() {
   );
 }
 
+function MobileUserSection({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const handleLogout = useLogout(onClose);
+
+  if (!user) {
+    return (
+      <div className="flex w-full flex-col gap-2">
+        <Button variant="ghost" className="w-full justify-start" asChild>
+          <Link to={PageRoutes.LOGIN} onClick={onClose}>
+            Log in
+          </Link>
+        </Button>
+        <Button className="w-full" asChild>
+          <Link to={PageRoutes.REGISTER} onClick={onClose}>
+            Register
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <UserAvatar name={user.name} imageUrl={user.imageUrl ?? null} className="size-9" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
+            {user.name}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+        </div>
+      </div>
+      <Separator />
+      <Link
+        to={PageRoutes.PROFILE}
+        onClick={onClose}
+        className="text-sm font-medium text-neutral-600 dark:text-neutral-300"
+      >
+        Profile
+      </Link>
+      {hasAccess(user.role, Role.ADMIN) && (
+        <Link
+          to={PageRoutes.ADMIN}
+          onClick={onClose}
+          className="text-sm font-medium text-neutral-600 dark:text-neutral-300"
+        >
+          Admin Panel
+        </Link>
+      )}
+      <button onClick={handleLogout} className="text-left text-sm font-medium text-destructive">
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: org } = useQuery({
@@ -114,75 +205,46 @@ export function PublicLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          {/* Left: logo + name */}
-          <Link to={PageRoutes.HOME} className="flex items-center gap-2.5">
-            {org?.logoUrl ? (
-              <img src={org.logoUrl} alt="Logo" className="size-8 rounded object-cover" />
-            ) : (
-              <div className="flex size-8 items-center justify-center rounded bg-primary text-primary-foreground text-xs font-bold">
-                {org?.name?.charAt(0) ?? "E"}
-              </div>
-            )}
-            <span className="font-semibold">{org?.name ?? "EMSA"}</span>
-          </Link>
+      <Navbar>
+        {/* Desktop */}
+        <NavBody>
+          <OrgLogo org={org} />
+          <DesktopNavLinks />
+          <UserMenu />
+        </NavBody>
 
-          {/* Center: desktop nav — absolutely centered relative to the full header */}
-          <div className="absolute left-1/2 hidden -translate-x-1/2 md:flex">
-            <NavigationMenu>
-              <NavigationMenuList>
-                {navLinks.map((link) => (
-                  <NavigationMenuItem key={link.to}>
-                    <NavigationMenuLink asChild>
-                      <NavLink
-                        to={link.to}
-                        end={link.to === PageRoutes.HOME}
-                        className={({ isActive }) =>
-                          cn(
-                            navigationMenuTriggerStyle,
-                            isActive && "bg-accent/50 text-accent-foreground"
-                          )
-                        }
-                      >
-                        {link.label}
-                      </NavLink>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                ))}
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
+        {/* Mobile */}
+        <MobileNav>
+          <MobileNavHeader>
+            <OrgLogo org={org} />
+            <MobileNavToggle isOpen={mobileOpen} onClick={() => setMobileOpen((v) => !v)} />
+          </MobileNavHeader>
 
-          {/* Right: user menu (desktop) or hamburger (mobile) */}
-          <div className="flex items-center justify-end">
-            <div className="hidden md:block">
-              <UserMenu />
+          <MobileNavMenu isOpen={mobileOpen}>
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === PageRoutes.HOME}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    "text-sm font-medium text-neutral-600 dark:text-neutral-300",
+                    isActive && "font-semibold text-primary"
+                  )
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+            <div className="w-full border-t pt-4">
+              <MobileUserSection onClose={() => setMobileOpen(false)} />
             </div>
-            <button
-              className="rounded-md p-2 hover:bg-accent md:hidden"
-              onClick={() => setMobileOpen((v) => !v)}
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-          </div>
-        </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
 
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="border-t md:hidden">
-            <nav className="flex flex-col gap-1 px-4 py-3">
-              <MobileNavLinks onClick={() => setMobileOpen(false)} />
-            </nav>
-            <div className="border-t px-4 py-3">
-              <UserMenu />
-            </div>
-          </div>
-        )}
-      </header>
-
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         <Outlet />
       </main>
 
