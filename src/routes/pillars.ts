@@ -15,6 +15,7 @@ const getPillars = async () => {
       name: pillars.name,
       description: pillars.description,
       directorName: users.name,
+      directorImageUrl: users.imageUrl,
     })
     .from(pillars)
     .leftJoin(users, eq(pillars.directorId, users.id))
@@ -32,6 +33,7 @@ const getPillarById = async (req: BunRequest<{ id: string }>) => {
       name: pillars.name,
       description: pillars.description,
       directorName: users.name,
+      directorImageUrl: users.imageUrl,
     })
     .from(pillars)
     .leftJoin(users, eq(pillars.directorId, users.id))

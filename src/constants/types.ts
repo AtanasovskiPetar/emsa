@@ -60,6 +60,7 @@ export interface PublicPillar {
   name: string;
   description: string;
   directorName: string | null;
+  directorImageUrl: string | null;
 }
 
 export interface PublicPillarDetail extends PublicPillar {
