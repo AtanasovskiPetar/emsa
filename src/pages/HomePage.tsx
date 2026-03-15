@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic, type PublicPillar, type PublicProject } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -163,7 +164,7 @@ export function HomePage() {
 
       {/* About */}
       {org?.aboutUs && (
-        <section id="about" className="relative overflow-hidden border-t bg-primary/5 py-20">
+        <section id="about" className="relative overflow-hidden border-t bg-primary/5 pb-0 pt-20">
           {/* Decorative ring */}
           <div className="pointer-events-none absolute -right-32 -top-32 size-[500px] rounded-full border border-primary/10" />
           <div className="pointer-events-none absolute -right-20 -top-20 size-[300px] rounded-full border border-chart-2/10" />
@@ -194,13 +195,16 @@ export function HomePage() {
       )}
 
       {/* Pillars */}
-      <section className="border-t py-16">
+      <section className={cn("py-20", org?.aboutUs ? "bg-primary/5" : "border-t")}>
         <div className="mx-auto max-w-6xl px-4">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold">Our Pillars</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div className="mb-12">
+            <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <span className="h-px w-6 bg-primary" />
+              Our Pillars
+            </div>
+            <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
               The focus areas that drive our work
-            </p>
+            </h2>
           </div>
 
           {pillarsLoading ? (
@@ -211,8 +215,8 @@ export function HomePage() {
             </div>
           ) : pillars?.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {pillars.map((p) => (
-                <PillarCard key={p.id} pillar={p} />
+              {pillars.map((p, i) => (
+                <PillarCard key={p.id} pillar={p} index={i} />
               ))}
             </div>
           ) : (

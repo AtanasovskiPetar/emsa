@@ -256,7 +256,7 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t bg-muted/40 py-8">
+      <footer className="border-t bg-muted/40 py-4">
         <div className="mx-auto max-w-6xl px-4 text-center text-sm text-muted-foreground">
           © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
         </div>
