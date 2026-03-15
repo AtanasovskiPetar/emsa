@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Layers } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
@@ -30,16 +30,20 @@ export function ProjectsPage() {
     queryFn: () => apiClient.get<PublicPillar[]>(ApiRoutes.PILLARS),
   });
 
-  const now = new Date();
-  const filtered = sortByDateDesc(
-    (projects ?? []).filter((p) => {
-      if (selectedPillar && p.pillarId !== selectedPillar) return false;
-      if (onlyUpcoming && new Date(p.startingAt) < now) return false;
-      return true;
-    })
-  );
-
-  const upcomingCount = (projects ?? []).filter((p) => new Date(p.startingAt) >= now).length;
+  const { filtered, upcomingCount } = useMemo(() => {
+    const now = new Date();
+    const all = projects ?? [];
+    return {
+      filtered: sortByDateDesc(
+        all.filter((p) => {
+          if (selectedPillar && p.pillarId !== selectedPillar) return false;
+          if (onlyUpcoming && new Date(p.startingAt) < now) return false;
+          return true;
+        })
+      ),
+      upcomingCount: all.filter((p) => new Date(p.startingAt) >= now).length,
+    };
+  }, [projects, selectedPillar, onlyUpcoming]);
 
   return (
     <div className="relative overflow-hidden">

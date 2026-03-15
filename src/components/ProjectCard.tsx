@@ -28,7 +28,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.1 }}
+      transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
       className={cn(
         "h-full",
         !isUpcoming && !featured && "opacity-85 hover:opacity-100 transition-opacity",

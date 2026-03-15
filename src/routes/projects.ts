@@ -23,15 +23,20 @@ const getProjects = async () => {
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
     .orderBy(projects.startingAt);
 
-  const allImages = await db
-    .select({ projectId: projectImages.projectId, url: projectImages.url })
-    .from(projectImages)
-    .orderBy(projectImages.order);
+  const projectIds = rows.map((p) => p.id);
+  const imagesByProject: Record<string, string[]> = {};
 
-  const imagesByProject = allImages.reduce<Record<string, string[]>>((acc, img) => {
-    (acc[img.projectId] ??= []).push(img.url);
-    return acc;
-  }, {});
+  if (projectIds.length > 0) {
+    const allImages = await db
+      .select({ projectId: projectImages.projectId, url: projectImages.url })
+      .from(projectImages)
+      .where(inArray(projectImages.projectId, projectIds))
+      .orderBy(projectImages.order);
+
+    for (const img of allImages) {
+      (imagesByProject[img.projectId] ??= []).push(img.url);
+    }
+  }
 
   return Response.json(rows.map((p) => ({ ...p, images: imagesByProject[p.id] ?? [] })));
 };
@@ -81,17 +86,22 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
     .orderBy(projects.startingAt);
 
-  const allImages = await db
-    .select({ projectId: projectImages.projectId, url: projectImages.url })
-    .from(projectImages)
-    .orderBy(projectImages.order);
+  const adminProjectIds = rows.map((p) => p.id);
+  const adminImagesByProject: Record<string, string[]> = {};
 
-  const imagesByProject = allImages.reduce<Record<string, string[]>>((acc, img) => {
-    (acc[img.projectId] ??= []).push(img.url);
-    return acc;
-  }, {});
+  if (adminProjectIds.length > 0) {
+    const allImages = await db
+      .select({ projectId: projectImages.projectId, url: projectImages.url })
+      .from(projectImages)
+      .where(inArray(projectImages.projectId, adminProjectIds))
+      .orderBy(projectImages.order);
 
-  return Response.json(rows.map((p) => ({ ...p, images: imagesByProject[p.id] ?? [] })));
+    for (const img of allImages) {
+      (adminImagesByProject[img.projectId] ??= []).push(img.url);
+    }
+  }
+
+  return Response.json(rows.map((p) => ({ ...p, images: adminImagesByProject[p.id] ?? [] })));
 });
 
 const createProject = withRole(Role.ADMIN, async (req) => {

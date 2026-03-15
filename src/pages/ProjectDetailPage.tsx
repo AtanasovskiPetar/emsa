@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   CalendarDays,
@@ -51,6 +52,7 @@ function Lightbox({
     >
       {/* Close */}
       <button
+        aria-label="Close"
         className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
         onClick={onClose}
       >
@@ -73,6 +75,7 @@ function Lightbox({
       {images.length > 1 && (
         <>
           <button
+            aria-label="Previous image"
             className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
             onClick={(e) => {
               e.stopPropagation();
@@ -82,6 +85,7 @@ function Lightbox({
             <ChevronLeft className="size-6" />
           </button>
           <button
+            aria-label="Next image"
             className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
             onClick={(e) => {
               e.stopPropagation();
@@ -210,7 +214,7 @@ export function ProjectDetailPage() {
             {project.description && (
               <div
                 className="prose prose-neutral max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: project.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
               />
             )}
           </>

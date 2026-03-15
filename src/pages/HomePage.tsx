@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
@@ -154,7 +155,7 @@ export function HomePage() {
                   animate={{ y: [0, -12, 0] }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  {org?.name?.charAt(0) ?? "E"}
+                  {org?.name?.charAt(0) ?? "?"}
                 </motion.div>
               )}
             </motion.div>
@@ -230,7 +231,7 @@ export function HomePage() {
 
             <div
               className="prose prose-neutral max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: org.aboutUs }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(org.aboutUs) }}
             />
           </div>
         </section>

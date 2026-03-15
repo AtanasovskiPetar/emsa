@@ -34,7 +34,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <img src={org.logoUrl} alt="Logo" className="size-6 rounded object-cover" />
         ) : (
           <div className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-            {org?.name?.charAt(0) ?? "E"}
+            {org?.name?.charAt(0) ?? "?"}
           </div>
         )}
         <span className="font-medium">{org?.name ?? "Home"}</span>
