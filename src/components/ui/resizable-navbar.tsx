@@ -10,6 +10,7 @@ const GradientBorder = () => (
     className="pointer-events-none absolute inset-0 rounded-full"
     style={{
       padding: "1px",
+      opacity: 0.3,
       background: "linear-gradient(to right, var(--primary), var(--chart-2))",
       WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
       WebkitMaskComposite: "xor",
