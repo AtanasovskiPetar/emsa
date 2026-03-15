@@ -29,7 +29,11 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.1 }}
-      className={cn("h-full", !isUpcoming && !featured && "opacity-85 hover:opacity-100 transition-opacity", className)}
+      className={cn(
+        "h-full",
+        !isUpcoming && !featured && "opacity-85 hover:opacity-100 transition-opacity",
+        className
+      )}
     >
       <Link
         to={PageRoutes.PROJECT_DETAIL.replace(":id", project.id)}
@@ -39,7 +43,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Featured: image-overlay layout */
           <div
             className={cn(
-              "relative h-full min-h-72 overflow-hidden rounded-xl border transition-all duration-300",
+              "relative h-102 overflow-hidden rounded-xl border transition-all duration-300",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_32px_color-mix(in_srgb,var(--primary)_15%,transparent)]"
                 : "border-border"
@@ -69,7 +73,10 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
                   </Badge>
                 )}
                 {project.pillarName && (
-                  <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-0">
+                  <Badge
+                    variant="secondary"
+                    className="bg-white/20 text-white hover:bg-white/30 border-0"
+                  >
                     {project.pillarName}
                   </Badge>
                 )}
@@ -87,13 +94,13 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Regular card */
           <div
             className={cn(
-              "relative h-full overflow-hidden rounded-xl border bg-background transition-all duration-300 hover:shadow-md",
+              "flex h-48 flex-col overflow-hidden rounded-xl border bg-background transition-all duration-300 hover:shadow-md",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_12%,transparent)]"
                 : "border-border"
             )}
           >
-            <div className="relative aspect-video overflow-hidden bg-muted">
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-muted">
               {cover ? (
                 <img
                   src={cover}

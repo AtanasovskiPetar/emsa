@@ -162,6 +162,54 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Projects preview */}
+      <section className="border-t py-20">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-12 flex items-end justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <span className="h-px w-6 bg-primary" />
+                Projects
+              </div>
+              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+                Upcoming events &amp; recent initiatives
+              </h2>
+            </div>
+            <Button variant="ghost" size="sm" asChild className="shrink-0">
+              <Link to={PageRoutes.PROJECTS}>
+                View all
+                <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {projectsLoading ? (
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+              <Skeleton className="h-96 rounded-xl" />
+              <div className="flex flex-col gap-6">
+                <Skeleton className="h-48 rounded-xl" />
+                <Skeleton className="h-48 rounded-xl" />
+              </div>
+            </div>
+          ) : previewProjects.length ? (
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+              {previewProjects[0] && (
+                <ProjectCard project={previewProjects[0]} index={0} featured />
+              )}
+              {previewProjects.length > 1 && (
+                <div className="flex flex-col gap-6">
+                  {previewProjects.slice(1).map((p, i) => (
+                    <ProjectCard key={p.id} project={p} index={i + 1} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No projects yet.</p>
+          )}
+        </div>
+      </section>
+
       {/* About */}
       {org?.aboutUs && (
         <section id="about" className="relative overflow-hidden border-t bg-primary/5 pb-0 pt-20">
@@ -221,54 +269,6 @@ export function HomePage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No pillars yet.</p>
-          )}
-        </div>
-      </section>
-
-      {/* Projects preview */}
-      <section className="border-t py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mb-12 flex items-end justify-between">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                <span className="h-px w-6 bg-primary" />
-                Projects
-              </div>
-              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
-                Upcoming events &amp; recent initiatives
-              </h2>
-            </div>
-            <Button variant="ghost" size="sm" asChild className="shrink-0">
-              <Link to={PageRoutes.PROJECTS}>
-                View all
-                <ArrowRight className="ml-1 size-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {projectsLoading ? (
-            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-              <Skeleton className="h-72 rounded-xl" />
-              <div className="flex flex-col gap-6">
-                <Skeleton className="h-32 rounded-xl" />
-                <Skeleton className="h-32 rounded-xl" />
-              </div>
-            </div>
-          ) : previewProjects.length ? (
-            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-              {previewProjects[0] && (
-                <ProjectCard project={previewProjects[0]} index={0} featured />
-              )}
-              {previewProjects.length > 1 && (
-                <div className="flex flex-col gap-6">
-                  {previewProjects.slice(1).map((p, i) => (
-                    <ProjectCard key={p.id} project={p} index={i + 1} />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No projects yet.</p>
           )}
         </div>
       </section>
