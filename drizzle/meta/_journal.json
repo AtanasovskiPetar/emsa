@@ -64,6 +64,13 @@
       "when": 1773520659557,
       "tag": "0008_glorious_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773586054507,
+      "tag": "0009_sparkling_gargoyle",
+      "breakpoints": true
     }
   ]
 }

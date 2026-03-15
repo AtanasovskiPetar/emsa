@@ -16,6 +16,7 @@ const getOrganization = async () => {
     .select({
       name: organization.name,
       logoUrl: organization.logoUrl,
+      description: organization.description,
       aboutUs: organization.aboutUs,
     })
     .from(organization)

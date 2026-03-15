@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic, type PublicPillar, type PublicProject } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
-import { stripHtml } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -45,7 +44,6 @@ export function HomePage() {
   });
 
   const previewProjects = projects ? getPreviewProjects(projects) : [];
-  const tagline = org?.aboutUs ? stripHtml(org.aboutUs).slice(0, 160).trimEnd() : null;
 
   return (
     <div className="flex flex-col">
@@ -81,13 +79,12 @@ export function HomePage() {
                 {org?.name ?? "Welcome"}
               </motion.h1>
 
-              {tagline && (
+              {org?.description && (
                 <motion.p
                   variants={fadeUp}
                   className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground"
                 >
-                  {tagline}
-                  {(org?.aboutUs ? stripHtml(org.aboutUs).length : 0) > 160 ? "…" : ""}
+                  {org.description}
                 </motion.p>
               )}
 

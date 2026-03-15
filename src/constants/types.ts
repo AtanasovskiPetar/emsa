@@ -41,6 +41,7 @@ export interface Project {
 export interface OrganizationPublic {
   name: string;
   logoUrl: string | null;
+  description: string;
   aboutUs: string;
 }
 
@@ -69,6 +70,7 @@ export interface Organization {
   id: number;
   name: string;
   logoUrl: string | null;
+  description: string;
   aboutUs: string;
   updatedAt: string;
 }

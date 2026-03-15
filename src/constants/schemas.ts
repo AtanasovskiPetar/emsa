@@ -82,10 +82,15 @@ export const updateOrganizationSchema = z
   .object({
     name: z.string().min(1, "Organization name is required").optional(),
     logoUrl: z.url().nullable().optional(),
+    description: z.string().optional(),
     aboutUs: z.string().optional(),
   })
   .refine(
-    (data) => data.name !== undefined || data.logoUrl !== undefined || data.aboutUs !== undefined,
+    (data) =>
+      data.name !== undefined ||
+      data.logoUrl !== undefined ||
+      data.description !== undefined ||
+      data.aboutUs !== undefined,
     { message: "At least one field must be provided" }
   );
 
