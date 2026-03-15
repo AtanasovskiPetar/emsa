@@ -56,7 +56,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
   const [visible, setVisible] = useState<boolean>(false);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
-    const next = latest > 50;
+    const next = latest > 55;
     setVisible((prev) => (prev === next ? prev : next));
   });
 

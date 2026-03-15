@@ -48,19 +48,19 @@ export function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative flex min-h-[calc(100vh-4rem)] items-center overflow-hidden py-12">
+      <section className="relative flex min-h-[calc(100vh-3.6rem)] items-center overflow-hidden py-12">
         {/* Background atmosphere */}
-        <div className="pointer-events-none absolute inset-0">
+        <div className="pointer-events-none absolute inset-0 border-t border-b">
           <div className="absolute right-0 top-0 size-[700px] -translate-y-1/4 translate-x-1/4 rounded-full bg-primary/15 blur-[120px]" />
           <div className="absolute bottom-0 left-0 size-[500px] translate-y-1/4 -translate-x-1/4 rounded-full bg-chart-2/15 blur-[100px]" />
-          <div className="absolute left-1/2 top-1/2 size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-[80px]" />
+          <div className="absolute left-1/2 top-1/2 size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-chart-3/15 blur-[80px]" />
         </div>
 
         <div className="relative mx-auto w-full max-w-6xl px-4">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left: text */}
             <motion.div
-              className="flex flex-col items-start"
+              className="flex flex-col items-center text-center lg:items-start lg:text-left lg:order-first order-last"
               initial="hidden"
               animate="visible"
               variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
@@ -74,7 +74,7 @@ export function HomePage() {
 
               <motion.h1
                 variants={fadeUp}
-                className="mt-6 text-5xl font-bold tracking-tight lg:text-6xl"
+                className="mt-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-5xl font-bold tracking-tight text-transparent lg:text-6xl"
               >
                 {org?.name ?? "Welcome"}
               </motion.h1>
@@ -88,7 +88,10 @@ export function HomePage() {
                 </motion.p>
               )}
 
-              <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
+              <motion.div
+                variants={fadeUp}
+                className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start"
+              >
                 <Button size="lg" asChild>
                   <Link to={PageRoutes.PROJECTS}>
                     Explore Projects
@@ -101,7 +104,10 @@ export function HomePage() {
               </motion.div>
 
               {projects?.length || pillars?.length ? (
-                <motion.div variants={fadeUp} className="mt-12 flex gap-8 border-t pt-8">
+                <motion.div
+                  variants={fadeUp}
+                  className="mt-12 flex w-full justify-center gap-8 pt-8 lg:justify-start"
+                >
                   {(projects?.length ?? 0) > 0 && (
                     <div>
                       <div className="text-3xl font-bold">{projects!.length}+</div>
@@ -120,13 +126,13 @@ export function HomePage() {
 
             {/* Right: logo visual */}
             <motion.div
-              className="relative flex items-center justify-center"
+              className="relative flex items-center justify-center order-first lg:order-last"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
               {/* Decorative rings */}
-              <div className="absolute size-[380px] rounded-full border border-accent/50" />
+              <div className="absolute size-[380px] rounded-full border border-chart-3/50" />
               <div className="absolute size-[280px] rounded-full border border-chart-2/50" />
               <div className="absolute size-[180px] rounded-full border border-primary/50" />
 

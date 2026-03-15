@@ -53,7 +53,7 @@ function DesktopNavLinks() {
   return (
     <motion.div
       onMouseLeave={() => setHovered(null)}
-      className="absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium lg:flex"
+      className="pointer-events-none absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium lg:flex"
     >
       {navLinks.map((link, idx) => (
         <NavLink
@@ -61,14 +61,14 @@ function DesktopNavLinks() {
           to={link.to}
           end={link.to === PageRoutes.HOME}
           onMouseEnter={() => setHovered(idx)}
-          className="relative px-4 py-2"
+          className="pointer-events-auto relative px-4 py-2"
         >
           {({ isActive }) => (
             <>
               {hovered === idx && (
                 <motion.div
                   layoutId="hovered"
-                  className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
+                  className="absolute inset-0 h-full w-full rounded-full bg-accent dark:bg-neutral-800"
                 />
               )}
               <span
@@ -252,7 +252,7 @@ export function PublicLayout() {
         </MobileNav>
       </Navbar>
 
-      <main className="flex-1 pt-16">
+      <main className="flex-1 pt-14">
         <Outlet />
       </main>
 
