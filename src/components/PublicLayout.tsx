@@ -25,7 +25,6 @@ import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
-import { useLogout } from "@/hooks/use-logout";
 import { apiClient } from "@/lib/api-client";
 import { cn, hasAccess } from "@/lib/utils";
 
@@ -95,8 +94,7 @@ function DesktopNavLinks() {
 }
 
 function UserMenu() {
-  const { user } = useAuth();
-  const handleLogout = useLogout();
+  const { user, logout } = useAuth();
 
   if (!user) {
     return (
@@ -133,15 +131,18 @@ function UserMenu() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to={PageRoutes.LOGIN} onClick={logout}>
+            Sign out
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 function MobileUserSection({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
-  const handleLogout = useLogout(onClose);
+  const { user, logout } = useAuth();
 
   if (!user) {
     return (
@@ -188,9 +189,16 @@ function MobileUserSection({ onClose }: { onClose: () => void }) {
           Admin Panel
         </Link>
       )}
-      <button onClick={handleLogout} className="text-left text-sm font-medium text-destructive">
+      <Link
+        to={PageRoutes.LOGIN}
+        onClick={() => {
+          logout();
+          onClose();
+        }}
+        className="text-sm font-medium text-destructive"
+      >
         Sign out
-      </button>
+      </Link>
     </div>
   );
 }

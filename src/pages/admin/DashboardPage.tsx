@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronRight, FolderOpen, Mountain, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
@@ -46,55 +46,44 @@ interface StatCardProps {
   iconBg: string;
   rows: { label: string; value: number; accent?: boolean }[];
   footer?: React.ReactNode;
-  onClick: () => void;
+  to: string;
 }
 
-function StatCard({
-  title,
-  total,
-  totalLabel,
-  icon,
-  iconBg,
-  rows,
-  footer,
-  onClick,
-}: StatCardProps) {
+function StatCard({ title, total, totalLabel, icon, iconBg, rows, footer, to }: StatCardProps) {
   return (
-    <Card
-      onClick={onClick}
-      className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={cn("flex size-10 items-center justify-center rounded-lg", iconBg)}>
-              {icon}
+    <Link to={to} className="block">
+      <Card className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={cn("flex size-10 items-center justify-center rounded-lg", iconBg)}>
+                {icon}
+              </div>
+              <span className="text-sm font-medium">{title}</span>
             </div>
-            <span className="text-sm font-medium">{title}</span>
+            <ChevronRight className="size-4 text-muted-foreground/50" />
           </div>
-          <ChevronRight className="size-4 text-muted-foreground/50" />
-        </div>
 
-        <div className="mt-4">
-          <div className="text-4xl font-bold tracking-tight">{total}</div>
-          <div className="mt-0.5 text-sm text-muted-foreground">{totalLabel}</div>
-        </div>
+          <div className="mt-4">
+            <div className="text-4xl font-bold tracking-tight">{total}</div>
+            <div className="mt-0.5 text-sm text-muted-foreground">{totalLabel}</div>
+          </div>
 
-        <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-          {rows.map((row) => (
-            <StatRow key={row.label} label={row.label} value={row.value} accent={row.accent} />
-          ))}
-        </div>
+          <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+            {rows.map((row) => (
+              <StatRow key={row.label} label={row.label} value={row.value} accent={row.accent} />
+            ))}
+          </div>
 
-        {footer && <div className="mt-4 border-t pt-4">{footer}</div>}
-      </CardContent>
-    </Card>
+          {footer && <div className="mt-4 border-t pt-4">{footer}</div>}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin", "dashboard"],
@@ -130,7 +119,7 @@ export function DashboardPage() {
             { label: "Active", value: stats.users.active, accent: true },
             { label: "Inactive", value: stats.users.inactive },
           ]}
-          onClick={() => navigate(PageRoutes.ADMIN_USERS)}
+          to={PageRoutes.ADMIN_USERS}
         />
 
         <StatCard
@@ -158,7 +147,7 @@ export function DashboardPage() {
               </div>
             ) : null
           }
-          onClick={() => navigate(PageRoutes.ADMIN_PROJECTS)}
+          to={PageRoutes.ADMIN_PROJECTS}
         />
 
         <StatCard
@@ -168,7 +157,7 @@ export function DashboardPage() {
           icon={<Mountain className="size-5 text-violet-600" />}
           iconBg="bg-violet-100"
           rows={[]}
-          onClick={() => navigate(PageRoutes.ADMIN_PILLARS)}
+          to={PageRoutes.ADMIN_PILLARS}
         />
       </div>
     </div>

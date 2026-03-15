@@ -24,7 +24,6 @@ import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
-import { useLogout } from "@/hooks/use-logout";
 import { apiClient } from "@/lib/api-client";
 import { cn, hasAccess } from "@/lib/utils";
 
@@ -105,8 +104,7 @@ function BackToSiteItem() {
 }
 
 export function AdminLayout() {
-  const { user } = useAuth();
-  const handleLogout = useLogout();
+  const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const { data: org } = useQuery({
     queryKey: ["organization"],
@@ -160,7 +158,7 @@ export function AdminLayout() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>{user && <NavUser user={user} onLogout={handleLogout} />}</SidebarFooter>
+        <SidebarFooter>{user && <NavUser user={user} onLogout={logout} />}</SidebarFooter>
 
         <SidebarRail />
       </Sidebar>
