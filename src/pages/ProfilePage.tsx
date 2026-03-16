@@ -38,7 +38,7 @@ function getMissingFields(profile: UserProfile): string[] {
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
-  const { logout, updateUser, user } = useAuth();
+  const { logout, updateUser, login, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export function ProfilePage() {
 
   const { mutate: updateMe, isPending } = useMutation({
     mutationFn: (payload: UpdateMePayload) =>
-      apiClient.patch<UserProfile>(ApiRoutes.USERS_ME, payload),
+      apiClient.patch<UserProfile & { token?: string }>(ApiRoutes.USERS_ME, payload),
   });
 
   const form = useForm<UpdateMePayload>({
@@ -117,15 +117,19 @@ export function ProfilePage() {
     }
 
     updateMe(payload, {
-      onSuccess: (updated) => {
+      onSuccess: ({ token, ...updated }) => {
         setPendingFile(null);
         setPreviewUrl(null);
         queryClient.setQueryData(["me"], updated);
-        updateUser({
-          name: updated.name,
-          imageUrl: updated.imageUrl,
-          profileCompleted: updated.profileCompleted,
-        });
+        if (token) {
+          login(token);
+        } else {
+          updateUser({
+            name: updated.name,
+            imageUrl: updated.imageUrl,
+            profileCompleted: updated.profileCompleted,
+          });
+        }
       },
     });
   }
@@ -330,9 +334,7 @@ export function ProfilePage() {
                         <FormControl>
                           <Input
                             type="number"
-                            min={1}
-                            max={6}
-                            placeholder="1"
+                            placeholder="e.g. 3"
                             {...field}
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}

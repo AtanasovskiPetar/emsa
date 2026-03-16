@@ -15,7 +15,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   phone: z.string().min(1, { message: "Phone is required" }),
   index: z.string().min(1, { message: "Student index is required" }),
-  yearOfStudies: z.coerce
+  yearOfStudies: z
     .number()
     .int()
     .min(1, { message: "Year must be between 1 and 6" })
@@ -75,10 +75,10 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as 
 export const updateMeSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
-    phone: z.string().min(1).optional().nullable(),
+    phone: z.string().optional().nullable(),
     imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
-    index: z.string().min(1).optional(),
-    yearOfStudies: z.number().int().min(1).max(6).optional(),
+    index: z.string().optional().nullable(),
+    yearOfStudies: z.number().int().min(1).max(6).optional().nullable(),
   })
   .refine(
     (data) =>

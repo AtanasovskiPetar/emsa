@@ -1,4 +1,4 @@
-import { type ZodSchema } from "zod";
+import { type ZodType } from "zod";
 
 import { type Role } from "@/constants/enums";
 import { type JwtUser, verifyJwt } from "@/lib/jwt";
@@ -28,7 +28,7 @@ async function getAuthUser(req: Request): Promise<JwtUser | null> {
   }
 }
 
-export async function parseBody<T>(req: Request, schema: ZodSchema<T>): Promise<T> {
+export async function parseBody<T>(req: Request, schema: ZodType<T>): Promise<T> {
   const result = schema.safeParse(await req.json());
   if (!result.success) {
     throw new HttpError(400, result.error.issues[0]?.message ?? "Invalid request body");
@@ -36,15 +36,25 @@ export async function parseBody<T>(req: Request, schema: ZodSchema<T>): Promise<
   return result.data;
 }
 
+interface WithRoleOptions {
+  allowIncomplete?: boolean;
+}
+
 export function withRole<P extends Record<string, string> = Record<string, string>>(
   role: Role,
-  handler: (req: BunRequest<P>, user: JwtUser) => Promise<Response>
+  handler: (req: BunRequest<P>, user: JwtUser) => Promise<Response>,
+  options?: WithRoleOptions
 ): (req: BunRequest<P>) => Promise<Response> {
   return async (req: BunRequest<P>): Promise<Response> => {
     const user = await getAuthUser(req);
     if (!user || !hasAccess(user.role, role)) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    if (!options?.allowIncomplete && !user.profileCompleted) {
+      return Response.json({ error: "Profile incomplete" }, { status: 403 });
+    }
+
     try {
       return await handler(req, user);
     } catch (err) {

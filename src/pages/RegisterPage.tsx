@@ -28,7 +28,7 @@ export function RegisterPage() {
 
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "", phone: "", index: "", yearOfStudies: 1 },
+    defaultValues: { name: "", email: "", password: "", phone: "", index: "" },
   });
 
   const { mutate, isPending, error } = useMutation({
@@ -137,7 +137,13 @@ export function RegisterPage() {
                   <FormItem>
                     <FormLabel>Year of studies</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} max={6} placeholder="1" {...field} />
+                      <Input
+                        type="number"
+                        placeholder="e.g. 3"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

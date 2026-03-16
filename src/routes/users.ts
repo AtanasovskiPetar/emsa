@@ -5,6 +5,7 @@ import { ApiRoutes } from "@/constants/routes";
 import { ALLOWED_IMAGE_TYPES, updateMeSchema, updateUserSchema } from "@/constants/schemas";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { signJwt } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
 import { getPresignedUploadUrl } from "@/lib/s3";
 
@@ -33,55 +34,86 @@ const adminUserColumns = {
 };
 
 // Self
-const getMe = withRole(Role.USER, async (_req, user) => {
-  const [me] = await db.select(meColumns).from(users).where(eq(users.id, user.sub)).limit(1);
+const getMe = withRole(
+  Role.USER,
+  async (_req, user) => {
+    const [me] = await db.select(meColumns).from(users).where(eq(users.id, user.sub)).limit(1);
 
-  if (!me) {
-    return Response.json({ error: "User not found" }, { status: 404 });
-  }
+    if (!me) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
 
-  return Response.json(me);
-});
+    return Response.json(me);
+  },
+  { allowIncomplete: true }
+);
 
-const updateMe = withRole(Role.USER, async (req, user) => {
-  const data = await parseBody(req, updateMeSchema);
+const updateMe = withRole(
+  Role.USER,
+  async (req, user) => {
+    const data = await parseBody(req, updateMeSchema);
 
-  const [updated] = await db
-    .update(users)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(users.id, user.sub))
-    .returning(meColumns);
-
-  if (!updated) {
-    return Response.json({ error: "User not found" }, { status: 404 });
-  }
-
-  if (!updated.profileCompleted && updated.index && updated.yearOfStudies && updated.phone) {
-    const [completed] = await db
+    const [updated] = await db
       .update(users)
-      .set({ profileCompleted: true })
+      .set({
+        ...data,
+        phone: data.phone === "" ? null : data.phone,
+        index: data.index === "" ? null : data.index,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, user.sub))
       .returning(meColumns);
-    return Response.json(completed ?? updated);
-  }
 
-  return Response.json(updated);
-});
+    if (!updated) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
 
-const getPresignedUrl = withRole(Role.USER, async (req, user) => {
-  const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
+    const shouldBeCompleted = !!(updated.phone && updated.index && updated.yearOfStudies);
 
-  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
-    return Response.json({ error: "Unsupported image type" }, { status: 400 });
-  }
+    if (shouldBeCompleted === updated.profileCompleted) {
+      return Response.json(updated);
+    }
 
-  const ext = contentType.split("/")[1] ?? "jpg";
-  const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
-    `avatars/${user.sub}.${ext}`,
-    contentType
-  );
-  return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
-});
+    // profileCompleted changed — update it and re-issue JWT so the client is in sync
+    const [final] = await db
+      .update(users)
+      .set({ profileCompleted: shouldBeCompleted })
+      .where(eq(users.id, user.sub))
+      .returning(meColumns);
+
+    const record = { ...(final ?? updated), profileCompleted: shouldBeCompleted };
+
+    const token = await signJwt({
+      sub: user.sub,
+      name: record.name,
+      email: record.email,
+      role: record.role,
+      profileCompleted: shouldBeCompleted,
+    });
+
+    return Response.json({ ...record, token });
+  },
+  { allowIncomplete: true }
+);
+
+const getPresignedUrl = withRole(
+  Role.USER,
+  async (req, user) => {
+    const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
+
+    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
+      return Response.json({ error: "Unsupported image type" }, { status: 400 });
+    }
+
+    const ext = contentType.split("/")[1] ?? "jpg";
+    const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
+      `avatars/${user.sub}.${ext}`,
+      contentType
+    );
+    return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
+  },
+  { allowIncomplete: true }
+);
 
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
