@@ -6,6 +6,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ProfileGuard } from "@/components/ProfileGuard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Role } from "@/constants/enums";
@@ -102,6 +103,7 @@ export default function App() {
         <AuthProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <ProfileGuard>
             <Suspense fallback={null}>
               <Routes>
                 {/* Public site */}
@@ -172,6 +174,7 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
+            </ProfileGuard>
           </BrowserRouter>
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />

@@ -20,6 +20,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   imageUrl: string | null;
+  profileCompleted: boolean;
 }
 
 interface AuthContextValue {
@@ -41,6 +42,7 @@ function decodeToken(token: string): AuthUser | null {
       email: payload.email,
       role: payload.role,
       imageUrl: null,
+      profileCompleted: payload.profileCompleted ?? false,
     };
   } catch {
     return null;
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hydratedUser = useMemo(() => {
     if (!user || !meData) return user;
-    return { ...user, name: meData.name, imageUrl: meData.imageUrl };
+    return { ...user, name: meData.name, imageUrl: meData.imageUrl, profileCompleted: meData.profileCompleted };
   }, [user, meData]);
 
   useEffect(() => {

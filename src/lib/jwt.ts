@@ -11,6 +11,7 @@ export interface JwtUser extends JWTPayload {
   name: string;
   email: string;
   role: Role;
+  profileCompleted: boolean;
 }
 
 export async function signJwt(payload: Omit<JwtUser, keyof JWTPayload>): Promise<string> {

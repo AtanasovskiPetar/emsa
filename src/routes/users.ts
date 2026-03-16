@@ -15,6 +15,9 @@ const meColumns = {
   role: users.role,
   phone: users.phone,
   imageUrl: users.imageUrl,
+  index: users.index,
+  yearOfStudies: users.yearOfStudies,
+  profileCompleted: users.profileCompleted,
   createdAt: users.createdAt,
 };
 
@@ -51,6 +54,15 @@ const updateMe = withRole(Role.USER, async (req, user) => {
 
   if (!updated) {
     return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (!updated.profileCompleted && updated.index && updated.yearOfStudies && updated.phone) {
+    const [completed] = await db
+      .update(users)
+      .set({ profileCompleted: true })
+      .where(eq(users.id, user.sub))
+      .returning(meColumns);
+    return Response.json(completed ?? updated);
   }
 
   return Response.json(updated);

@@ -28,7 +28,7 @@ export function RegisterPage() {
 
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", phone: "", index: "", yearOfStudies: 1 },
   });
 
   const { mutate, isPending, error } = useMutation({
@@ -96,6 +96,48 @@ export function RegisterPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 234 567 8900" autoComplete="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="index"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student index</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123456" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="yearOfStudies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year of studies</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={6} placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

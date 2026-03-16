@@ -24,7 +24,7 @@ import { apiClient } from "@/lib/api-client";
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
-  const { logout, updateUser } = useAuth();
+  const { logout, updateUser, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -51,7 +51,14 @@ export function ProfilePage() {
 
   const form = useForm<UpdateMePayload>({
     resolver: zodResolver(updateMeSchema),
-    values: profile ? { name: profile.name, phone: profile.phone ?? undefined } : undefined,
+    values: profile
+      ? {
+          name: profile.name,
+          phone: profile.phone ?? undefined,
+          index: profile.index ?? undefined,
+          yearOfStudies: profile.yearOfStudies ?? undefined,
+        }
+      : undefined,
   });
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -68,7 +75,12 @@ export function ProfilePage() {
   }
 
   async function handleSubmit(values: UpdateMePayload) {
-    const payload: UpdateMePayload = { name: values.name, phone: values.phone };
+    const payload: UpdateMePayload = {
+      name: values.name,
+      phone: values.phone,
+      index: values.index,
+      yearOfStudies: values.yearOfStudies,
+    };
 
     if (pendingFile) {
       setIsUploading(true);
@@ -95,7 +107,11 @@ export function ProfilePage() {
         setPendingFile(null);
         setPreviewUrl(null);
         queryClient.setQueryData(["me"], updated);
-        updateUser({ name: updated.name, imageUrl: updated.imageUrl });
+        updateUser({
+          name: updated.name,
+          imageUrl: updated.imageUrl,
+          profileCompleted: updated.profileCompleted,
+        });
       },
     });
   }
@@ -118,6 +134,12 @@ export function ProfilePage() {
           Log out
         </Button>
       </div>
+
+      {!user?.profileCompleted && (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          Please complete your profile to access the platform.
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -155,7 +177,7 @@ export function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Personal information</CardTitle>
-          <CardDescription>Update your name and phone number</CardDescription>
+          <CardDescription>Update your name and contact details</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -181,6 +203,39 @@ export function ProfilePage() {
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ""} placeholder="+1 234 567 8900" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="index"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student index</FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value ?? ""} placeholder="123456" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="yearOfStudies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year of studies</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={6}
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

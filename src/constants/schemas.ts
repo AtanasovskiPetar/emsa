@@ -13,6 +13,13 @@ export const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.email({ message: "Invalid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  phone: z.string().min(1, { message: "Phone is required" }),
+  index: z.string().min(1, { message: "Student index is required" }),
+  yearOfStudies: z.coerce
+    .number()
+    .int()
+    .min(1, { message: "Year must be between 1 and 6" })
+    .max(6, { message: "Year must be between 1 and 6" }),
 });
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
@@ -70,9 +77,16 @@ export const updateMeSchema = z
     name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
     phone: z.string().min(1).optional().nullable(),
     imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
+    index: z.string().min(1).optional(),
+    yearOfStudies: z.number().int().min(1).max(6).optional(),
   })
   .refine(
-    (data) => data.name !== undefined || data.phone !== undefined || data.imageUrl !== undefined,
+    (data) =>
+      data.name !== undefined ||
+      data.phone !== undefined ||
+      data.imageUrl !== undefined ||
+      data.index !== undefined ||
+      data.yearOfStudies !== undefined,
     { message: "At least one field must be provided" }
   );
 
