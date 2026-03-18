@@ -1070,3 +1070,17 @@ Example prompt template:
 "Create a React component named {ComponentName} using TypeScript and Tailwind CSS. It should {description of functionality}. Props should include {list of props with types}. The component should {any specific styling or behavior notes}. Please provide the full component code."
 
 Remember to replace placeholders like <ui_package_path> and <app_package_alias> with the actual values used in your project.
+
+# README Maintenance
+
+After making any changes, check whether README.md needs to be updated. Update it if the change affects any of the following:
+
+- New pages, routes, or API endpoints added or removed
+- Changes to the role system or access control
+- New environment variables added or existing ones renamed/removed
+- Changes to the database schema (new tables or significant column changes)
+- New npm/bun dependencies that affect the tech stack description
+- New scripts added to package.json
+- Changes to the project structure (new top-level directories or significant reorganisation)
+
+Do not update the README for internal refactors, bug fixes, or UI-only changes that do not affect the platform's structure, API, or configuration.
