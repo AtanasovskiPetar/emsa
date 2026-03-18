@@ -1,6 +1,6 @@
 # EMSA Macedonia — Member Platform
 
-The official web platform for **EMSA Macedonia** (European Medical Students' Association), built to manage members, projects, and organisational information in one place.
+The official web platform for **EMSA Macedonia** (European Medical Students' Association), built to manage members, projects, and organizational information in one place.
 
 ---
 
