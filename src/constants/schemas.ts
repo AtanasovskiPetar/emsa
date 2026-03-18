@@ -27,7 +27,7 @@ export type RegisterSchema = z.infer<typeof registerSchema>;
 export const updateUserSchema = z
   .object({
     role: z.enum(Object.values(Role) as [Role, ...Role[]]).optional(),
-    activeUntil: z.coerce.date().nullable().optional(),
+    activeUntil: z.iso.date().nullable().optional(),
   })
   .refine((data) => data.role !== undefined || data.activeUntil !== undefined, {
     message: "At least one field must be provided",

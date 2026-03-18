@@ -127,12 +127,11 @@ const getPresignedUrl = withRole(
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
   const allUsers = await db.select(adminUserColumns).from(users).orderBy(users.createdAt);
-  const now = new Date();
+  const today = new Date().toISOString().slice(0, 10);
   return Response.json(
     allUsers.map((u) => ({
       ...u,
-      activeUntil: u.activeUntil?.toISOString() ?? null,
-      isActive: u.activeUntil != null && u.activeUntil > now,
+      isActive: u.activeUntil != null && u.activeUntil >= today,
     }))
   );
 });
@@ -151,11 +150,10 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  const now = new Date();
+  const today = new Date().toISOString().slice(0, 10);
   return Response.json({
     ...updated,
-    activeUntil: updated.activeUntil?.toISOString() ?? null,
-    isActive: updated.activeUntil != null && updated.activeUntil > now,
+    isActive: updated.activeUntil != null && updated.activeUntil >= today,
   });
 });
 

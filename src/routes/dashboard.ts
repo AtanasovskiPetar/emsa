@@ -15,7 +15,7 @@ const getDashboardStats = withRole(Role.ADMIN, async () => {
     db
       .select({
         total: count(),
-        active: sql<number>`count(*) filter (where ${users.activeUntil} is not null and ${users.activeUntil} > now())`,
+        active: sql<number>`count(*) filter (where ${users.activeUntil} is not null and ${users.activeUntil} >= current_date)`,
       })
       .from(users)
       .then(([r]) => r!),

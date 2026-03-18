@@ -13,6 +13,7 @@ import { useState } from "react";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -64,10 +65,10 @@ const ROLE_BADGE_VARIANT: Record<Role, "default" | "secondary" | "outline"> = {
   [Role.SUPER_ADMIN]: "default",
 };
 
-function defaultActiveUntil(): string {
+function defaultActiveUntil(): Date {
   const d = new Date();
   d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().split("T")[0]!;
+  return d;
 }
 
 function useColumns(
@@ -242,7 +243,7 @@ export function UsersPage() {
   const queryClient = useQueryClient();
 
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [activeUntilDate, setActiveUntilDate] = useState(defaultActiveUntil);
+  const [activeUntilDate, setActiveUntilDate] = useState<Date | undefined>(defaultActiveUntil);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin", "users"],
@@ -258,16 +259,15 @@ export function UsersPage() {
   });
 
   function handleOpenEdit(user: AdminUser) {
-    const prefill = user.activeUntil
-      ? new Date(user.activeUntil).toISOString().split("T")[0]!
-      : defaultActiveUntil();
-    setActiveUntilDate(prefill);
+    setActiveUntilDate(user.activeUntil ? new Date(user.activeUntil) : defaultActiveUntil());
     setEditingUser(user);
   }
 
   function handleConfirm() {
-    if (!editingUser) return;
-    updateUser({ id: editingUser.id, payload: { activeUntil: new Date(activeUntilDate) } });
+    if (!editingUser || !activeUntilDate) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const dateStr = `${activeUntilDate.getFullYear()}-${pad(activeUntilDate.getMonth() + 1)}-${pad(activeUntilDate.getDate())}`;
+    updateUser({ id: editingUser.id, payload: { activeUntil: dateStr } });
     setEditingUser(null);
     setActiveUntilDate(defaultActiveUntil());
   }
@@ -399,13 +399,11 @@ export function UsersPage() {
               <span className="font-medium text-foreground">{editingUser?.name}</span>.
             </p>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="active-until">Active until</Label>
-              <Input
-                id="active-until"
-                type="date"
+              <Label>Active until</Label>
+              <DatePicker
                 value={activeUntilDate}
-                min={new Date().toISOString().split("T")[0]}
-                onChange={(e) => setActiveUntilDate(e.target.value)}
+                onChange={setActiveUntilDate}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
             </div>
           </div>
