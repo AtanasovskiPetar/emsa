@@ -26,7 +26,7 @@ export const users = pgTable("users", {
   index: varchar("student_index", { length: 50 }),
   yearOfStudies: integer("year_of_studies"),
   profileCompleted: boolean("profile_completed").notNull().default(false),
-  activeMember: boolean("active_member").notNull().default(false),
+  activeUntil: timestamp("active_until"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

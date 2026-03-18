@@ -11,7 +11,8 @@ export interface AdminUser {
   email: string;
   phone: string | null;
   role: Role;
-  activeMember: boolean;
+  activeUntil: string | null;
+  isActive: boolean;
   imageUrl: string | null;
   createdAt: string;
 }

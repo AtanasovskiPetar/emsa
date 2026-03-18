@@ -28,7 +28,7 @@ const adminUserColumns = {
   email: users.email,
   phone: users.phone,
   role: users.role,
-  activeMember: users.activeMember,
+  activeUntil: users.activeUntil,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
@@ -124,7 +124,14 @@ const getPresignedUrl = withRole(
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
   const allUsers = await db.select(adminUserColumns).from(users).orderBy(users.createdAt);
-  return Response.json(allUsers);
+  const now = new Date();
+  return Response.json(
+    allUsers.map((u) => ({
+      ...u,
+      activeUntil: u.activeUntil?.toISOString() ?? null,
+      isActive: u.activeUntil != null && u.activeUntil > now,
+    }))
+  );
 });
 
 const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
@@ -141,7 +148,12 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  return Response.json(updated);
+  const now = new Date();
+  return Response.json({
+    ...updated,
+    activeUntil: updated.activeUntil?.toISOString() ?? null,
+    isActive: updated.activeUntil != null && updated.activeUntil > now,
+  });
 });
 
 export const userRoutes = {

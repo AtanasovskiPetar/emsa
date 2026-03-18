@@ -85,6 +85,13 @@
       "when": 1773861269826,
       "tag": "0011_sticky_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1773864968799,
+      "tag": "0012_public_tomas",
+      "breakpoints": true
     }
   ]
 }
