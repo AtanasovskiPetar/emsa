@@ -2,6 +2,8 @@
 
 The official web platform for **EMSA Macedonia** (European Medical Students' Association), built to manage members, projects, and organizational information in one place.
 
+> **Disclaimer:** A significant portion of this codebase was generated with the assistance of AI tools (Claude by Anthropic). All generated code has been reviewed, tested, and adapted to fit the project's requirements.
+
 ---
 
 ## Overview
