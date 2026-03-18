@@ -9,7 +9,7 @@ import {
 import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GripVertical, ImagePlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -123,8 +123,21 @@ export function ProjectDialog({
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
   const [images, setImages] = useState<ActiveImageEntry[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { mutateAsync: uploadImages, isPending: isUploading } = useMutation({
+    mutationFn: async (imgs: ActiveImageEntry[]) => {
+      const imageUrls: string[] = [];
+      for (const img of imgs) {
+        if (img.type === "existing") {
+          imageUrls.push(img.url);
+        } else {
+          imageUrls.push(await uploadImageToS3(img.file, ApiRoutes.ADMIN_PROJECTS_UPLOAD));
+        }
+      }
+      return imageUrls;
+    },
+  });
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -188,18 +201,8 @@ export function ProjectDialog({
   }
 
   async function handleSubmit(values: FormValues) {
-    setIsUploading(true);
     try {
-      const imageUrls: string[] = [];
-
-      for (const img of images) {
-        if (img.type === "existing") {
-          imageUrls.push(img.url);
-        } else {
-          imageUrls.push(await uploadImageToS3(img.file, ApiRoutes.ADMIN_PROJECTS_UPLOAD));
-        }
-      }
-
+      const imageUrls = await uploadImages(images);
       onSubmit({
         title: values.title,
         description: values.description,
@@ -207,8 +210,8 @@ export function ProjectDialog({
         pillarId: values.pillarId === "none" ? null : values.pillarId,
         imageUrls,
       });
-    } finally {
-      setIsUploading(false);
+    } catch {
+      // upload failed, don't proceed
     }
   }
 

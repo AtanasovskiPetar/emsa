@@ -80,7 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hydratedUser = useMemo(() => {
     if (!user || !meData) return user;
-    return { ...user, name: meData.name, imageUrl: meData.imageUrl, profileCompleted: meData.profileCompleted };
+    return {
+      ...user,
+      name: meData.name,
+      imageUrl: meData.imageUrl,
+      profileCompleted: meData.profileCompleted,
+    };
   }, [user, meData]);
 
   useEffect(() => {

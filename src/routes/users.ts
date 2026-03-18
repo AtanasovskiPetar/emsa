@@ -59,6 +59,7 @@ const updateMe = withRole(
         ...data,
         phone: data.phone === "" ? null : data.phone,
         index: data.index === "" ? null : data.index,
+        yearOfStudies: data.yearOfStudies ?? null,
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.sub))

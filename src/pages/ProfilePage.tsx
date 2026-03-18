@@ -22,6 +22,7 @@ import { ALLOWED_IMAGE_TYPES, type UpdateMePayload, updateMeSchema } from "@/con
 import { type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { uploadImageToS3 } from "@/lib/utils";
 
 const FADE_UP = {
   initial: { opacity: 0, y: 20 },
@@ -42,9 +43,7 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
-
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
   useEffect(() => {
@@ -58,6 +57,10 @@ export function ProfilePage() {
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
   });
 
+  const { mutateAsync: uploadAvatar, isPending: isUploading } = useMutation({
+    mutationFn: (file: File) => uploadImageToS3(file, ApiRoutes.UPLOAD_PRESIGNED),
+  });
+
   const { mutate: updateMe, isPending } = useMutation({
     mutationFn: (payload: UpdateMePayload) =>
       apiClient.patch<UserProfile & { token?: string }>(ApiRoutes.USERS_ME, payload),
@@ -65,14 +68,6 @@ export function ProfilePage() {
 
   const form = useForm<UpdateMePayload>({
     resolver: zodResolver(updateMeSchema),
-    values: profile
-      ? {
-          name: profile.name,
-          phone: profile.phone ?? undefined,
-          index: profile.index ?? undefined,
-          yearOfStudies: profile.yearOfStudies ?? undefined,
-        }
-      : undefined,
   });
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -97,30 +92,18 @@ export function ProfilePage() {
     };
 
     if (pendingFile) {
-      setIsUploading(true);
       try {
-        const { uploadUrl, fileUrl } = await apiClient.get<{ uploadUrl: string; fileUrl: string }>(
-          `${ApiRoutes.UPLOAD_PRESIGNED}?contentType=${encodeURIComponent(pendingFile.type)}`
-        );
-        const res = await fetch(uploadUrl, {
-          method: "PUT",
-          body: pendingFile,
-          headers: { "Content-Type": pendingFile.type },
-        });
-        if (!res.ok) throw new Error("Upload failed");
-        payload.imageUrl = fileUrl;
+        payload.imageUrl = await uploadAvatar(pendingFile);
       } catch {
-        setIsUploading(false);
         return;
       }
-      setIsUploading(false);
     }
 
     updateMe(payload, {
       onSuccess: ({ token, ...updated }) => {
         setPendingFile(null);
         setPreviewUrl(null);
-        queryClient.setQueryData(["me"], updated);
+        queryClient.invalidateQueries({ queryKey: ["me"] });
         if (token) {
           login(token);
         } else {
@@ -133,6 +116,17 @@ export function ProfilePage() {
       },
     });
   }
+
+  useEffect(() => {
+    form.reset({
+      name: profile?.name,
+      phone: profile?.phone,
+      imageUrl: profile?.imageUrl,
+      index: profile?.index,
+      yearOfStudies: profile?.yearOfStudies,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   if (isLoading) {
     return (
