@@ -117,11 +117,13 @@ export function ProjectDetailPage() {
 
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
   const date = project
-    ? new Date(project.startingAt).toLocaleDateString("en-US", {
+    ? new Date(project.startingAt).toLocaleString("en-US", {
         weekday: "long",
         month: "long",
         day: "numeric",
         year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     : null;
 

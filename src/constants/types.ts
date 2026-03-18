@@ -10,8 +10,12 @@ export interface AdminUser {
   name: string;
   email: string;
   phone: string | null;
+  index: string | null;
+  yearOfStudies: number | null;
+  profileCompleted: boolean;
   role: Role;
-  activeMember: boolean;
+  activeUntil: string | null;
+  isActive: boolean;
   imageUrl: string | null;
   createdAt: string;
 }
