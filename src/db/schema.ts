@@ -20,7 +20,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash"),
   googleId: varchar("google_id", { length: 255 }).unique(),
-  phone: varchar("phone", { length: 50 }).unique(),
+  phone: varchar("phone", { length: 50 }),
   role: roleEnum("role").notNull().default(Role.USER),
   imageUrl: varchar("image_url", { length: 2048 }),
   index: varchar("student_index", { length: 50 }),

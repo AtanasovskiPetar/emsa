@@ -125,8 +125,7 @@ export function ProfilePage() {
       index: profile?.index,
       yearOfStudies: profile?.yearOfStudies,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
+  }, [profile, form]);
 
   if (isLoading) {
     return (

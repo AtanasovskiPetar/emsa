@@ -78,7 +78,13 @@ export const updateMeSchema = z
     phone: z.string().optional().nullable(),
     imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
     index: z.string().optional().nullable(),
-    yearOfStudies: z.number().int().min(1).max(6).optional().nullable(),
+    yearOfStudies: z
+      .number()
+      .int()
+      .min(1, { message: "Year must be between 1 and 6" })
+      .max(6, { message: "Year must be between 1 and 6" })
+      .optional()
+      .nullable(),
   })
   .refine(
     (data) =>

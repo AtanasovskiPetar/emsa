@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   type ReactNode,
@@ -26,6 +26,7 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
+  isLoadingUser: boolean;
   login: (token: string) => AuthUser | null;
   logout: () => void;
   updateUser: (patch: Partial<AuthUser>) => void;
@@ -67,10 +68,15 @@ function getStoredUser(): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
 
-  const { data: meData, error: meError } = useQuery({
+  const {
+    data: meData,
+    error: meError,
+    isLoading: isLoadingMe,
+  } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
     enabled: !!token,
@@ -102,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", newToken);
     setToken(newToken);
     setUser(decoded);
+    queryClient.removeQueries({ queryKey: ["me"] });
     return decoded;
   }
 
@@ -109,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
+    queryClient.removeQueries({ queryKey: ["me"] });
   }
 
   const updateUser = useCallback((patch: Partial<AuthUser>) => {
@@ -116,7 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user: hydratedUser, token, login, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user: hydratedUser,
+        token,
+        isLoadingUser: !!token && isLoadingMe,
+        login,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

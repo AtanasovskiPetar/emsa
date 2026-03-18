@@ -78,6 +78,13 @@
       "when": 1773689488851,
       "tag": "0010_overconfident_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1773861269826,
+      "tag": "0011_sticky_manta",
+      "breakpoints": true
     }
   ]
 }

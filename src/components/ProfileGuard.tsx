@@ -5,10 +5,15 @@ import { PageRoutes } from "@/constants/routes";
 import { useAuth } from "@/context/auth";
 
 export function ProfileGuard({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoadingUser } = useAuth();
   const location = useLocation();
 
-  if (user && !user.profileCompleted && location.pathname !== PageRoutes.PROFILE) {
+  if (
+    !isLoadingUser &&
+    user &&
+    !user.profileCompleted &&
+    location.pathname !== PageRoutes.PROFILE
+  ) {
     return <Navigate to={PageRoutes.PROFILE} replace />;
   }
 

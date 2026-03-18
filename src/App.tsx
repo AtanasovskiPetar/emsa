@@ -104,76 +104,76 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTop />
             <ProfileGuard>
-            <Suspense fallback={null}>
-              <Routes>
-                {/* Public site */}
-                <Route element={<PublicLayout />}>
-                  <Route path={PageRoutes.HOME} element={<HomePage />} />
-                  <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
-                  <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
-                  <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
-                  <Route
-                    path={PageRoutes.PROFILE}
-                    element={
-                      <ProtectedRoute requiredRole={Role.USER}>
-                        <ProfilePage />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Route>
+              <Suspense fallback={null}>
+                <Routes>
+                  {/* Public site */}
+                  <Route element={<PublicLayout />}>
+                    <Route path={PageRoutes.HOME} element={<HomePage />} />
+                    <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
+                    <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
+                    <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
+                    <Route
+                      path={PageRoutes.PROFILE}
+                      element={
+                        <ProtectedRoute requiredRole={Role.USER}>
+                          <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
 
-                {/* Auth */}
-                <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
-                <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
-                <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
-                <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+                  {/* Auth */}
+                  <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
+                  <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
+                  <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
+                  <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
 
-                {/* Admin */}
-                <Route
-                  path={PageRoutes.ADMIN}
-                  element={
-                    <ProtectedRoute requiredRole={Role.ADMIN}>
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
-                  <Route path={PageRoutes.ADMIN_DASHBOARD_SEGMENT} element={<DashboardPage />} />
+                  {/* Admin */}
                   <Route
-                    path={PageRoutes.ADMIN_USERS_SEGMENT}
+                    path={PageRoutes.ADMIN}
                     element={
                       <ProtectedRoute requiredRole={Role.ADMIN}>
-                        <AdminUsersPage />
+                        <AdminLayout />
                       </ProtectedRoute>
                     }
-                  />
-                  <Route
-                    path={PageRoutes.ADMIN_PILLARS_SEGMENT}
-                    element={
-                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
-                        <AdminPillarsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path={PageRoutes.ADMIN_ORGANIZATION_SEGMENT}
-                    element={
-                      <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
-                        <OrganizationPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path={PageRoutes.ADMIN_PROJECTS_SEGMENT}
-                    element={
-                      <ProtectedRoute requiredRole={Role.ADMIN}>
-                        <AdminProjectsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Route>
-              </Routes>
-            </Suspense>
+                  >
+                    <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
+                    <Route path={PageRoutes.ADMIN_DASHBOARD_SEGMENT} element={<DashboardPage />} />
+                    <Route
+                      path={PageRoutes.ADMIN_USERS_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.ADMIN}>
+                          <AdminUsersPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={PageRoutes.ADMIN_PILLARS_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                          <AdminPillarsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={PageRoutes.ADMIN_ORGANIZATION_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                          <OrganizationPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={PageRoutes.ADMIN_PROJECTS_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.ADMIN}>
+                          <AdminProjectsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </Suspense>
             </ProfileGuard>
           </BrowserRouter>
         </AuthProvider>

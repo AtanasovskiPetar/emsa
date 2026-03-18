@@ -1,6 +1,6 @@
 {
-  "id": "5a3ab89a-4cc6-41c2-8955-a50f04d0f966",
-  "prevId": "9a27eca1-f4be-412f-a67b-37780f46ae95",
+  "id": "8e03fec6-e7be-4657-a0cc-c661d2a58170",
+  "prevId": "5a3ab89a-4cc6-41c2-8955-a50f04d0f966",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -354,11 +354,6 @@
           "name": "users_google_id_unique",
           "nullsNotDistinct": false,
           "columns": ["google_id"]
-        },
-        "users_phone_unique": {
-          "name": "users_phone_unique",
-          "nullsNotDistinct": false,
-          "columns": ["phone"]
         }
       },
       "policies": {},

@@ -53,15 +53,30 @@ const updateMe = withRole(
   async (req, user) => {
     const data = await parseBody(req, updateMeSchema);
 
+    const [current] = await db
+      .select({
+        phone: users.phone,
+        index: users.index,
+        yearOfStudies: users.yearOfStudies,
+        profileCompleted: users.profileCompleted,
+      })
+      .from(users)
+      .where(eq(users.id, user.sub))
+      .limit(1);
+
+    if (!current) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const phone = data.phone !== undefined ? data.phone : current.phone;
+    const index = data.index !== undefined ? data.index : current.index;
+    const yearOfStudies =
+      data.yearOfStudies !== undefined ? data.yearOfStudies : current.yearOfStudies;
+    const profileCompleted = !!(phone && index && yearOfStudies);
+
     const [updated] = await db
       .update(users)
-      .set({
-        ...data,
-        phone: data.phone === "" ? null : data.phone,
-        index: data.index === "" ? null : data.index,
-        yearOfStudies: data.yearOfStudies ?? null,
-        updatedAt: new Date(),
-      })
+      .set({ ...data, phone, index, yearOfStudies, profileCompleted, updatedAt: new Date() })
       .where(eq(users.id, user.sub))
       .returning(meColumns);
 
@@ -69,30 +84,20 @@ const updateMe = withRole(
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    const shouldBeCompleted = !!(updated.phone && updated.index && updated.yearOfStudies);
-
-    if (shouldBeCompleted === updated.profileCompleted) {
+    if (profileCompleted === current.profileCompleted) {
       return Response.json(updated);
     }
 
-    // profileCompleted changed — update it and re-issue JWT so the client is in sync
-    const [final] = await db
-      .update(users)
-      .set({ profileCompleted: shouldBeCompleted })
-      .where(eq(users.id, user.sub))
-      .returning(meColumns);
-
-    const record = { ...(final ?? updated), profileCompleted: shouldBeCompleted };
-
+    // profileCompleted changed — re-issue JWT so the client is in sync
     const token = await signJwt({
       sub: user.sub,
-      name: record.name,
-      email: record.email,
-      role: record.role,
-      profileCompleted: shouldBeCompleted,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      profileCompleted,
     });
 
-    return Response.json({ ...record, token });
+    return Response.json({ ...updated, token });
   },
   { allowIncomplete: true }
 );

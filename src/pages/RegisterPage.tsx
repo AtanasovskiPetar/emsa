@@ -28,7 +28,14 @@ export function RegisterPage() {
 
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "", phone: "", index: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+      index: "",
+      yearOfStudies: undefined,
+    },
   });
 
   const { mutate, isPending, error } = useMutation({
