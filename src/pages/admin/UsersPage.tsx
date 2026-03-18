@@ -258,9 +258,11 @@ export function UsersPage() {
     },
   });
 
-  function handleOpenEdit(user: AdminUser) {
-    setActiveUntilDate(user.activeUntil ? new Date(user.activeUntil) : defaultActiveUntil());
-    setEditingUser(user);
+  function handleOpenEdit(targetUser: AdminUser) {
+    setActiveUntilDate(
+      targetUser.activeUntil ? new Date(targetUser.activeUntil) : defaultActiveUntil()
+    );
+    setEditingUser(targetUser);
   }
 
   function handleConfirm() {
