@@ -105,6 +105,36 @@ function useColumns(
       ),
     },
     {
+      accessorKey: "index",
+      header: "Index",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue<string | null>("index") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "yearOfStudies",
+      header: "Year",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue<number | null>("yearOfStudies") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "profileCompleted",
+      header: "Profile",
+      cell: ({ row }) =>
+        row.getValue<boolean>("profileCompleted") ? (
+          <Badge className="bg-green-500 text-white hover:bg-green-500">Complete</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">
+            Incomplete
+          </Badge>
+        ),
+    },
+    {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
