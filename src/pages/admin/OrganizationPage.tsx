@@ -79,7 +79,6 @@ type FormValues = {
 export function OrganizationPage() {
   const queryClient = useQueryClient();
   const [logo, setLogo] = useState<ImageEntry>({ type: "none" });
-  const [isUploading, setIsUploading] = useState(false);
 
   const { data: org, isLoading } = useQuery({
     queryKey: ["admin", "organization"],
@@ -99,6 +98,10 @@ export function OrganizationPage() {
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
+  const { mutateAsync: uploadLogo, isPending: isUploading } = useMutation({
+    mutationFn: (file: File) => uploadImageToS3(file, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD),
+  });
+
   const { mutate: save, isPending } = useMutation({
     mutationFn: (payload: UpdateOrganizationPayload) =>
       apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, payload),
@@ -108,11 +111,10 @@ export function OrganizationPage() {
   });
 
   async function onSubmit(values: FormValues) {
-    setIsUploading(true);
     try {
       const logoUrl =
         logo.type === "new"
-          ? await uploadImageToS3(logo.file, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD)
+          ? await uploadLogo(logo.file)
           : logo.type === "existing"
             ? logo.url
             : null;
@@ -123,8 +125,8 @@ export function OrganizationPage() {
         aboutUs: values.aboutUs,
         logoUrl,
       });
-    } finally {
-      setIsUploading(false);
+    } catch {
+      // upload failed, don't proceed
     }
   }
 

@@ -25,7 +25,7 @@ async function register(req: Request): Promise<Response> {
   if (!body.success) {
     return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
   }
-  const { name, email, password } = body.data;
+  const { name, email, password, phone, index, yearOfStudies } = body.data;
 
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
@@ -36,7 +36,16 @@ async function register(req: Request): Promise<Response> {
 
   const [user] = await db
     .insert(users)
-    .values({ name, email, passwordHash, role: Role.USER })
+    .values({
+      name,
+      email,
+      passwordHash,
+      phone,
+      index,
+      yearOfStudies,
+      profileCompleted: true,
+      role: Role.USER,
+    })
     .returning();
 
   if (!user) {
@@ -48,6 +57,7 @@ async function register(req: Request): Promise<Response> {
     name: user.name,
     email: user.email,
     role: user.role,
+    profileCompleted: user.profileCompleted,
   });
   return Response.json({ token }, { status: 201 });
 }
@@ -76,6 +86,7 @@ async function login(req: Request): Promise<Response> {
     name: user.name,
     email: user.email,
     role: user.role,
+    profileCompleted: user.profileCompleted,
   });
   return Response.json({ token });
 }
@@ -196,6 +207,7 @@ async function googleCallback(req: Request): Promise<Response> {
     name: user.name,
     email: user.email,
     role: user.role,
+    profileCompleted: user.profileCompleted,
   });
   return new Response(null, {
     status: 302,

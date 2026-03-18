@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   type ReactNode,
@@ -20,11 +20,13 @@ export interface AuthUser {
   email: string;
   role: Role;
   imageUrl: string | null;
+  profileCompleted: boolean;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
+  isLoadingUser: boolean;
   login: (token: string) => AuthUser | null;
   logout: () => void;
   updateUser: (patch: Partial<AuthUser>) => void;
@@ -41,6 +43,7 @@ function decodeToken(token: string): AuthUser | null {
       email: payload.email,
       role: payload.role,
       imageUrl: null,
+      profileCompleted: payload.profileCompleted ?? false,
     };
   } catch {
     return null;
@@ -65,10 +68,15 @@ function getStoredUser(): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
 
-  const { data: meData, error: meError } = useQuery({
+  const {
+    data: meData,
+    error: meError,
+    isLoading: isLoadingMe,
+  } = useQuery({
     queryKey: ["me"],
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
     enabled: !!token,
@@ -78,7 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hydratedUser = useMemo(() => {
     if (!user || !meData) return user;
-    return { ...user, name: meData.name, imageUrl: meData.imageUrl };
+    return {
+      ...user,
+      name: meData.name,
+      imageUrl: meData.imageUrl,
+      profileCompleted: meData.profileCompleted,
+    };
   }, [user, meData]);
 
   useEffect(() => {
@@ -95,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", newToken);
     setToken(newToken);
     setUser(decoded);
+    queryClient.removeQueries({ queryKey: ["me"] });
     return decoded;
   }
 
@@ -102,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
+    queryClient.removeQueries({ queryKey: ["me"] });
   }
 
   const updateUser = useCallback((patch: Partial<AuthUser>) => {
@@ -109,7 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user: hydratedUser, token, login, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user: hydratedUser,
+        token,
+        isLoadingUser: !!token && isLoadingMe,
+        login,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

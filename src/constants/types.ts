@@ -23,6 +23,9 @@ export interface UserProfile {
   role: Role;
   phone: string | null;
   imageUrl: string | null;
+  index: string | null;
+  yearOfStudies: number | null;
+  profileCompleted: boolean;
   createdAt: string;
 }
 
