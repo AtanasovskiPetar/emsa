@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Dialog,
   DialogContent,
@@ -206,7 +207,7 @@ export function ProjectDialog({
       onSubmit({
         title: values.title,
         description: values.description,
-        startingAt: values.startingAt,
+        startingAt: new Date(values.startingAt).toISOString(),
         pillarId: values.pillarId === "none" ? null : values.pillarId,
         imageUrls,
       });
@@ -268,7 +269,7 @@ export function ProjectDialog({
                     <FormItem>
                       <FormLabel>Starting Date</FormLabel>
                       <FormControl>
-                        <Input type="datetime-local" {...field} />
+                        <DateTimePicker value={field.value} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

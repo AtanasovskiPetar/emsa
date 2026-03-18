@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  date,
   integer,
   pgEnum,
   pgTable,
@@ -26,9 +27,9 @@ export const users = pgTable("users", {
   index: varchar("student_index", { length: 50 }),
   yearOfStudies: integer("year_of_studies"),
   profileCompleted: boolean("profile_completed").notNull().default(false),
-  activeMember: boolean("active_member").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  activeUntil: date("active_until"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const pillars = pgTable("pillars", {
@@ -38,8 +39,8 @@ export const pillars = pgTable("pillars", {
   directorId: uuid("director_id")
     .notNull()
     .references(() => users.id, { onDelete: "restrict" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const pillarsRelations = relations(pillars, ({ one }) => ({
@@ -50,10 +51,10 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description").notNull().default(""),
-  startingAt: timestamp("starting_at").notNull(),
+  startingAt: timestamp("starting_at", { withTimezone: true }).notNull(),
   pillarId: uuid("pillar_id").references(() => pillars.id, { onDelete: "set null" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const projectImages = pgTable("project_images", {
@@ -63,7 +64,7 @@ export const projectImages = pgTable("project_images", {
     .references(() => projects.id, { onDelete: "cascade" }),
   url: varchar("url", { length: 2048 }).notNull(),
   order: integer("order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -81,5 +82,5 @@ export const organization = pgTable("organization", {
   logoUrl: varchar("logo_url", { length: 2048 }),
   description: text("description").notNull().default(""),
   aboutUs: text("about_us").notNull().default(""),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

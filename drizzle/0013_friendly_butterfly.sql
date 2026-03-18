@@ -1,0 +1,1 @@
+ALTER TABLE "users" ALTER COLUMN "active_until" SET DATA TYPE date;
