@@ -37,6 +37,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function decodeToken(token: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
     return {
       id: payload.sub,
       name: payload.name,
