@@ -19,6 +19,7 @@ Key capabilities:
 - Profile completion gate — members must complete their profile before accessing the platform
 - Admin panel for managing members, projects, pillars, and organisation settings
 - S3-backed image uploads with presigned URLs
+- Password reset via email (Resend)
 
 ---
 
@@ -72,8 +73,10 @@ drizzle/              # Generated SQL migrations
 | `/projects`     | All public projects                                                                    |
 | `/projects/:id` | Project detail with image gallery                                                      |
 | `/pillars/:id`  | Pillar detail                                                                          |
-| `/login`        | Email/password or Google login                                                         |
-| `/register`     | New member registration (name, email, password, phone, student index, year of studies) |
+| `/login`            | Email/password or Google login                                                         |
+| `/register`         | New member registration (name, email, password, phone, student index, year of studies) |
+| `/forgot-password`  | Request a password reset email                                                         |
+| `/reset-password`   | Set a new password via reset link                                                      |
 
 ### Member
 
@@ -119,6 +122,7 @@ Members who have not filled in their phone number, student index, and year of st
 - PostgreSQL database
 - AWS S3 bucket (or compatible)
 - Google OAuth app credentials
+- [Resend](https://resend.com) account (for password reset emails)
 
 ### Installation
 
@@ -128,11 +132,7 @@ bun install
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-cp .env.example .env
-```
+Create a `.env` file in the project root. All required and optional variables are defined in [`src/lib/env.ts`](./src/lib/env.ts).
 
 ```env
 # Server
@@ -154,13 +154,18 @@ JWT_EXPIRES_IN=7d
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/callback
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
 # AWS S3
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=eu-central-1
 AWS_S3_BUCKET=your_bucket_name
+
+# Email (Resend)
+RESEND_API_KEY=re_your_api_key
+FROM_EMAIL=noreply@yourdomain.com
+APP_URL=http://localhost:3000
 ```
 
 ### Database Setup
@@ -199,10 +204,12 @@ bun start
 
 | Method | Endpoint                    | Description                |
 | ------ | --------------------------- | -------------------------- |
-| `POST` | `/api/auth/register`        | Register a new member      |
-| `POST` | `/api/auth/login`           | Email/password login       |
-| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow |
-| `GET`  | `/api/auth/google/callback` | Google OAuth callback      |
+| `POST` | `/api/auth/register`        | Register a new member           |
+| `POST` | `/api/auth/login`           | Email/password login            |
+| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow      |
+| `GET`  | `/api/auth/google/callback` | Google OAuth callback           |
+| `POST` | `/api/auth/forgot-password` | Request a password reset email  |
+| `POST` | `/api/auth/reset-password`  | Reset password using a token    |
 
 ### Member
 
@@ -247,7 +254,8 @@ bun start
 | `pillars`        | Organisational pillars with a designated director (user)                                                                |
 | `projects`       | Projects linked to a pillar, with timestamps                                                                            |
 | `project_images` | Ordered images for a project                                                                                            |
-| `organization`   | Singleton row holding organisation name, logo, and rich text content                                                    |
+| `organization`          | Singleton row holding organisation name, logo, and rich text content                                                    |
+| `password_reset_tokens` | Single-use, hashed, expiring tokens for credential-based password reset                                                 |
 
 ---
 

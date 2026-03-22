@@ -26,4 +26,7 @@ export const env = {
   AWS_SECRET_ACCESS_KEY: required("AWS_SECRET_ACCESS_KEY"),
   AWS_REGION: required("AWS_REGION"),
   AWS_S3_BUCKET: required("AWS_S3_BUCKET"),
+  RESEND_API_KEY: required("RESEND_API_KEY"),
+  FROM_EMAIL: required("FROM_EMAIL"),
+  APP_URL: required("APP_URL"),
 } as const;

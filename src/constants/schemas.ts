@@ -24,6 +24,19 @@ export const registerSchema = z.object({
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: z.email({ message: "Invalid email address" }),
+});
+
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+});
+
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
+
 export const updateUserSchema = z
   .object({
     role: z.enum(Object.values(Role) as [Role, ...Role[]]).optional(),
