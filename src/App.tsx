@@ -71,6 +71,12 @@ const AuthCallbackPage = lazy(() =>
 const UnauthorizedPage = lazy(() =>
   import("@/pages/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage }))
 );
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage }))
+);
+const ResetPasswordPage = lazy(() =>
+  import("@/pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage }))
+);
 const ProfilePage = lazy(() =>
   import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage }))
 );
@@ -125,6 +131,8 @@ export default function App() {
                   {/* Auth */}
                   <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
                   <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
+                  <Route path={PageRoutes.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+                  <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
                   <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                   <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
 

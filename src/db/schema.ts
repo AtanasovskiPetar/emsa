@@ -76,6 +76,17 @@ export const projectImagesRelations = relations(projectImages, ({ one }) => ({
   project: one(projects, { fields: [projectImages.projectId], references: [projects.id] }),
 }));
 
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),
