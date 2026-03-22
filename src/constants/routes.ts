@@ -19,6 +19,8 @@ export const PageRoutes = {
   PILLAR_DETAIL: "/pillars/:id",
   UNAUTHORIZED: "/unauthorized",
   AUTH_CALLBACK: "/auth/callback",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 } as const;
 
 export const ApiRoutes = {
@@ -27,6 +29,8 @@ export const ApiRoutes = {
   AUTH_LOGOUT: "/api/auth/logout",
   AUTH_GOOGLE: "/api/auth/google",
   AUTH_GOOGLE_CALLBACK: "/api/auth/google/callback",
+  AUTH_FORGOT_PASSWORD: "/api/auth/forgot-password",
+  AUTH_RESET_PASSWORD: "/api/auth/reset-password",
   ADMIN_USERS: "/api/admin/users",
   ADMIN_USER_BY_ID: "/api/admin/users/:id",
   ADMIN_PILLARS: "/api/admin/pillars",
