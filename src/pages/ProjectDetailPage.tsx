@@ -241,7 +241,7 @@ export function ProjectDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {project.images.map((img, i) => (
                 <img
-                  key={i}
+                  key={img}
                   src={img}
                   alt={`Image ${i + 1}`}
                   className="aspect-video w-full cursor-pointer rounded-xl object-cover transition-opacity hover:opacity-90"
