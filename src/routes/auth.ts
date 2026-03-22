@@ -1,10 +1,16 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
-import { loginSchema, registerSchema } from "@/constants/schemas";
-import { users } from "@/db/schema";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from "@/constants/schemas";
+import { passwordResetTokens, users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { signJwt } from "@/lib/jwt";
 
@@ -218,10 +224,95 @@ async function googleCallback(req: Request): Promise<Response> {
   });
 }
 
+// POST /api/auth/forgot-password
+async function forgotPassword(req: Request): Promise<Response> {
+  const body = forgotPasswordSchema.safeParse(await req.json());
+  if (!body.success) {
+    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
+  }
+
+  const [user] = await db
+    .select({ id: users.id, email: users.email, passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.email, body.data.email))
+    .limit(1);
+
+  // Always respond with 200 to prevent email enumeration
+  if (!user || !user.passwordHash) {
+    return Response.json({ success: true });
+  }
+
+  // Generate a cryptographically secure token, store only its hash
+  const rawBytes = crypto.getRandomValues(new Uint8Array(32));
+  const rawToken = Buffer.from(rawBytes).toString("hex");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawToken));
+  const tokenHash = Buffer.from(hashBuffer).toString("hex");
+
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  // Invalidate any previous unused tokens for this user before issuing a new one
+  await db
+    .delete(passwordResetTokens)
+    .where(and(eq(passwordResetTokens.userId, user.id), isNull(passwordResetTokens.usedAt)));
+
+  await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt });
+
+  const resetUrl = `${env.APP_URL}/reset-password?token=${rawToken}`;
+  await sendPasswordResetEmail(user.email, resetUrl);
+
+  return Response.json({ success: true });
+}
+
+// POST /api/auth/reset-password
+async function resetPassword(req: Request): Promise<Response> {
+  const body = resetPasswordSchema.safeParse(await req.json());
+  if (!body.success) {
+    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
+  }
+
+  const { token, password } = body.data;
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const tokenHash = Buffer.from(hashBuffer).toString("hex");
+
+  const [record] = await db
+    .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
+    .from(passwordResetTokens)
+    .where(
+      and(
+        eq(passwordResetTokens.tokenHash, tokenHash),
+        gt(passwordResetTokens.expiresAt, new Date()),
+        isNull(passwordResetTokens.usedAt)
+      )
+    )
+    .limit(1);
+
+  if (!record) {
+    return Response.json({ error: "Invalid or expired reset link" }, { status: 400 });
+  }
+
+  const passwordHash = await Bun.password.hash(password);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, record.userId));
+    await tx
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, record.id));
+  });
+
+  return Response.json({ success: true });
+}
+
 export const authRoutes = {
   [ApiRoutes.AUTH_REGISTER]: { POST: register },
   [ApiRoutes.AUTH_LOGIN]: { POST: login },
   [ApiRoutes.AUTH_LOGOUT]: { POST: logout },
   [ApiRoutes.AUTH_GOOGLE]: { GET: googleRedirect },
   [ApiRoutes.AUTH_GOOGLE_CALLBACK]: { GET: googleCallback },
+  [ApiRoutes.AUTH_FORGOT_PASSWORD]: { POST: forgotPassword },
+  [ApiRoutes.AUTH_RESET_PASSWORD]: { POST: resetPassword },
 };
