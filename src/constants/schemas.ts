@@ -113,7 +113,11 @@ export const updateProjectSchema = z
     { message: "At least one field must be provided" }
   )
   .refine(
-    (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
+    (data) =>
+      !(
+        data.registrationOpensAt === null &&
+        (data.registrationClosesAt != null || data.maxParticipants != null)
+      ),
     { message: "Registration open date is required when close date or max participants is set" }
   )
   .refine(

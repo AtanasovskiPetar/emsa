@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Pencil, Plus, Search, Trash2, UserPlus, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { ProjectDialog } from "@/components/admin/ProjectDialog";
@@ -185,6 +185,11 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
 
   const registeredUserIds = new Set(registrations.map((r) => r.userId));
   const availableUsers = allUsers.filter((u) => !registeredUserIds.has(u.id));
+
+  useEffect(() => {
+    setDrawerError(null);
+    setSelectedUserId("");
+  }, [project?.id]);
 
   return (
     <Sheet open={!!project} onOpenChange={(open) => !open && onClose()}>
