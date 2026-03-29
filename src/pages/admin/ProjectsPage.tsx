@@ -7,8 +7,8 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ImageIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Pencil, Plus, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { ProjectDialog } from "@/components/admin/ProjectDialog";
@@ -22,9 +22,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -33,11 +47,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
-import { type Project } from "@/constants/types";
+import { type AdminUser, type Project, type ProjectRegistration } from "@/constants/types";
+import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { stripHtml } from "@/lib/utils";
+import { getInitials, hasAccess, stripHtml } from "@/lib/utils";
 
 function useColumns(
   onEdit: (project: Project) => void,
@@ -68,27 +84,14 @@ function useColumns(
       ),
     },
     {
-      accessorKey: "pillarName",
-      header: "Pillar",
+      accessorKey: "registrationOpensAt",
+      header: "Registration Opens",
       cell: ({ row }) => {
-        const name = row.getValue<string | null>("pillarName");
-        return name ? (
-          <Badge variant="outline">{name}</Badge>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        );
-      },
-    },
-    {
-      accessorKey: "images",
-      header: "Images",
-      cell: ({ row }) => {
-        const count = row.getValue<string[]>("images").length;
-        return count > 0 ? (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <ImageIcon className="size-3.5" />
-            {count}
-          </div>
+        const val = row.getValue<string | null>("registrationOpensAt");
+        return val ? (
+          <span className="text-sm text-muted-foreground">
+            {new Date(val).toLocaleDateString()}
+          </span>
         ) : (
           <span className="text-muted-foreground">—</span>
         );
@@ -99,14 +102,24 @@ function useColumns(
       header: "",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(row.original);
+            }}
+          >
             <Pencil className="size-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="text-destructive hover:text-destructive"
-            onClick={() => onDelete(row.original)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(row.original);
+            }}
           >
             <Trash2 className="size-4" />
           </Button>
@@ -116,11 +129,173 @@ function useColumns(
   ];
 }
 
+interface ProjectRegistrationsDrawerProps {
+  project: Project | undefined;
+  onClose: () => void;
+}
+
+function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDrawerProps) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+
+  const registrationsQueryKey = ["admin", "projects", project?.id, "registrations"];
+
+  const { data: registrations = [], isLoading } = useQuery({
+    queryKey: registrationsQueryKey,
+    queryFn: () =>
+      apiClient.get<ProjectRegistration[]>(
+        ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id)
+      ),
+    enabled: !!project,
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
+    enabled: isSuperAdmin && !!project,
+  });
+
+  const { mutate: toggleAttended } = useMutation({
+    mutationFn: ({ id, attended }: { id: string; attended: boolean }) =>
+      apiClient.patch(ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID.replace(":id", id), { attended }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: registrationsQueryKey }),
+    onError: (err) => setDrawerError(err.message),
+  });
+
+  const { mutate: addRegistration, isPending: isAdding } = useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.post(ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id), { userId }),
+    onSuccess: () => {
+      setSelectedUserId("");
+      setDrawerError(null);
+      queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
+    },
+    onError: (err) => setDrawerError(err.message),
+  });
+
+  const { mutate: deleteRegistration } = useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete(ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID.replace(":id", id)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: registrationsQueryKey }),
+    onError: (err) => setDrawerError(err.message),
+  });
+
+  const registeredUserIds = new Set(registrations.map((r) => r.userId));
+  const availableUsers = allUsers.filter((u) => !registeredUserIds.has(u.id));
+
+  useEffect(() => {
+    setDrawerError(null);
+    setSelectedUserId("");
+  }, [project?.id]);
+
+  return (
+    <Sheet open={!!project} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="flex flex-col gap-0 sm:max-w-md" side="right">
+        <SheetHeader className="border-b pb-4">
+          <SheetTitle className="flex items-center gap-2">
+            <Users className="size-4" />
+            Participants
+          </SheetTitle>
+          <SheetDescription>{project?.title}</SheetDescription>
+        </SheetHeader>
+
+        {isSuperAdmin && (
+          <div className="flex gap-2 border-b p-4">
+            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Add participant..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUsers.length === 0 ? (
+                  <SelectItem value="__none__" disabled>
+                    No users to add
+                  </SelectItem>
+                ) : (
+                  availableUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} — {u.email}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <Button
+              size="icon"
+              disabled={!selectedUserId || isAdding}
+              onClick={() => selectedUserId && addRegistration(selectedUserId)}
+            >
+              <UserPlus className="size-4" />
+            </Button>
+          </div>
+        )}
+
+        {drawerError && <p className="px-4 py-2 text-xs text-destructive">{drawerError}</p>}
+
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <p className="p-4 text-sm text-muted-foreground">Loading...</p>
+          ) : registrations.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">No participants yet.</p>
+          ) : (
+            <ul className="divide-y">
+              {registrations.map((reg) => (
+                <li key={reg.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                    {getInitials(reg.userName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{reg.userName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
+                    {reg.userIndex && (
+                      <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        id={`attended-${reg.id}`}
+                        checked={reg.attended}
+                        onCheckedChange={(checked) =>
+                          toggleAttended({ id: reg.id, attended: checked })
+                        }
+                      />
+                      <label
+                        htmlFor={`attended-${reg.id}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Attended
+                      </label>
+                    </div>
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteRegistration(reg.id)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function ProjectsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
   const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
+  const [drawerProject, setDrawerProject] = useState<Project | undefined>(undefined);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["admin", "projects"],
@@ -138,7 +313,7 @@ export function ProjectsPage() {
 
   const { mutate: updateProject, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, body }: { id: string; body: ProjectFormValues }) =>
-      apiClient.patch<Project>(`${ApiRoutes.ADMIN_PROJECTS}/${id}`, body),
+      apiClient.patch<Project>(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id), body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
       setDialogOpen(false);
@@ -146,7 +321,7 @@ export function ProjectsPage() {
   });
 
   const { mutate: deleteProject, isPending: isDeleting } = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`${ApiRoutes.ADMIN_PROJECTS}/${id}`),
+    mutationFn: (id: string) => apiClient.delete(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
       setDeletingProject(undefined);
@@ -241,7 +416,11 @@ export function ProjectsPage() {
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => setDrawerProject(row.original)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -262,6 +441,11 @@ export function ProjectsPage() {
         project={editingProject}
         onSubmit={handleSubmit}
         isPending={isCreating || isUpdating}
+      />
+
+      <ProjectRegistrationsDrawer
+        project={drawerProject}
+        onClose={() => setDrawerProject(undefined)}
       />
 
       <AlertDialog

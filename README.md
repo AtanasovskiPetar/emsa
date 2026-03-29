@@ -13,7 +13,7 @@ This is a full-stack single-page application with a Bun HTTP server backend and 
 Key capabilities:
 
 - Public-facing pages for projects and organisational pillars
-- Member registration and profile management
+- Member registration and profile management (with registration windows and participant caps)
 - Google OAuth login
 - Role-based access control with three tiers: `USER`, `ADMIN`, `SUPER_ADMIN`
 - Profile completion gate — members must complete their profile before accessing the platform
@@ -67,16 +67,16 @@ drizzle/              # Generated SQL migrations
 
 ### Public
 
-| Route           | Description                                                                            |
-| --------------- | -------------------------------------------------------------------------------------- |
-| `/`             | Home — organisation hero, featured projects and pillars                                |
-| `/projects`     | All public projects                                                                    |
-| `/projects/:id` | Project detail with image gallery                                                      |
-| `/pillars/:id`  | Pillar detail                                                                          |
-| `/login`            | Email/password or Google login                                                         |
-| `/register`         | New member registration (name, email, password, phone, student index, year of studies) |
-| `/forgot-password`  | Request a password reset email                                                         |
-| `/reset-password`   | Set a new password via reset link                                                      |
+| Route              | Description                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `/`                | Home — organisation hero, featured projects and pillars                                |
+| `/projects`        | All public projects                                                                    |
+| `/projects/:id`    | Project detail with image gallery and registration                                     |
+| `/pillars/:id`     | Pillar detail                                                                          |
+| `/login`           | Email/password or Google login                                                         |
+| `/register`        | New member registration (name, email, password, phone, student index, year of studies) |
+| `/forgot-password` | Request a password reset email                                                         |
+| `/reset-password`  | Set a new password via reset link                                                      |
 
 ### Member
 
@@ -90,7 +90,7 @@ drizzle/              # Generated SQL migrations
 | --------------------- | -------------------------------------------------------------- |
 | `/admin/dashboard`    | `ADMIN` — member stats overview                                |
 | `/admin/users`        | `ADMIN` — member list, role management                         |
-| `/admin/projects`     | `ADMIN` — create, edit, delete projects                        |
+| `/admin/projects`     | `ADMIN` — create, edit, delete projects; manage registrations  |
 | `/admin/pillars`      | `SUPER_ADMIN` — manage organisational pillars                  |
 | `/admin/organization` | `SUPER_ADMIN` — organisation name, logo, description, about us |
 
@@ -98,11 +98,11 @@ drizzle/              # Generated SQL migrations
 
 ## Roles
 
-| Role          | Access                                            |
-| ------------- | ------------------------------------------------- |
-| `USER`        | Profile, public pages                             |
-| `ADMIN`       | All of the above + dashboard, users, projects     |
-| `SUPER_ADMIN` | All of the above + pillars, organisation settings |
+| Role          | Access                                                                              |
+| ------------- | ----------------------------------------------------------------------------------- |
+| `USER`        | Profile, public pages, project self-registration                                    |
+| `ADMIN`       | All of the above + dashboard, users, projects, attended toggle                      |
+| `SUPER_ADMIN` | All of the above + pillars, organisation settings, add/remove project registrations |
 
 New members registered via the form receive the `USER` role. Roles can be promoted by a `SUPER_ADMIN` from the Users admin page.
 
@@ -202,14 +202,14 @@ bun start
 
 ### Auth
 
-| Method | Endpoint                    | Description                |
-| ------ | --------------------------- | -------------------------- |
-| `POST` | `/api/auth/register`        | Register a new member           |
-| `POST` | `/api/auth/login`           | Email/password login            |
-| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow      |
-| `GET`  | `/api/auth/google/callback` | Google OAuth callback           |
-| `POST` | `/api/auth/forgot-password` | Request a password reset email  |
-| `POST` | `/api/auth/reset-password`  | Reset password using a token    |
+| Method | Endpoint                    | Description                    |
+| ------ | --------------------------- | ------------------------------ |
+| `POST` | `/api/auth/register`        | Register a new member          |
+| `POST` | `/api/auth/login`           | Email/password login           |
+| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow     |
+| `GET`  | `/api/auth/google/callback` | Google OAuth callback          |
+| `POST` | `/api/auth/forgot-password` | Request a password reset email |
+| `POST` | `/api/auth/reset-password`  | Reset password using a token   |
 
 ### Member
 
@@ -221,39 +221,44 @@ bun start
 
 ### Public
 
-| Method | Endpoint            | Description       |
-| ------ | ------------------- | ----------------- |
-| `GET`  | `/api/organization` | Organisation info |
-| `GET`  | `/api/projects`     | All projects      |
-| `GET`  | `/api/projects/:id` | Single project    |
-| `GET`  | `/api/pillars`      | All pillars       |
-| `GET`  | `/api/pillars/:id`  | Single pillar     |
+| Method            | Endpoint                            | Auth   | Description                         |
+| ----------------- | ----------------------------------- | ------ | ----------------------------------- |
+| `GET`             | `/api/organization`                 | —      | Organisation info                   |
+| `GET`             | `/api/projects`                     | —      | All projects                        |
+| `GET`             | `/api/projects/:id`                 | —      | Single project                      |
+| `POST` / `DELETE` | `/api/projects/:id/register`        | `USER` | Register / unregister for a project |
+| `GET`             | `/api/projects/:id/my-registration` | `USER` | Current user's registration status  |
+| `GET`             | `/api/pillars`                      | —      | All pillars                         |
+| `GET`             | `/api/pillars/:id`                  | —      | Single pillar                       |
 
 ### Admin
 
-| Method             | Endpoint                         | Required Role |
-| ------------------ | -------------------------------- | ------------- |
-| `GET`              | `/api/admin/dashboard`           | `ADMIN`       |
-| `GET`              | `/api/admin/users`               | `ADMIN`       |
-| `PATCH`            | `/api/admin/users/:id`           | `SUPER_ADMIN` |
-| `GET` / `POST`     | `/api/admin/projects`            | `ADMIN`       |
-| `PATCH` / `DELETE` | `/api/admin/projects/:id`        | `ADMIN`       |
-| `GET`              | `/api/admin/projects/upload`     | `ADMIN`       |
-| `GET` / `POST`     | `/api/admin/pillars`             | `SUPER_ADMIN` |
-| `PATCH` / `DELETE` | `/api/admin/pillars/:id`         | `SUPER_ADMIN` |
-| `GET` / `PATCH`    | `/api/admin/organization`        | `SUPER_ADMIN` |
-| `GET`              | `/api/admin/organization/upload` | `SUPER_ADMIN` |
+| Method             | Endpoint                                | Required Role           |
+| ------------------ | --------------------------------------- | ----------------------- |
+| `GET`              | `/api/admin/dashboard`                  | `ADMIN`                 |
+| `GET`              | `/api/admin/users`                      | `ADMIN`                 |
+| `PATCH`            | `/api/admin/users/:id`                  | `SUPER_ADMIN`           |
+| `GET` / `POST`     | `/api/admin/projects`                   | `ADMIN`                 |
+| `PATCH` / `DELETE` | `/api/admin/projects/:id`               | `ADMIN`                 |
+| `GET`              | `/api/admin/projects/upload`            | `ADMIN`                 |
+| `GET` / `POST`     | `/api/admin/projects/:id/registrations` | `ADMIN` / `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/project-registrations/:id`  | `ADMIN` / `SUPER_ADMIN` |
+| `GET` / `POST`     | `/api/admin/pillars`                    | `SUPER_ADMIN`           |
+| `PATCH` / `DELETE` | `/api/admin/pillars/:id`                | `SUPER_ADMIN`           |
+| `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN`           |
+| `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN`           |
 
 ---
 
 ## Database Schema
 
-| Table            | Description                                                                                                             |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `users`          | Members — name, email, password hash, Google ID, phone, student index, year of studies, role, profile completion status |
-| `pillars`        | Organisational pillars with a designated director (user)                                                                |
-| `projects`       | Projects linked to a pillar, with timestamps                                                                            |
-| `project_images` | Ordered images for a project                                                                                            |
+| Table                   | Description                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role, profile completion status |
+| `pillars`               | Organisational pillars with a designated director (user)                                                                |
+| `projects`              | Projects linked to a pillar, with registration window (opens/closes) and optional participant cap                       |
+| `project_images`        | Ordered images for a project                                                                                            |
+| `project_registrations` | Many-to-many: members registered for a project, with an `attended` flag                                                 |
 | `organization`          | Singleton row holding organisation name, logo, and rich text content                                                    |
 | `password_reset_tokens` | Single-use, hashed, expiring tokens for credential-based password reset                                                 |
 
