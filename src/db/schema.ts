@@ -53,6 +53,9 @@ export const projects = pgTable("projects", {
   description: text("description").notNull().default(""),
   startingAt: timestamp("starting_at", { withTimezone: true }).notNull(),
   pillarId: uuid("pillar_id").references(() => pillars.id, { onDelete: "set null" }),
+  registrationOpensAt: timestamp("registration_opens_at", { withTimezone: true }),
+  registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
+  maxParticipants: integer("max_participants"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -67,9 +70,27 @@ export const projectImages = pgTable("project_images", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const projectRegistrations = pgTable("project_registrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  attended: boolean("attended").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   pillar: one(pillars, { fields: [projects.pillarId], references: [pillars.id] }),
   images: many(projectImages),
+  registrations: many(projectRegistrations),
+}));
+
+export const projectRegistrationsRelations = relations(projectRegistrations, ({ one }) => ({
+  project: one(projects, { fields: [projectRegistrations.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectRegistrations.userId], references: [users.id] }),
 }));
 
 export const projectImagesRelations = relations(projectImages, ({ one }) => ({
