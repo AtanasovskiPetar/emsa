@@ -68,11 +68,11 @@ export const projectSchema = z
   .object({
     title: z.string().min(1, "Title is required"),
     description: z.string().default(""),
-    startingAt: z.string().min(1, "Starting date is required"),
+    startingAt: z.iso.datetime({ message: "Starting date is required" }),
     pillarId: z.uuid().nullable().optional(),
     imageUrls: z.array(z.url()).default([]),
-    registrationOpensAt: z.string().nullable().optional(),
-    registrationClosesAt: z.string().nullable().optional(),
+    registrationOpensAt: z.iso.datetime().nullable().optional(),
+    registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
   })
   .refine(
@@ -93,13 +93,25 @@ export const updateProjectSchema = z
   .object({
     title: z.string().min(1, "Title is required").optional(),
     description: z.string().optional(),
-    startingAt: z.string().optional(),
+    startingAt: z.iso.datetime().optional(),
     pillarId: z.uuid().nullable().optional(),
     imageUrls: z.array(z.url()).optional(),
-    registrationOpensAt: z.string().nullable().optional(),
-    registrationClosesAt: z.string().nullable().optional(),
+    registrationOpensAt: z.iso.datetime().nullable().optional(),
+    registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
   })
+  .refine(
+    (data) =>
+      data.title !== undefined ||
+      data.description !== undefined ||
+      data.startingAt !== undefined ||
+      data.pillarId !== undefined ||
+      data.imageUrls !== undefined ||
+      data.registrationOpensAt !== undefined ||
+      data.registrationClosesAt !== undefined ||
+      data.maxParticipants !== undefined,
+    { message: "At least one field must be provided" }
+  )
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
     { message: "Registration open date is required when close date or max participants is set" }

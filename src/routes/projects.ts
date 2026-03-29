@@ -1,4 +1,5 @@
 import { and, count, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
@@ -160,38 +161,49 @@ const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user)
   const now = new Date();
 
   if (!project.registrationOpensAt || project.registrationOpensAt > now) {
-    return Response.json({ error: "Registration is not open yet" }, { status: 400 });
+    return Response.json({ error: "Registration is not open yet" }, { status: 422 });
   }
 
   if (project.registrationClosesAt && project.registrationClosesAt < now) {
-    return Response.json({ error: "Registration has closed" }, { status: 400 });
+    return Response.json({ error: "Registration has closed" }, { status: 422 });
   }
 
-  if (project.maxParticipants !== null) {
-    const [countRow] = await db
-      .select({ count: count() })
-      .from(projectRegistrations)
-      .where(eq(projectRegistrations.projectId, id));
+  try {
+    const [registration] = await db.transaction(async (tx) => {
+      if (project.maxParticipants !== null) {
+        // Lock the project row to serialize concurrent capacity checks
+        await tx
+          .select({ id: projects.id })
+          .from(projects)
+          .where(eq(projects.id, id))
+          .for("update")
+          .limit(1);
 
-    if ((countRow?.count ?? 0) >= project.maxParticipants) {
-      return Response.json({ error: "No spots remaining" }, { status: 400 });
+        const [countRow] = await tx
+          .select({ count: count() })
+          .from(projectRegistrations)
+          .where(eq(projectRegistrations.projectId, id));
+
+        if ((countRow?.count ?? 0) >= project.maxParticipants) {
+          throw new HttpError(422, "No spots remaining");
+        }
+      }
+
+      return tx
+        .insert(projectRegistrations)
+        .values({ projectId: id, userId: user.sub })
+        .returning();
+    });
+
+    return Response.json(registration, { status: 201 });
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    // Unique constraint violation — user already registered
+    if ((err as { code?: string }).code === "23505") {
+      return Response.json({ error: "Already registered" }, { status: 409 });
     }
+    throw err;
   }
-
-  const [existing] = await db
-    .select({ id: projectRegistrations.id })
-    .from(projectRegistrations)
-    .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
-    .limit(1);
-
-  if (existing) return Response.json({ error: "Already registered" }, { status: 409 });
-
-  const [registration] = await db
-    .insert(projectRegistrations)
-    .values({ projectId: id, userId: user.sub })
-    .returning();
-
-  return Response.json(registration, { status: 201 });
 });
 
 // Admin
@@ -402,7 +414,7 @@ const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req)
 
 const updateRegistrationAttended = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   const { id } = req.params;
-  const body = (await req.json()) as { attended: boolean };
+  const body = await parseBody(req, z.object({ attended: z.boolean() }));
 
   const [updated] = await db
     .update(projectRegistrations)
@@ -417,7 +429,7 @@ const updateRegistrationAttended = withRole<{ id: string }>(Role.ADMIN, async (r
 
 const addProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
-  const body = (await req.json()) as { userId: string };
+  const body = await parseBody(req, z.object({ userId: z.uuid() }));
 
   const [existing] = await db
     .select({ id: projectRegistrations.id })

@@ -2,11 +2,13 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   date,
+  index,
   integer,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -70,17 +72,24 @@ export const projectImages = pgTable("project_images", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const projectRegistrations = pgTable("project_registrations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  projectId: uuid("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  attended: boolean("attended").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const projectRegistrations = pgTable(
+  "project_registrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    attended: boolean("attended").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("project_registrations_project_user_unique").on(table.projectId, table.userId),
+    index("project_registrations_project_id_idx").on(table.projectId),
+  ]
+);
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   pillar: one(pillars, { fields: [projects.pillarId], references: [pillars.id] }),
