@@ -67,16 +67,16 @@ drizzle/              # Generated SQL migrations
 
 ### Public
 
-| Route           | Description                                                                            |
-| --------------- | -------------------------------------------------------------------------------------- |
-| `/`             | Home — organisation hero, featured projects and pillars                                |
-| `/projects`     | All public projects                                                                    |
-| `/projects/:id` | Project detail with image gallery                                                      |
-| `/pillars/:id`  | Pillar detail                                                                          |
-| `/login`            | Email/password or Google login                                                         |
-| `/register`         | New member registration (name, email, password, phone, student index, year of studies) |
-| `/forgot-password`  | Request a password reset email                                                         |
-| `/reset-password`   | Set a new password via reset link                                                      |
+| Route              | Description                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `/`                | Home — organisation hero, featured projects and pillars                                |
+| `/projects`        | All public projects                                                                    |
+| `/projects/:id`    | Project detail with image gallery                                                      |
+| `/pillars/:id`     | Pillar detail                                                                          |
+| `/login`           | Email/password or Google login                                                         |
+| `/register`        | New member registration (name, email, password, phone, student index, year of studies) |
+| `/forgot-password` | Request a password reset email                                                         |
+| `/reset-password`  | Set a new password via reset link                                                      |
 
 ### Member
 
@@ -202,14 +202,14 @@ bun start
 
 ### Auth
 
-| Method | Endpoint                    | Description                |
-| ------ | --------------------------- | -------------------------- |
-| `POST` | `/api/auth/register`        | Register a new member           |
-| `POST` | `/api/auth/login`           | Email/password login            |
-| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow      |
-| `GET`  | `/api/auth/google/callback` | Google OAuth callback           |
-| `POST` | `/api/auth/forgot-password` | Request a password reset email  |
-| `POST` | `/api/auth/reset-password`  | Reset password using a token    |
+| Method | Endpoint                    | Description                    |
+| ------ | --------------------------- | ------------------------------ |
+| `POST` | `/api/auth/register`        | Register a new member          |
+| `POST` | `/api/auth/login`           | Email/password login           |
+| `GET`  | `/api/auth/google`          | Initiate Google OAuth flow     |
+| `GET`  | `/api/auth/google/callback` | Google OAuth callback          |
+| `POST` | `/api/auth/forgot-password` | Request a password reset email |
+| `POST` | `/api/auth/reset-password`  | Reset password using a token   |
 
 ### Member
 
@@ -248,12 +248,12 @@ bun start
 
 ## Database Schema
 
-| Table            | Description                                                                                                             |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `users`          | Members — name, email, password hash, Google ID, phone, student index, year of studies, role, profile completion status |
-| `pillars`        | Organisational pillars with a designated director (user)                                                                |
-| `projects`       | Projects linked to a pillar, with timestamps                                                                            |
-| `project_images` | Ordered images for a project                                                                                            |
+| Table                   | Description                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role, profile completion status |
+| `pillars`               | Organisational pillars with a designated director (user)                                                                |
+| `projects`              | Projects linked to a pillar, with timestamps                                                                            |
+| `project_images`        | Ordered images for a project                                                                                            |
 | `organization`          | Singleton row holding organisation name, logo, and rich text content                                                    |
 | `password_reset_tokens` | Single-use, hashed, expiring tokens for credential-based password reset                                                 |
 

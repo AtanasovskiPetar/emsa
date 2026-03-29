@@ -78,6 +78,15 @@ export const projectSchema = z
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
     { message: "Registration open date is required when close date or max participants is set" }
+  )
+  .refine(
+    (data) =>
+      !(
+        data.registrationOpensAt &&
+        data.registrationClosesAt &&
+        new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
+      ),
+    { message: "Registration close date must be after open date", path: ["registrationClosesAt"] }
   );
 
 export const updateProjectSchema = z
@@ -94,6 +103,15 @@ export const updateProjectSchema = z
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
     { message: "Registration open date is required when close date or max participants is set" }
+  )
+  .refine(
+    (data) =>
+      !(
+        data.registrationOpensAt &&
+        data.registrationClosesAt &&
+        new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
+      ),
+    { message: "Registration close date must be after open date", path: ["registrationClosesAt"] }
   );
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;

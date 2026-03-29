@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import { Role } from "@/constants/enums";
-import { type ImageEntry } from "@/constants/types";
+import { type ImageEntry, type PublicProject, type RegistrationStatus } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 
 export function cn(...inputs: ClassValue[]) {
@@ -66,6 +66,17 @@ export async function uploadImageToS3(file: File, uploadRoute: string): Promise<
   });
 
   return fileUrl;
+}
+
+export function getRegistrationStatus(project: PublicProject): RegistrationStatus {
+  if (!project.registrationOpensAt) return "none";
+  const now = new Date();
+  const opensAt = new Date(project.registrationOpensAt);
+  if (opensAt > now) return "not_open";
+  if (project.registrationClosesAt && new Date(project.registrationClosesAt) < now) return "closed";
+  if (project.maxParticipants !== null && project.participantCount >= project.maxParticipants)
+    return "full";
+  return "open";
 }
 
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {

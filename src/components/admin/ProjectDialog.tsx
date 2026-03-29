@@ -59,10 +59,16 @@ const formSchema = z
   })
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
-    {
-      message: "Registration open date is required",
-      path: ["registrationOpensAt"],
-    }
+    { message: "Registration open date is required", path: ["registrationOpensAt"] }
+  )
+  .refine(
+    (data) =>
+      !(
+        data.registrationOpensAt &&
+        data.registrationClosesAt &&
+        new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
+      ),
+    { message: "Close date must be after open date", path: ["registrationClosesAt"] }
   );
 
 type FormValues = z.infer<typeof formSchema>;
