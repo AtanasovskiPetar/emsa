@@ -4,8 +4,34 @@ import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { PageRoutes } from "@/constants/routes";
-import { type PublicProject } from "@/constants/types";
-import { cn } from "@/lib/utils";
+import { type PublicProject, type RegistrationStatus } from "@/constants/types";
+import { cn, getRegistrationStatus } from "@/lib/utils";
+
+const REGISTRATION_BADGE: Record<
+  Exclude<RegistrationStatus, "none">,
+  { label: string; className: string; overlayClassName: string }
+> = {
+  not_open: {
+    label: "Registration Soon",
+    className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
+    overlayClassName: "border-0 bg-yellow-500/80 text-white backdrop-blur-sm",
+  },
+  open: {
+    label: "Registration Open",
+    className: "bg-green-500/15 text-green-600 border-green-500/30",
+    overlayClassName: "border-0 bg-green-500/80 text-white backdrop-blur-sm",
+  },
+  full: {
+    label: "Registration Full",
+    className: "bg-orange-500/15 text-orange-600 border-orange-500/30",
+    overlayClassName: "border-0 bg-orange-500/80 text-white backdrop-blur-sm",
+  },
+  closed: {
+    label: "Registration Closed",
+    className: "bg-muted text-muted-foreground",
+    overlayClassName: "border-0 bg-black/60 text-white backdrop-blur-sm",
+  },
+};
 
 interface ProjectCardProps {
   project: PublicProject;
@@ -22,6 +48,8 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
     day: "numeric",
     year: "numeric",
   });
+  const regStatus = getRegistrationStatus(project);
+  const regBadge = regStatus !== "none" ? REGISTRATION_BADGE[regStatus] : null;
 
   return (
     <motion.div
@@ -59,6 +87,12 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
               <div className="flex size-full items-center justify-center bg-muted">
                 <Layers className="size-16 opacity-20" />
               </div>
+            )}
+
+            {regBadge && (
+              <Badge className={cn("absolute right-2 top-2", regBadge.overlayClassName)}>
+                {regBadge.label}
+              </Badge>
             )}
 
             {/* Gradient scrim */}
@@ -115,6 +149,11 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
               {isUpcoming && (
                 <Badge className="absolute left-2 top-2 bg-primary text-primary-foreground hover:bg-primary">
                   Upcoming
+                </Badge>
+              )}
+              {regBadge && (
+                <Badge className={cn("absolute right-2 top-2 text-xs", regBadge.overlayClassName)}>
+                  {regBadge.label}
                 </Badge>
               )}
             </div>

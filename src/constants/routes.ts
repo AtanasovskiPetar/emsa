@@ -46,6 +46,8 @@ export const ApiRoutes = {
   ORGANIZATION: "/api/organization",
   PROJECTS: "/api/projects",
   PROJECT_BY_ID: "/api/projects/:id",
+  PROJECT_REGISTER: "/api/projects/:id/register",
+  PROJECT_MY_REGISTRATION: "/api/projects/:id/my-registration",
   PILLARS: "/api/pillars",
   PILLAR_BY_ID: "/api/pillars/:id",
   USERS_ME: "/api/users/me",

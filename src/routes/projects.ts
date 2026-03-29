@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
@@ -18,6 +18,9 @@ const getProjects = async () => {
       startingAt: projects.startingAt,
       pillarId: projects.pillarId,
       pillarName: pillars.name,
+      registrationOpensAt: projects.registrationOpensAt,
+      registrationClosesAt: projects.registrationClosesAt,
+      maxParticipants: projects.maxParticipants,
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
@@ -25,6 +28,7 @@ const getProjects = async () => {
 
   const projectIds = rows.map((p) => p.id);
   const imagesByProject: Record<string, string[]> = {};
+  const countByProject: Record<string, number> = {};
 
   if (projectIds.length > 0) {
     const allImages = await db
@@ -36,9 +40,25 @@ const getProjects = async () => {
     for (const img of allImages) {
       (imagesByProject[img.projectId] ??= []).push(img.url);
     }
+
+    const counts = await db
+      .select({ projectId: projectRegistrations.projectId, count: count() })
+      .from(projectRegistrations)
+      .where(inArray(projectRegistrations.projectId, projectIds))
+      .groupBy(projectRegistrations.projectId);
+
+    for (const row of counts) {
+      countByProject[row.projectId] = row.count;
+    }
   }
 
-  return Response.json(rows.map((p) => ({ ...p, images: imagesByProject[p.id] ?? [] })));
+  return Response.json(
+    rows.map((p) => ({
+      ...p,
+      images: imagesByProject[p.id] ?? [],
+      participantCount: countByProject[p.id] ?? 0,
+    }))
+  );
 };
 
 const getProjectById = async (req: BunRequest<{ id: string }>) => {
@@ -52,6 +72,9 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
       startingAt: projects.startingAt,
       pillarId: projects.pillarId,
       pillarName: pillars.name,
+      registrationOpensAt: projects.registrationOpensAt,
+      registrationClosesAt: projects.registrationClosesAt,
+      maxParticipants: projects.maxParticipants,
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
@@ -60,14 +83,116 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
 
-  const images = await db
-    .select({ url: projectImages.url })
-    .from(projectImages)
-    .where(eq(projectImages.projectId, id))
-    .orderBy(projectImages.order);
+  const [images, [participantRow]] = await Promise.all([
+    db
+      .select({ url: projectImages.url })
+      .from(projectImages)
+      .where(eq(projectImages.projectId, id))
+      .orderBy(projectImages.order),
+    db
+      .select({ count: count() })
+      .from(projectRegistrations)
+      .where(eq(projectRegistrations.projectId, id)),
+  ]);
 
-  return Response.json({ ...row, images: images.map((i) => i.url) });
+  return Response.json({
+    ...row,
+    images: images.map((i) => i.url),
+    participantCount: participantRow?.count ?? 0,
+  });
 };
+
+const getMyRegistration = withRole<{ id: string }>(Role.USER, async (req, user) => {
+  const { id } = req.params;
+
+  const [reg] = await db
+    .select({ id: projectRegistrations.id, createdAt: projectRegistrations.createdAt })
+    .from(projectRegistrations)
+    .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
+    .limit(1);
+
+  return Response.json(
+    reg ? { registered: true, id: reg.id, createdAt: reg.createdAt } : { registered: false }
+  );
+});
+
+const unregisterFromProject = withRole<{ id: string }>(Role.USER, async (req, user) => {
+  const { id } = req.params;
+
+  const [project] = await db
+    .select({ registrationClosesAt: projects.registrationClosesAt })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+  const now = new Date();
+  if (project.registrationClosesAt && project.registrationClosesAt < now) {
+    return Response.json({ error: "Registration has already closed" }, { status: 400 });
+  }
+
+  const [deleted] = await db
+    .delete(projectRegistrations)
+    .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
+    .returning({ id: projectRegistrations.id });
+
+  if (!deleted) return Response.json({ error: "Registration not found" }, { status: 404 });
+
+  return Response.json({ success: true });
+});
+
+const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user) => {
+  const { id } = req.params;
+
+  const [project] = await db
+    .select({
+      registrationOpensAt: projects.registrationOpensAt,
+      registrationClosesAt: projects.registrationClosesAt,
+      maxParticipants: projects.maxParticipants,
+    })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+  const now = new Date();
+
+  if (!project.registrationOpensAt || project.registrationOpensAt > now) {
+    return Response.json({ error: "Registration is not open yet" }, { status: 400 });
+  }
+
+  if (project.registrationClosesAt && project.registrationClosesAt < now) {
+    return Response.json({ error: "Registration has closed" }, { status: 400 });
+  }
+
+  if (project.maxParticipants !== null) {
+    const [countRow] = await db
+      .select({ count: count() })
+      .from(projectRegistrations)
+      .where(eq(projectRegistrations.projectId, id));
+
+    if ((countRow?.count ?? 0) >= project.maxParticipants) {
+      return Response.json({ error: "No spots remaining" }, { status: 400 });
+    }
+  }
+
+  const [existing] = await db
+    .select({ id: projectRegistrations.id })
+    .from(projectRegistrations)
+    .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
+    .limit(1);
+
+  if (existing) return Response.json({ error: "Already registered" }, { status: 409 });
+
+  const [registration] = await db
+    .insert(projectRegistrations)
+    .values({ projectId: id, userId: user.sub })
+    .returning();
+
+  return Response.json(registration, { status: 201 });
+});
 
 // Admin
 const getProjectsAdmin = withRole(Role.ADMIN, async () => {
@@ -328,6 +453,8 @@ const deleteProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, asy
 export const projectRoutes = {
   [ApiRoutes.PROJECTS]: { GET: getProjects },
   [ApiRoutes.PROJECT_BY_ID]: { GET: getProjectById },
+  [ApiRoutes.PROJECT_REGISTER]: { POST: registerForProject, DELETE: unregisterFromProject },
+  [ApiRoutes.PROJECT_MY_REGISTRATION]: { GET: getMyRegistration },
   [ApiRoutes.ADMIN_PROJECTS_UPLOAD]: { GET: getProjectUploadUrl },
   [ApiRoutes.ADMIN_PROJECTS]: { GET: getProjectsAdmin, POST: createProject },
   [ApiRoutes.ADMIN_PROJECT_BY_ID]: { PATCH: updateProject, DELETE: deleteProject },
