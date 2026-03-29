@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Images,
@@ -13,13 +14,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
-import { type PublicProject } from "@/constants/types";
+import { type MyRegistration, type PublicProject } from "@/constants/types";
+import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { cn } from "@/lib/utils";
+import { cn, getRegistrationStatus } from "@/lib/utils";
 
 function Lightbox({
   images,
@@ -105,9 +108,86 @@ function Lightbox({
   );
 }
 
+interface RegistrationSectionProps {
+  project: PublicProject;
+  status: ReturnType<typeof getRegistrationStatus>;
+  user: { id: string } | null;
+  myRegistration: MyRegistration | undefined;
+  isRegistering: boolean;
+  isUnregistering: boolean;
+  registerError: Error | null;
+  onRegister: () => void;
+  onUnregister: () => void;
+}
+
+function RegistrationSection({
+  project,
+  status,
+  user,
+  myRegistration,
+  isRegistering,
+  isUnregistering,
+  registerError,
+  onRegister,
+  onUnregister,
+}: RegistrationSectionProps) {
+  const canUnregister =
+    !project.registrationClosesAt || new Date(project.registrationClosesAt) > new Date();
+
+  if (myRegistration?.registered) {
+    return (
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-sm text-green-600">
+          <CheckCircle2 className="size-4" />
+          <span>You&apos;re registered</span>
+        </div>
+        {canUnregister && (
+          <Button onClick={onUnregister} disabled={isUnregistering}>
+            {isUnregistering ? "Cancelling..." : "Cancel"}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (status === "not_open" || status === "closed" || status === "full") {
+    const label =
+      status === "not_open"
+        ? `Registration opens ${new Date(project.registrationOpensAt!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+        : status === "full"
+          ? "No spots remaining"
+          : "Registration closed";
+    return <p className="text-sm text-muted-foreground">{label}</p>;
+  }
+
+  // open
+  if (!user) {
+    return (
+      <Button variant="outline" size="sm" asChild>
+        <Link to={PageRoutes.LOGIN}>Log in to register</Link>
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button size="sm" className="w-fit" onClick={onRegister} disabled={isRegistering}>
+        {isRegistering ? "Registering..." : "Register"}
+      </Button>
+      {registerError && (
+        <p className="text-xs text-destructive">
+          {registerError instanceof Error ? registerError.message : "Failed to register."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["public-project", id],
@@ -115,6 +195,33 @@ export function ProjectDetailPage() {
     enabled: !!id,
   });
 
+  const { data: myRegistration } = useQuery({
+    queryKey: ["my-registration", id],
+    queryFn: () =>
+      apiClient.get<MyRegistration>(ApiRoutes.PROJECT_MY_REGISTRATION.replace(":id", id!)),
+    enabled: !!id && !!user,
+  });
+
+  const invalidateRegistration = () => {
+    queryClient.invalidateQueries({ queryKey: ["my-registration", id] });
+    queryClient.invalidateQueries({ queryKey: ["public-project", id] });
+  };
+
+  const {
+    mutate: register,
+    isPending: isRegistering,
+    error: registerError,
+  } = useMutation({
+    mutationFn: () => apiClient.post(ApiRoutes.PROJECT_REGISTER.replace(":id", id!), {}),
+    onSuccess: invalidateRegistration,
+  });
+
+  const { mutate: unregister, isPending: isUnregistering } = useMutation({
+    mutationFn: () => apiClient.delete(ApiRoutes.PROJECT_REGISTER.replace(":id", id!)),
+    onSuccess: invalidateRegistration,
+  });
+
+  const regStatus = project ? getRegistrationStatus(project) : "none";
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
   const date = project
     ? new Date(project.startingAt).toLocaleString("en-US", {
@@ -183,6 +290,7 @@ export function ProjectDetailPage() {
                     {project.pillarName}
                   </Badge>
                 )}
+                <RegistrationStatusBadge status={regStatus} overlay />
               </div>
               <h1 className="mt-3 text-3xl font-bold text-white drop-shadow md:text-4xl">
                 {project.title}
@@ -213,6 +321,21 @@ export function ProjectDetailPage() {
           </div>
         ) : (
           <>
+            {regStatus !== "none" && (
+              <div className="mb-8">
+                <RegistrationSection
+                  project={project}
+                  status={regStatus}
+                  user={user}
+                  myRegistration={myRegistration}
+                  isRegistering={isRegistering}
+                  isUnregistering={isUnregistering}
+                  registerError={registerError}
+                  onRegister={() => register()}
+                  onUnregister={() => unregister()}
+                />
+              </div>
+            )}
             {project.description && (
               <div
                 className="prose prose-neutral max-w-none text-muted-foreground"

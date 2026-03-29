@@ -41,8 +41,21 @@ export interface Project {
   pillarId: string | null;
   pillarName: string | null;
   images: string[];
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  maxParticipants: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectRegistration {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userIndex: string | null;
+  attended: boolean;
+  createdAt: string;
 }
 
 export interface OrganizationPublic {
@@ -60,6 +73,16 @@ export interface PublicProject {
   pillarId: string | null;
   pillarName: string | null;
   images: string[];
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  maxParticipants: number | null;
+  participantCount: number;
+}
+
+export interface MyRegistration {
+  registered: boolean;
+  id?: string;
+  createdAt?: string;
 }
 
 export interface PublicPillar {
@@ -103,3 +126,5 @@ export interface Pillar {
   createdAt: string;
   updatedAt: string;
 }
+
+export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";

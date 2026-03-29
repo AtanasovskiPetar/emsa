@@ -2,10 +2,11 @@ import { CalendarDays, Layers } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
+import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { PageRoutes } from "@/constants/routes";
 import { type PublicProject } from "@/constants/types";
-import { cn } from "@/lib/utils";
+import { cn, getRegistrationStatus } from "@/lib/utils";
 
 interface ProjectCardProps {
   project: PublicProject;
@@ -22,6 +23,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
     day: "numeric",
     year: "numeric",
   });
+  const regStatus = getRegistrationStatus(project);
 
   return (
     <motion.div
@@ -60,6 +62,12 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
                 <Layers className="size-16 opacity-20" />
               </div>
             )}
+
+            <RegistrationStatusBadge
+              status={regStatus}
+              overlay
+              className="absolute right-2 top-2"
+            />
 
             {/* Gradient scrim */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
@@ -117,6 +125,11 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
                   Upcoming
                 </Badge>
               )}
+              <RegistrationStatusBadge
+                status={regStatus}
+                overlay
+                className="absolute right-2 top-2 text-xs"
+              />
             </div>
 
             <div className="flex flex-col gap-2 p-4">
