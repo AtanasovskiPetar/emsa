@@ -38,6 +38,8 @@ export const ApiRoutes = {
   ADMIN_PROJECTS: "/api/admin/projects",
   ADMIN_PROJECT_BY_ID: "/api/admin/projects/:id",
   ADMIN_PROJECTS_UPLOAD: "/api/admin/projects/upload",
+  ADMIN_PROJECT_REGISTRATIONS: "/api/admin/projects/:id/registrations",
+  ADMIN_PROJECT_REGISTRATION_BY_ID: "/api/admin/project-registrations/:id",
   ADMIN_DASHBOARD: "/api/admin/dashboard",
   ADMIN_ORGANIZATION: "/api/admin/organization",
   ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",

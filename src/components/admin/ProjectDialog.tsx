@@ -47,12 +47,23 @@ import { type ImageEntry, type Pillar, type Project } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 import { getImageId, getImageSrc, toDatetimeLocalValue, uploadImageToS3 } from "@/lib/utils";
 
-const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string(),
-  startingAt: z.string().min(1, "Starting date is required"),
-  pillarId: z.string(),
-});
+const formSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string(),
+    startingAt: z.string().min(1, "Starting date is required"),
+    pillarId: z.string(),
+    registrationOpensAt: z.string().optional(),
+    registrationClosesAt: z.string().optional(),
+    maxParticipants: z.number().int().min(1, "Must be at least 1").optional(),
+  })
+  .refine(
+    (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
+    {
+      message: "Registration open date is required",
+      path: ["registrationOpensAt"],
+    }
+  );
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -150,8 +161,23 @@ export function ProjectDialog({
           description: project.description,
           startingAt: toDatetimeLocalValue(project.startingAt),
           pillarId: project.pillarId ?? "none",
+          registrationOpensAt: project.registrationOpensAt
+            ? toDatetimeLocalValue(project.registrationOpensAt)
+            : "",
+          registrationClosesAt: project.registrationClosesAt
+            ? toDatetimeLocalValue(project.registrationClosesAt)
+            : "",
+          maxParticipants: project.maxParticipants ?? undefined,
         }
-      : { title: "", description: "", startingAt: "", pillarId: "none" },
+      : {
+          title: "",
+          description: "",
+          startingAt: "",
+          pillarId: "none",
+          registrationOpensAt: "",
+          registrationClosesAt: "",
+          maxParticipants: undefined,
+        },
   });
 
   useEffect(() => {
@@ -210,6 +236,13 @@ export function ProjectDialog({
         startingAt: new Date(values.startingAt).toISOString(),
         pillarId: values.pillarId === "none" ? null : values.pillarId,
         imageUrls,
+        registrationOpensAt: values.registrationOpensAt
+          ? new Date(values.registrationOpensAt).toISOString()
+          : null,
+        registrationClosesAt: values.registrationClosesAt
+          ? new Date(values.registrationClosesAt).toISOString()
+          : null,
+        maxParticipants: values.maxParticipants ?? null,
       });
     } catch {
       // upload failed, don't proceed
@@ -301,6 +334,79 @@ export function ProjectDialog({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-md border p-3">
+                <div className="flex items-center justify-start gap-2">
+                  <span className="text-sm font-medium">Registration</span>
+                  {form.watch("registrationOpensAt") && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-5 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        form.setValue("registrationOpensAt", "");
+                        form.setValue("registrationClosesAt", "");
+                        form.setValue("maxParticipants", undefined);
+                      }}
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  )}
+                </div>
+                <FormField
+                  control={form.control}
+                  name="registrationOpensAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opens At</FormLabel>
+                      <FormControl>
+                        <DateTimePicker value={field.value ?? ""} onChange={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div
+                  className={`grid grid-cols-4 gap-4 transition-opacity ${!form.watch("registrationOpensAt") ? "pointer-events-none opacity-40" : ""}`}
+                >
+                  <FormField
+                    control={form.control}
+                    name="registrationClosesAt"
+                    render={({ field }) => (
+                      <FormItem className="col-span-3">
+                        <FormLabel>Closes At</FormLabel>
+                        <FormControl>
+                          <DateTimePicker value={field.value ?? ""} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxParticipants"
+                    render={({ field }) => (
+                      <FormItem className="col-span-1">
+                        <FormLabel>Max</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="∞"
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? undefined : parseInt(val, 10));
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
