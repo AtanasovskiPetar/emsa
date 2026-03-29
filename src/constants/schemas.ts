@@ -64,21 +64,37 @@ export const updatePillarSchema = pillarSchema
 
 export type PillarFormValues = z.infer<typeof pillarSchema>;
 
-export const projectSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().default(""),
-  startingAt: z.string().min(1, "Starting date is required"),
-  pillarId: z.uuid().nullable().optional(),
-  imageUrls: z.array(z.url()).default([]),
-});
+export const projectSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().default(""),
+    startingAt: z.string().min(1, "Starting date is required"),
+    pillarId: z.uuid().nullable().optional(),
+    imageUrls: z.array(z.url()).default([]),
+    registrationOpensAt: z.string().nullable().optional(),
+    registrationClosesAt: z.string().nullable().optional(),
+    maxParticipants: z.number().int().min(1).nullable().optional(),
+  })
+  .refine(
+    (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
+    { message: "Registration open date is required when close date or max participants is set" }
+  );
 
-export const updateProjectSchema = z.object({
-  title: z.string().min(1, "Title is required").optional(),
-  description: z.string().optional(),
-  startingAt: z.string().optional(),
-  pillarId: z.uuid().nullable().optional(),
-  imageUrls: z.array(z.url()).optional(),
-});
+export const updateProjectSchema = z
+  .object({
+    title: z.string().min(1, "Title is required").optional(),
+    description: z.string().optional(),
+    startingAt: z.string().optional(),
+    pillarId: z.uuid().nullable().optional(),
+    imageUrls: z.array(z.url()).optional(),
+    registrationOpensAt: z.string().nullable().optional(),
+    registrationClosesAt: z.string().nullable().optional(),
+    maxParticipants: z.number().int().min(1).nullable().optional(),
+  })
+  .refine(
+    (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
+    { message: "Registration open date is required when close date or max participants is set" }
+  );
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;
 export type UpdateProjectPayload = z.infer<typeof updateProjectSchema>;
