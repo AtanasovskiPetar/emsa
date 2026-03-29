@@ -110,6 +110,7 @@ function Lightbox({
 
 interface RegistrationSectionProps {
   project: PublicProject;
+  status: ReturnType<typeof getRegistrationStatus>;
   user: { id: string } | null;
   myRegistration: MyRegistration | undefined;
   isRegistering: boolean;
@@ -121,6 +122,7 @@ interface RegistrationSectionProps {
 
 function RegistrationSection({
   project,
+  status,
   user,
   myRegistration,
   isRegistering,
@@ -129,7 +131,6 @@ function RegistrationSection({
   onRegister,
   onUnregister,
 }: RegistrationSectionProps) {
-  const status = getRegistrationStatus(project);
   const canUnregister =
     !project.registrationClosesAt || new Date(project.registrationClosesAt) > new Date();
 
@@ -220,6 +221,7 @@ export function ProjectDetailPage() {
     onSuccess: invalidateRegistration,
   });
 
+  const regStatus = project ? getRegistrationStatus(project) : "none";
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
   const date = project
     ? new Date(project.startingAt).toLocaleString("en-US", {
@@ -288,7 +290,7 @@ export function ProjectDetailPage() {
                     {project.pillarName}
                   </Badge>
                 )}
-                <RegistrationStatusBadge status={getRegistrationStatus(project)} overlay />
+                <RegistrationStatusBadge status={regStatus} overlay />
               </div>
               <h1 className="mt-3 text-3xl font-bold text-white drop-shadow md:text-4xl">
                 {project.title}
@@ -319,10 +321,11 @@ export function ProjectDetailPage() {
           </div>
         ) : (
           <>
-            {getRegistrationStatus(project) !== "none" && (
+            {regStatus !== "none" && (
               <div className="mb-8">
                 <RegistrationSection
                   project={project}
+                  status={regStatus}
                   user={user}
                   myRegistration={myRegistration}
                   isRegistering={isRegistering}

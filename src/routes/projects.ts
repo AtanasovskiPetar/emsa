@@ -130,7 +130,7 @@ const unregisterFromProject = withRole<{ id: string }>(Role.USER, async (req, us
 
   const now = new Date();
   if (project.registrationClosesAt && project.registrationClosesAt < now) {
-    return Response.json({ error: "Registration has already closed" }, { status: 400 });
+    return Response.json({ error: "Registration has already closed" }, { status: 422 });
   }
 
   const [deleted] = await db
