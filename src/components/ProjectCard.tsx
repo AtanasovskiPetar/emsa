@@ -2,36 +2,11 @@ import { CalendarDays, Layers } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
+import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { PageRoutes } from "@/constants/routes";
-import { type PublicProject, type RegistrationStatus } from "@/constants/types";
+import { type PublicProject } from "@/constants/types";
 import { cn, getRegistrationStatus } from "@/lib/utils";
-
-const REGISTRATION_BADGE: Record<
-  Exclude<RegistrationStatus, "none">,
-  { label: string; className: string; overlayClassName: string }
-> = {
-  not_open: {
-    label: "Registration Soon",
-    className: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
-    overlayClassName: "border-0 bg-yellow-500/80 text-white backdrop-blur-sm",
-  },
-  open: {
-    label: "Registration Open",
-    className: "bg-green-500/15 text-green-600 border-green-500/30",
-    overlayClassName: "border-0 bg-green-500/80 text-white backdrop-blur-sm",
-  },
-  full: {
-    label: "Registration Full",
-    className: "bg-orange-500/15 text-orange-600 border-orange-500/30",
-    overlayClassName: "border-0 bg-orange-500/80 text-white backdrop-blur-sm",
-  },
-  closed: {
-    label: "Registration Closed",
-    className: "bg-muted text-muted-foreground",
-    overlayClassName: "border-0 bg-black/60 text-white backdrop-blur-sm",
-  },
-};
 
 interface ProjectCardProps {
   project: PublicProject;
@@ -49,7 +24,6 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
     year: "numeric",
   });
   const regStatus = getRegistrationStatus(project);
-  const regBadge = regStatus !== "none" ? REGISTRATION_BADGE[regStatus] : null;
 
   return (
     <motion.div
@@ -89,11 +63,11 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
               </div>
             )}
 
-            {regBadge && (
-              <Badge className={cn("absolute right-2 top-2", regBadge.overlayClassName)}>
-                {regBadge.label}
-              </Badge>
-            )}
+            <RegistrationStatusBadge
+              status={regStatus}
+              overlay
+              className="absolute right-2 top-2"
+            />
 
             {/* Gradient scrim */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
@@ -151,11 +125,11 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
                   Upcoming
                 </Badge>
               )}
-              {regBadge && (
-                <Badge className={cn("absolute right-2 top-2 text-xs", regBadge.overlayClassName)}>
-                  {regBadge.label}
-                </Badge>
-              )}
+              <RegistrationStatusBadge
+                status={regStatus}
+                overlay
+                className="absolute right-2 top-2 text-xs"
+              />
             </div>
 
             <div className="flex flex-col gap-2 p-4">

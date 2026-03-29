@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "project_registrations_project_user_unique" ON "project_registrations" USING btree ("project_id","user_id");--> statement-breakpoint
+CREATE INDEX "project_registrations_project_id_idx" ON "project_registrations" USING btree ("project_id");

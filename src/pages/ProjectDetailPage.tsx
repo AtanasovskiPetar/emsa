@@ -14,6 +14,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,11 +141,7 @@ function RegistrationSection({
           <span>You&apos;re registered</span>
         </div>
         {canUnregister && (
-          <Button
-            // className="h-auto p-0 text-xs text-muted-foreground hover:text-destructive"
-            onClick={onUnregister}
-            disabled={isUnregistering}
-          >
+          <Button onClick={onUnregister} disabled={isUnregistering}>
             {isUnregistering ? "Cancelling..." : "Cancel"}
           </Button>
         )}
@@ -291,6 +288,7 @@ export function ProjectDetailPage() {
                     {project.pillarName}
                   </Badge>
                 )}
+                <RegistrationStatusBadge status={getRegistrationStatus(project)} overlay />
               </div>
               <h1 className="mt-3 text-3xl font-bold text-white drop-shadow md:text-4xl">
                 {project.title}
