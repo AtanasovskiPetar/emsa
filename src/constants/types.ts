@@ -128,6 +128,14 @@ export interface Pillar {
   updatedAt: string;
 }
 
+export interface PublicPosition {
+  id: string;
+  title: string;
+  userName: string;
+  userImageUrl: string | null;
+  order: number;
+}
+
 export interface Position {
   id: string;
   title: string;

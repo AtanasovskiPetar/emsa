@@ -117,8 +117,8 @@ export function PositionsSection() {
   const [userId, setUserId] = useState("");
 
   const { data: positionsData = [], isLoading } = useQuery({
-    queryKey: ["admin", "positions"],
-    queryFn: () => apiClient.get<Position[]>(ApiRoutes.ADMIN_POSITIONS),
+    queryKey: ["positions"],
+    queryFn: () => apiClient.get<Position[]>(ApiRoutes.POSITIONS),
   });
 
   useEffect(() => {
@@ -133,18 +133,18 @@ export function PositionsSection() {
   const { mutate: createPosition, isPending: isCreating } = useMutation({
     mutationFn: (payload: { title: string; userId: string }) =>
       apiClient.post<Position>(ApiRoutes.ADMIN_POSITIONS, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
   });
 
   const { mutate: updatePosition, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, ...payload }: { id: string; title: string; userId: string }) =>
       apiClient.patch<Position>(`${ApiRoutes.ADMIN_POSITIONS}/${id}`, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
   });
 
   const { mutate: deletePosition } = useMutation({
     mutationFn: (id: string) => apiClient.delete(`${ApiRoutes.ADMIN_POSITIONS}/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
   });
 
   const { mutate: reorderPositions } = useMutation({

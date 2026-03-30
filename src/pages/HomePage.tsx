@@ -5,11 +5,17 @@ import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { PillarCard } from "@/components/PillarCard";
+import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
-import { type OrganizationPublic, type PublicPillar, type PublicProject } from "@/constants/types";
+import {
+  type OrganizationPublic,
+  type PublicPillar,
+  type PublicPosition,
+  type PublicProject,
+} from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +49,11 @@ export function HomePage() {
   const { data: pillars, isLoading: pillarsLoading } = useQuery({
     queryKey: ["public-pillars"],
     queryFn: () => apiClient.get<PublicPillar[]>(ApiRoutes.PILLARS),
+  });
+
+  const { data: positions, isLoading: positionsLoading } = useQuery({
+    queryKey: ["positions"],
+    queryFn: () => apiClient.get<PublicPosition[]>(ApiRoutes.POSITIONS),
   });
 
   const previewProjects = projects ? getPreviewProjects(projects) : [];
@@ -212,7 +223,7 @@ export function HomePage() {
       </section>
 
       {/* About */}
-      {org?.aboutUs && (
+      {(org?.aboutUs || (positions && positions.length > 0)) && (
         <section id="about" className="relative overflow-hidden border-t bg-primary/5 py-20">
           {/* Decorative ring */}
           <div className="pointer-events-none absolute -right-32 -top-32 size-[500px] rounded-full border border-primary/10" />
@@ -229,10 +240,40 @@ export function HomePage() {
               </h2>
             </div>
 
-            <div
-              className="prose prose-neutral max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(org.aboutUs) }}
-            />
+            {org?.aboutUs && (
+              <div
+                className="prose prose-neutral max-w-none text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(org.aboutUs) }}
+              />
+            )}
+
+            {(positionsLoading || (positions && positions.length > 0)) && (
+              <div className={cn("flex flex-col gap-6", org?.aboutUs && "mt-12")}>
+                <div>
+                  <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                    <span className="h-px w-6 bg-primary" />
+                    Board
+                  </div>
+                  <h3 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+                    The people leading our organization
+                  </h3>
+                </div>
+
+                {positionsLoading ? (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {[0, 1, 2].map((i) => (
+                      <Skeleton key={i} className="h-28 rounded-xl" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {positions!.map((p, i) => (
+                      <PositionCard key={p.id} position={p} index={i} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
       )}
