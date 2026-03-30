@@ -51,6 +51,17 @@ export const updateUserSchema = z
 
 export type UpdateUserPayload = z.infer<typeof updateUserSchema>;
 
+export const positionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  userId: z.uuid("User must be a valid user"),
+});
+
+export const positionReorderSchema = z.object({
+  ids: z.array(z.uuid()).min(1, "At least one position required"),
+});
+
+export type PositionFormValues = z.infer<typeof positionSchema>;
+
 export const pillarSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),

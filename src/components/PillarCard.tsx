@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { UserAvatar } from "@/components/UserAvatar";
 import { PageRoutes } from "@/constants/routes";
 import { type PublicPillar } from "@/constants/types";
 import { cn } from "@/lib/utils";
@@ -57,9 +58,14 @@ export function PillarCard({ pillar, index, className }: PillarCardProps) {
               {pillar.description}
             </p>
             {pillar.directorName && (
-              <p className="text-xs text-muted-foreground">
-                Director: <span className="font-medium text-foreground">{pillar.directorName}</span>
-              </p>
+              <div className="flex items-center gap-2">
+                <UserAvatar
+                  name={pillar.directorName}
+                  imageUrl={pillar.directorImageUrl}
+                  className="size-6"
+                />
+                <span className="text-sm text-muted-foreground">{pillar.directorName}</span>
+              </div>
             )}
           </div>
         </div>
