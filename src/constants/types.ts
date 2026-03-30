@@ -128,4 +128,14 @@ export interface Pillar {
   updatedAt: string;
 }
 
+export interface Position {
+  id: string;
+  title: string;
+  userId: string;
+  userName: string;
+  userImageUrl: string | null;
+  order: number;
+  createdAt: string;
+}
+
 export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";
