@@ -75,6 +75,8 @@ type FormValues = {
   name: string;
   description: string;
   aboutUs: string;
+  instagramUrl: string;
+  facebookUrl: string;
 };
 
 export function OrganizationPage() {
@@ -87,7 +89,7 @@ export function OrganizationPage() {
   });
 
   const { register, setValue, watch, handleSubmit } = useForm<FormValues>({
-    defaultValues: { name: "", description: "", aboutUs: "" },
+    defaultValues: { name: "", description: "", aboutUs: "", instagramUrl: "", facebookUrl: "" },
   });
 
   // Populate form when data loads
@@ -96,6 +98,8 @@ export function OrganizationPage() {
     setValue("name", org.name);
     setValue("description", org.description);
     setValue("aboutUs", org.aboutUs);
+    setValue("instagramUrl", org.instagramUrl ?? "");
+    setValue("facebookUrl", org.facebookUrl ?? "");
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
@@ -125,6 +129,8 @@ export function OrganizationPage() {
         description: values.description,
         aboutUs: values.aboutUs,
         logoUrl,
+        instagramUrl: values.instagramUrl.trim() || null,
+        facebookUrl: values.facebookUrl.trim() || null,
       });
     } catch {
       // upload failed, don't proceed
@@ -167,6 +173,29 @@ export function OrganizationPage() {
         <div className="flex flex-col gap-2">
           <Label>About Us</Label>
           <RichTextEditor value={watch("aboutUs")} onChange={(v) => setValue("aboutUs", v)} />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="font-medium">Socials</h3>
+            <p className="text-sm text-muted-foreground">Links shown in the public footer.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="instagramUrl">Instagram URL</Label>
+            <Input
+              id="instagramUrl"
+              placeholder="https://instagram.com/yourorg"
+              {...register("instagramUrl")}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="facebookUrl">Facebook URL</Label>
+            <Input
+              id="facebookUrl"
+              placeholder="https://facebook.com/yourorg"
+              {...register("facebookUrl")}
+            />
+          </div>
         </div>
 
         <div>

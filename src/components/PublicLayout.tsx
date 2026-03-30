@@ -257,8 +257,58 @@ export function PublicLayout() {
       </main>
 
       <footer className="border-t bg-muted/40 py-4">
-        <div className="mx-auto max-w-6xl px-4 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4">
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
+          </p>
+          {(org?.instagramUrl || org?.facebookUrl) && (
+            <div className="flex items-center gap-3">
+              {org.instagramUrl && (
+                <a
+                  href={org.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Instagram"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+                  </svg>
+                </a>
+              )}
+              {org.facebookUrl && (
+                <a
+                  href={org.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Facebook"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </footer>
     </div>

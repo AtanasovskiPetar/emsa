@@ -141,6 +141,13 @@
       "when": 1774893166652,
       "tag": "0019_daily_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1774899787187,
+      "tag": "0020_luxuriant_zaran",
+      "breakpoints": true
     }
   ]
 }
