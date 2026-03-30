@@ -43,6 +43,9 @@ export const ApiRoutes = {
   ADMIN_DASHBOARD: "/api/admin/dashboard",
   ADMIN_ORGANIZATION: "/api/admin/organization",
   ADMIN_ORGANIZATION_UPLOAD: "/api/admin/organization/upload",
+  ADMIN_POSITIONS: "/api/admin/positions",
+  ADMIN_POSITION_BY_ID: "/api/admin/positions/:id",
+  ADMIN_POSITIONS_REORDER: "/api/admin/positions/reorder",
   ORGANIZATION: "/api/organization",
   PROJECTS: "/api/projects",
   PROJECT_BY_ID: "/api/projects/:id",
@@ -50,6 +53,7 @@ export const ApiRoutes = {
   PROJECT_MY_REGISTRATION: "/api/projects/:id/my-registration",
   PILLARS: "/api/pillars",
   PILLAR_BY_ID: "/api/pillars/:id",
+  POSITIONS: "/api/positions",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;
