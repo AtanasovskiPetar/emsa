@@ -14,6 +14,7 @@ export interface AdminUser {
   yearOfStudies: number | null;
   profileCompleted: boolean;
   role: Role;
+  isAlumni: boolean;
   activeUntil: string | null;
   isActive: boolean;
   imageUrl: string | null;
