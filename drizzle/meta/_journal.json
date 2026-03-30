@@ -127,6 +127,13 @@
       "when": 1774807427293,
       "tag": "0017_red_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774891227807,
+      "tag": "0018_cheerful_living_lightning",
+      "breakpoints": true
     }
   ]
 }
