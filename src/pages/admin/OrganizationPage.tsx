@@ -3,6 +3,7 @@ import { ImagePlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,7 +138,7 @@ export function OrganizationPage() {
   const isSubmitting = isUploading || isPending;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-lg font-semibold">Organization</h2>
         <p className="text-sm text-muted-foreground">
@@ -174,6 +175,8 @@ export function OrganizationPage() {
           </Button>
         </div>
       </form>
+
+      <PositionsSection />
     </div>
   );
 }
