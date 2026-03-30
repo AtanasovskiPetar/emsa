@@ -64,6 +64,8 @@ export interface OrganizationPublic {
   logoUrl: string | null;
   description: string;
   aboutUs: string;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
 }
 
 export interface PublicProject {
@@ -104,6 +106,8 @@ export interface Organization {
   logoUrl: string | null;
   description: string;
   aboutUs: string;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
   updatedAt: string;
 }
 
