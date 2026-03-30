@@ -31,6 +31,7 @@ const adminUserColumns = {
   yearOfStudies: users.yearOfStudies,
   profileCompleted: users.profileCompleted,
   role: users.role,
+  isAlumni: users.isAlumni,
   activeUntil: users.activeUntil,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,

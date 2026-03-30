@@ -41,10 +41,13 @@ export const updateUserSchema = z
   .object({
     role: z.enum(Object.values(Role) as [Role, ...Role[]]).optional(),
     activeUntil: z.iso.date().nullable().optional(),
+    isAlumni: z.boolean().optional(),
   })
-  .refine((data) => data.role !== undefined || data.activeUntil !== undefined, {
-    message: "At least one field must be provided",
-  });
+  .refine(
+    (data) =>
+      data.role !== undefined || data.activeUntil !== undefined || data.isAlumni !== undefined,
+    { message: "At least one field must be provided" }
+  );
 
 export type UpdateUserPayload = z.infer<typeof updateUserSchema>;
 
