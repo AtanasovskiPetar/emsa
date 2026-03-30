@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -226,6 +227,23 @@ function useColumns(
       },
     },
     {
+      accessorKey: "isAlumni",
+      header: "Alumni",
+      filterFn: (row, _columnId, filterValue: boolean | undefined) => {
+        if (filterValue === undefined) return true;
+        return row.original.isAlumni === filterValue;
+      },
+      cell: ({ row }) => (
+        <Switch
+          checked={row.original.isAlumni}
+          disabled={!isSuperAdmin}
+          onCheckedChange={(checked) =>
+            updateUser({ id: row.original.id, payload: { isAlumni: checked } })
+          }
+        />
+      ),
+    },
+    {
       accessorKey: "createdAt",
       header: "Joined",
       cell: ({ row }) => (
@@ -300,6 +318,29 @@ export function UsersPage() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Select
+            value={
+              table.getColumn("isAlumni")?.getFilterValue() === undefined
+                ? "all"
+                : table.getColumn("isAlumni")?.getFilterValue()
+                  ? "alumni"
+                  : "non-alumni"
+            }
+            onValueChange={(value) => {
+              const filterValue = value === "all" ? undefined : value === "alumni" ? true : false;
+              table.getColumn("isAlumni")?.setFilterValue(filterValue);
+              table.setPageIndex(0);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All members</SelectItem>
+              <SelectItem value="alumni">Alumni only</SelectItem>
+              <SelectItem value="non-alumni">Non-alumni only</SelectItem>
+            </SelectContent>
+          </Select>
           <Select
             value={
               table.getColumn("isActive")?.getFilterValue() === undefined
