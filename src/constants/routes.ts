@@ -53,6 +53,7 @@ export const ApiRoutes = {
   PROJECT_MY_REGISTRATION: "/api/projects/:id/my-registration",
   PILLARS: "/api/pillars",
   PILLAR_BY_ID: "/api/pillars/:id",
+  POSITIONS: "/api/positions",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
 } as const;

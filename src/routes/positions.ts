@@ -15,7 +15,7 @@ const positionColumns = {
   createdAt: positions.createdAt,
 };
 
-const listPositions = withRole(Role.SUPER_ADMIN, async () => {
+const listPositions = async () => {
   const rows = await db
     .select({
       id: positions.id,
@@ -31,7 +31,7 @@ const listPositions = withRole(Role.SUPER_ADMIN, async () => {
     .orderBy(asc(positions.order));
 
   return Response.json(rows);
-});
+};
 
 const createPosition = withRole(Role.SUPER_ADMIN, async (req) => {
   const data = await parseBody(req, positionSchema);
@@ -124,7 +124,8 @@ const reorderPositions = withRole(Role.SUPER_ADMIN, async (req) => {
 });
 
 export const positionRoutes = {
+  [ApiRoutes.POSITIONS]: { GET: listPositions },
   [ApiRoutes.ADMIN_POSITIONS_REORDER]: { PATCH: reorderPositions },
-  [ApiRoutes.ADMIN_POSITIONS]: { GET: listPositions, POST: createPosition },
+  [ApiRoutes.ADMIN_POSITIONS]: { POST: createPosition },
   [ApiRoutes.ADMIN_POSITION_BY_ID]: { PATCH: updatePosition, DELETE: deletePosition },
 };
