@@ -181,13 +181,17 @@ export const updateOrganizationSchema = z
     logoUrl: z.url().nullable().optional(),
     description: z.string().optional(),
     aboutUs: z.string().optional(),
+    instagramUrl: z.url().nullable().optional(),
+    facebookUrl: z.url().nullable().optional(),
   })
   .refine(
     (data) =>
       data.name !== undefined ||
       data.logoUrl !== undefined ||
       data.description !== undefined ||
-      data.aboutUs !== undefined,
+      data.aboutUs !== undefined ||
+      data.instagramUrl !== undefined ||
+      data.facebookUrl !== undefined,
     { message: "At least one field must be provided" }
   );
 
