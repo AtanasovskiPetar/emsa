@@ -1,24 +1,24 @@
 # EMSA Macedonia — Member Platform
 
-The official web platform for **EMSA Macedonia** (European Medical Students' Association), built to manage members, projects, and organizational information in one place.
+The official web platform for **EMSA Macedonia** (European Medical Students' Association) — a single place to manage members, projects, pillars, and organisational information.
 
-> **Disclaimer:** A significant portion of this codebase was generated with the assistance of AI tools (Claude by Anthropic). All generated code has been reviewed, tested, and adapted to fit the project's requirements.
+> **Note:** A significant portion of this codebase was built with the assistance of Claude (Anthropic). All generated code has been reviewed, tested, and adapted to fit the project's requirements.
 
 ---
 
 ## Overview
 
-This is a full-stack single-page application with a Bun HTTP server backend and a React frontend, served from the same process. There is no separate API server — the backend and frontend are co-located and bundled together.
+Full-stack SPA backed by a single Bun process. The backend and frontend are co-located — no separate API server.
 
-Key capabilities:
+**Key features:**
 
 - Public-facing pages for projects and organisational pillars
-- Member registration and profile management (with registration windows and participant caps)
-- Google OAuth login
-- Role-based access control with three tiers: `USER`, `ADMIN`, `SUPER_ADMIN`
-- Profile completion gate — members must complete their profile before accessing the platform
-- Admin panel for managing members, projects, pillars, and organisation settings
-- S3-backed image uploads with presigned URLs
+- Member registration with profile completion gate
+- Email/password and Google OAuth login
+- Role-based access: `USER` → `ADMIN` → `SUPER_ADMIN`
+- Admin panel: members, projects, pillars, positions, organisation settings
+- Project registration with configurable windows and participant caps
+- S3-backed image uploads via presigned URLs
 - Password reset via email (Resend)
 
 ---
@@ -39,7 +39,7 @@ Key capabilities:
 | Database     | PostgreSQL via Drizzle ORM            |
 | Auth         | JWT (jose) + Google OAuth 2.0         |
 | File storage | AWS S3 (presigned uploads)            |
-| Migrations   | Drizzle Kit                           |
+| Email        | Resend                                |
 
 ---
 
@@ -48,51 +48,18 @@ Key capabilities:
 ```
 src/
 ├── components/       # Shared UI components
-│   ├── admin/        # Admin-only components (dialogs, layout)
+│   ├── admin/        # Admin-only components (dialogs, positions, rich text)
 │   └── ui/           # shadcn/ui primitives
-├── constants/        # Enums, routes, schemas, types
+├── constants/        # Enums, routes, Zod schemas, shared types
 ├── context/          # React context (auth)
-├── db/               # Drizzle schema
-├── lib/              # Server utilities (db, jwt, middleware, s3, env)
-├── pages/            # Page components
+├── db/               # Drizzle schema + relations
+├── lib/              # Server utilities: db, jwt, middleware, s3, email, env
+├── pages/            # Page components (React Router)
 │   └── admin/        # Admin panel pages
-├── routes/           # Bun HTTP route handlers
-└── index.ts          # Entry point — serves API + built frontend
+├── routes/           # Bun HTTP route handlers (one file per feature)
+└── index.ts          # Entry point — registers all routes, serves frontend
 drizzle/              # Generated SQL migrations
 ```
-
----
-
-## Pages
-
-### Public
-
-| Route              | Description                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `/`                | Home — organisation hero, featured projects and pillars                                |
-| `/projects`        | All public projects                                                                    |
-| `/projects/:id`    | Project detail with image gallery and registration                                     |
-| `/pillars/:id`     | Pillar detail                                                                          |
-| `/login`           | Email/password or Google login                                                         |
-| `/register`        | New member registration (name, email, password, phone, student index, year of studies) |
-| `/forgot-password` | Request a password reset email                                                         |
-| `/reset-password`  | Set a new password via reset link                                                      |
-
-### Member
-
-| Route      | Description                                        |
-| ---------- | -------------------------------------------------- |
-| `/profile` | Profile page — update personal info, avatar upload |
-
-### Admin
-
-| Route                 | Required Role                                                  |
-| --------------------- | -------------------------------------------------------------- |
-| `/admin/dashboard`    | `ADMIN` — member stats overview                                |
-| `/admin/users`        | `ADMIN` — member list, role management                         |
-| `/admin/projects`     | `ADMIN` — create, edit, delete projects; manage registrations  |
-| `/admin/pillars`      | `SUPER_ADMIN` — manage organisational pillars                  |
-| `/admin/organization` | `SUPER_ADMIN` — organisation name, logo, description, about us |
 
 ---
 
@@ -100,17 +67,48 @@ drizzle/              # Generated SQL migrations
 
 | Role          | Access                                                                              |
 | ------------- | ----------------------------------------------------------------------------------- |
-| `USER`        | Profile, public pages, project self-registration                                    |
-| `ADMIN`       | All of the above + dashboard, users, projects, attended toggle                      |
-| `SUPER_ADMIN` | All of the above + pillars, organisation settings, add/remove project registrations |
+| `USER`        | Public pages, profile, project self-registration                                    |
+| `ADMIN`       | All of the above + dashboard, member list, project management                       |
+| `SUPER_ADMIN` | All of the above + pillars, positions, organisation settings, add/remove registrations |
 
-New members registered via the form receive the `USER` role. Roles can be promoted by a `SUPER_ADMIN` from the Users admin page.
+New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the Users admin page.
+
+### Profile Completion Gate
+
+Members who haven't set their phone, student index, and year of studies are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update.
 
 ---
 
-## Profile Completion Gate
+## Pages
 
-Members who have not filled in their phone number, student index, and year of studies are redirected to `/profile` on every navigation until their profile is complete. The backend enforces this too — incomplete profiles receive a `403` on all endpoints except profile read and update.
+### Public
+
+| Route              | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `/`                | Home — hero, featured projects, pillars, positions  |
+| `/projects`        | All public projects                                 |
+| `/projects/:id`    | Project detail with image gallery and registration  |
+| `/pillars/:id`     | Pillar detail                                       |
+| `/login`           | Email/password or Google login                      |
+| `/register`        | New member registration                             |
+| `/forgot-password` | Request a password reset email                      |
+| `/reset-password`  | Set a new password via reset link                   |
+
+### Member
+
+| Route      | Description                                  |
+| ---------- | -------------------------------------------- |
+| `/profile` | Update personal info and upload avatar       |
+
+### Admin (`/admin/*`)
+
+| Route           | Required Role | Description                                                         |
+| --------------- | ------------- | ------------------------------------------------------------------- |
+| `/dashboard`    | `ADMIN`       | Member stats overview                                               |
+| `/users`        | `ADMIN`       | Member list and role management                                     |
+| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                 |
+| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                       |
+| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials  |
 
 ---
 
@@ -121,10 +119,10 @@ Members who have not filled in their phone number, student index, and year of st
 - [Bun](https://bun.sh) >= 1.0
 - PostgreSQL database
 - AWS S3 bucket (or compatible)
-- Google OAuth app credentials
+- Google OAuth credentials
 - [Resend](https://resend.com) account (for password reset emails)
 
-### Installation
+### Install
 
 ```bash
 bun install
@@ -132,7 +130,7 @@ bun install
 
 ### Environment Variables
 
-Create a `.env` file in the project root. All required and optional variables are defined in [`src/lib/env.ts`](./src/lib/env.ts).
+Create a `.env` file in the project root. All variables are validated at startup in [`src/lib/env.ts`](./src/lib/env.ts).
 
 ```env
 # Server
@@ -171,29 +169,21 @@ APP_URL=http://localhost:3000
 ### Database Setup
 
 ```bash
-# Generate migrations from schema
-bunx drizzle-kit generate
-
-# Apply migrations
-bunx drizzle-kit migrate
+bunx drizzle-kit generate   # Generate migrations from schema
+bunx drizzle-kit migrate    # Apply pending migrations
 ```
 
 ### Development
 
 ```bash
-bun dev
+bun dev   # http://localhost:3000 — hot reload enabled
 ```
-
-Starts the server with hot reload at `http://localhost:3000`. The frontend is built on-the-fly by the Bun bundler plugin.
 
 ### Production
 
 ```bash
-# Build the frontend assets
-bun run build
-
-# Start the server
-bun start
+bun run build   # Build frontend assets
+bun start       # Start production server
 ```
 
 ---
@@ -209,21 +199,22 @@ bun start
 | `GET`  | `/api/auth/google`          | Initiate Google OAuth flow     |
 | `GET`  | `/api/auth/google/callback` | Google OAuth callback          |
 | `POST` | `/api/auth/forgot-password` | Request a password reset email |
-| `POST` | `/api/auth/reset-password`  | Reset password using a token   |
+| `POST` | `/api/auth/reset-password`  | Reset password via token       |
 
 ### Member
 
-| Method  | Endpoint                | Description                              |
-| ------- | ----------------------- | ---------------------------------------- |
-| `GET`   | `/api/users/me`         | Get current user profile                 |
-| `PATCH` | `/api/users/me`         | Update current user profile              |
-| `GET`   | `/api/upload/presigned` | Get a presigned S3 URL for avatar upload |
+| Method  | Endpoint                | Auth   | Description                     |
+| ------- | ----------------------- | ------ | ------------------------------- |
+| `GET`   | `/api/users/me`         | `USER` | Get current user profile        |
+| `PATCH` | `/api/users/me`         | `USER` | Update current user profile     |
+| `GET`   | `/api/upload/presigned` | `USER` | Get presigned S3 URL for avatar |
 
 ### Public
 
 | Method            | Endpoint                            | Auth   | Description                         |
 | ----------------- | ----------------------------------- | ------ | ----------------------------------- |
 | `GET`             | `/api/organization`                 | —      | Organisation info                   |
+| `GET`             | `/api/positions`                    | —      | All positions (ordered)             |
 | `GET`             | `/api/projects`                     | —      | All projects                        |
 | `GET`             | `/api/projects/:id`                 | —      | Single project                      |
 | `POST` / `DELETE` | `/api/projects/:id/register`        | `USER` | Register / unregister for a project |
@@ -233,46 +224,35 @@ bun start
 
 ### Admin
 
-| Method             | Endpoint                                | Required Role           |
-| ------------------ | --------------------------------------- | ----------------------- |
-| `GET`              | `/api/admin/dashboard`                  | `ADMIN`                 |
-| `GET`              | `/api/admin/users`                      | `ADMIN`                 |
-| `PATCH`            | `/api/admin/users/:id`                  | `SUPER_ADMIN`           |
-| `GET` / `POST`     | `/api/admin/projects`                   | `ADMIN`                 |
-| `PATCH` / `DELETE` | `/api/admin/projects/:id`               | `ADMIN`                 |
-| `GET`              | `/api/admin/projects/upload`            | `ADMIN`                 |
-| `GET` / `POST`     | `/api/admin/projects/:id/registrations` | `ADMIN` / `SUPER_ADMIN` |
-| `PATCH` / `DELETE` | `/api/admin/project-registrations/:id`  | `ADMIN` / `SUPER_ADMIN` |
-| `GET` / `POST`     | `/api/admin/pillars`                    | `SUPER_ADMIN`           |
-| `PATCH` / `DELETE` | `/api/admin/pillars/:id`                | `SUPER_ADMIN`           |
-| `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN`           |
-| `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN`           |
+| Method             | Endpoint                                | Required Role |
+| ------------------ | --------------------------------------- | ------------- |
+| `GET`              | `/api/admin/dashboard`                  | `ADMIN`       |
+| `GET`              | `/api/admin/users`                      | `ADMIN`       |
+| `PATCH`            | `/api/admin/users/:id`                  | `SUPER_ADMIN` |
+| `GET` / `POST`     | `/api/admin/projects`                   | `ADMIN`       |
+| `PATCH` / `DELETE` | `/api/admin/projects/:id`               | `ADMIN`       |
+| `GET`              | `/api/admin/projects/upload`            | `ADMIN`       |
+| `GET` / `POST`     | `/api/admin/projects/:id/registrations` | `ADMIN`       |
+| `PATCH` / `DELETE` | `/api/admin/project-registrations/:id`  | `SUPER_ADMIN` |
+| `GET` / `POST`     | `/api/admin/pillars`                    | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/pillars/:id`                | `SUPER_ADMIN` |
+| `POST`             | `/api/admin/positions`                  | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/positions/:id`              | `SUPER_ADMIN` |
+| `PATCH`            | `/api/admin/positions/reorder`          | `SUPER_ADMIN` |
+| `GET` / `PATCH`    | `/api/admin/organization`              | `SUPER_ADMIN` |
+| `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN` |
 
 ---
 
 ## Database Schema
 
-| Table                   | Description                                                                                                             |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role, profile completion status |
-| `pillars`               | Organisational pillars with a designated director (user)                                                                |
-| `projects`              | Projects linked to a pillar, with registration window (opens/closes) and optional participant cap                       |
-| `project_images`        | Ordered images for a project                                                                                            |
-| `project_registrations` | Many-to-many: members registered for a project, with an `attended` flag                                                 |
-| `organization`          | Singleton row holding organisation name, logo, and rich text content                                                    |
-| `password_reset_tokens` | Single-use, hashed, expiring tokens for credential-based password reset                                                 |
-
----
-
-## Scripts
-
-| Command                     | Description                                  |
-| --------------------------- | -------------------------------------------- |
-| `bun dev`                   | Start development server with hot reload     |
-| `bun start`                 | Start production server                      |
-| `bun run build`             | Build frontend assets                        |
-| `bun run lint`              | Run ESLint                                   |
-| `bun run prettier`          | Format all files with Prettier               |
-| `bunx drizzle-kit generate` | Generate a new migration from schema changes |
-| `bunx drizzle-kit migrate`  | Apply pending migrations                     |
-| `bunx drizzle-kit studio`   | Open Drizzle Studio (database browser)       |
+| Table                   | Description                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role     |
+| `pillars`               | Organisational pillars, each with a designated director (user)                                    |
+| `projects`              | Projects linked to a pillar; optional registration window and participant cap                     |
+| `project_images`        | Ordered images for a project                                                                      |
+| `project_registrations` | Members registered for a project, with an `attended` flag                                         |
+| `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page               |
+| `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                       |
+| `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                            |
