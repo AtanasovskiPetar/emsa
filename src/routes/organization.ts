@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, updateOrganizationSchema } from "@/constants/schemas";
+import { updateOrganizationSchema } from "@/constants/schemas";
 import { organization } from "@/db/schema";
 import { db } from "@/lib/db";
 import { parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Object, getPresignedUploadUrl } from "@/lib/s3";
+import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const ORG_ID = 1;
 
@@ -61,12 +61,7 @@ const updateOrganization = withRole(Role.SUPER_ADMIN, async (req) => {
 
 const getOrganizationUploadUrl = withRole(Role.SUPER_ADMIN, async (req) => {
   const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
-
-  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
-    return Response.json({ error: "Unsupported image type" }, { status: 400 });
-  }
-
-  const ext = contentType.split("/")[1] ?? "jpg";
+  const ext = validateImageContentType(contentType);
   const key = `organization/${crypto.randomUUID()}.${ext}`;
   const { uploadUrl, fileUrl } = await getPresignedUploadUrl(key, contentType);
 

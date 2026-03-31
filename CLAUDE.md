@@ -29,34 +29,57 @@ No test suite exists yet.
 
 ### Backend
 
-- **Routes** (`src/routes/`): One file per feature (auth, users, projects, pillars, organization, dashboard). Each exports a handler function registered in `src/index.ts`.
-- **Middleware** (`src/lib/middleware.ts`): `withRole(minRole)` wraps route handlers to enforce role-based access and the profile completion gate. `parseBody(schema)` validates request JSON with Zod. `getAuthUser()` extracts and verifies the JWT from the `Authorization` header.
-- **Database** (`src/db/`): PostgreSQL accessed via Drizzle ORM. Schema defined in `src/db/schema.ts`. Migrations live in `drizzle/`.
-- **S3** (`src/lib/s3.ts`): Files are uploaded client-side using presigned PUT URLs. The server generates 5-minute presigned URLs via `getPresignedUploadUrl()`.
-- **Auth**: JWT (HS256, via `jose`) stored in `localStorage`. Google OAuth 2.0 also supported.
+- **Routes** (`src/routes/`): One file per feature. Each exports a `*Routes` object `{ [ApiRoutes.X]: { METHOD: handler } }` registered in `src/index.ts`.
+- **Middleware** (`src/lib/middleware.ts`): `withRole(role, handler, opts?)` wraps protected handlers (enforces auth + role + profile gate). `parseBody(req, schema)` validates JSON body. `getAuthUser(req)` returns `JwtUser | null`. Throw `HttpError(status, message)` inside handlers — `withRole` catches and returns as JSON.
+- **Database** (`src/db/`): PostgreSQL via Drizzle ORM. Schema in `src/db/schema.ts`. Migrations in `drizzle/`.
+- **S3** (`src/lib/s3.ts`): Client-side uploads via presigned PUT URLs (`getPresignedUploadUrl(key, contentType)`). Allowed types: `image/jpeg`, `image/png`, `image/webp`.
+- **Auth**: JWT HS256 via `jose`. Google OAuth 2.0 also supported. Token sent as `Authorization: Bearer <token>`.
 
 ### Frontend
 
-- **React Router v7 SPA** — all routes defined in `src/App.tsx` using lazy-loaded page components.
-- **AuthContext** (`src/context/AuthContext.tsx`): Holds JWT token and decoded user profile. Profile completion state gates access to member routes.
-- **TanStack Query**: All data fetching. The `apiClient` wrapper (`src/lib/apiClient.ts`) auto-injects the `Authorization` header.
-- **Forms**: React Hook Form + Zod. Schemas in `src/constants/schemas.ts`.
-- **Rich text**: Tiptap editor (project descriptions, org "about us"). DOMPurify for sanitization.
+- **React Router v7 SPA** — routes in `src/App.tsx`, all pages lazy-loaded.
+- **AuthContext** (`src/context/auth.tsx`): Holds token + user. Profile completion gates access to member routes.
+- **TanStack Query**: All data fetching via `apiClient` (`src/lib/api-client.ts`), which auto-injects the auth header. Default `staleTime` is 5 min; use `Infinity` for near-static data.
+- **Forms**: React Hook Form + Zod. Schemas in `src/constants/schemas.ts`, types inferred with `z.infer<>`.
+- **Rich text**: Tiptap + DOMPurify.
 
 ### Role Hierarchy
 
-`USER (0) < ADMIN (1) < SUPER_ADMIN (2)` — enforced server-side via `withRole()`. `hasAccess(userRole, minRole)` is the utility for client-side role checks.
+`USER (0) < ADMIN (1) < SUPER_ADMIN (2)` — enforced server-side via `withRole()`. `hasAccess(userRole, minRole)` for client-side checks.
 
-### Key Utilities (`src/lib/utils.ts`)
+## Key Conventions
 
-Prefer adding new helpers here rather than creating new files: `cn()` (Tailwind class merging), `hasAccess()`, `getInitials()`, `getImageSrc()`, `toDatetimeLocalValue()`, `stripHtml()`.
+### Always
 
-## Path Alias
+- All API routes defined in `ApiRoutes`, page routes in `PageRoutes` (`src/constants/routes.ts`) — never hardcode strings.
+- Error response shape is always `{ error: "message" }`. Success shape is the data directly.
+- HTTP status codes: 200/201 success, 400 validation, 401 bad credentials, 403 forbidden/incomplete profile, 404 not found, 409 conflict (duplicate), 422 business logic violation, 500 server error.
+- Postgres unique constraint code `"23505"` → return 409.
+- Always use `import type { T }` for type-only imports.
+- Never use relative imports — always use the `@/` alias.
 
-`@/*` maps to `./src/*` throughout the codebase.
+### Backend
+
+- Public handlers: `async (req: Request): Promise<Response>`. Protected: wrapped with `withRole`, receives `(req: BunRequest<P>, user: JwtUser)`.
+- Always return `Response.json(data, { status: N })`.
+- Destructure first DB result: `const [row] = await db.select()...limit(1)`.
+- Always use `.returning()` on insert/update/delete.
+- Use `db.transaction(async (tx) => { ... })` for multi-step writes; use `tx` not `db` inside.
+- Conditional PATCH updates: `...(value !== undefined && { col: value })`.
+
+### Frontend
+
+- New utilities go in `src/lib/utils.ts` — don't create new utility files.
+- New shared types go in `src/constants/types.ts`.
+- New form schemas go in `src/constants/schemas.ts`.
+- Always use `cn()` for Tailwind class merging.
+- Use CVA (`class-variance-authority`) for component variants.
+- Invalidate TanStack Query cache after mutations: `queryClient.invalidateQueries({ queryKey: [...] })`.
+- API errors are `ApiError` instances with a `.status` property.
 
 ## Code Style
 
-- Double quotes, semicolons, 2-space indent, 100-char line width (Prettier)
-- Imports must be sorted (`simple-import-sort` ESLint plugin)
-- Unused variables prefixed with `_` to suppress lint errors
+- Double quotes, semicolons, 2-space indent, 100-char line width (Prettier).
+- Imports sorted by `simple-import-sort`: external → type imports → `@/` local → relative.
+- Unused variables prefixed with `_`.
+- Enums as `as const` objects with a matching type alias (see `src/constants/enums.ts`).
