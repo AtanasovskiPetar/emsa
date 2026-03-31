@@ -12,9 +12,13 @@ export type LoginSchema = z.infer<typeof loginSchema>;
 export const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.email({ message: "Invalid email address" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-  phone: z.string().min(1, { message: "Phone is required" }),
-  index: z.string().min(1, { message: "Student index is required" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[a-zA-Z]/, { message: "Password must contain at least one letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
+  phone: z.string().trim().min(1, { message: "Phone is required" }),
+  index: z.string().trim().min(1, { message: "Student index is required" }),
   yearOfStudies: z
     .number()
     .int()
@@ -32,7 +36,11 @@ export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[a-zA-Z]/, { message: "Password must contain at least one letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
 });
 
 export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
@@ -152,9 +160,14 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as 
 export const updateMeSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
-    phone: z.string().optional().nullable(),
+    phone: z.string().trim().min(1, { message: "Phone cannot be blank" }).optional().nullable(),
     imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
-    index: z.string().optional().nullable(),
+    index: z
+      .string()
+      .trim()
+      .min(1, { message: "Student index cannot be blank" })
+      .optional()
+      .nullable(),
     yearOfStudies: z
       .number()
       .int()

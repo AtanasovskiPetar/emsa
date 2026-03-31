@@ -1,7 +1,9 @@
 import { type ClassValue, clsx } from "clsx";
+import { type NavigateFunction } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 
 import { Role } from "@/constants/enums";
+import { PageRoutes } from "@/constants/routes";
 import { type ImageEntry, type PublicProject, type RegistrationStatus } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 
@@ -17,6 +19,13 @@ const ROLE_HIERARCHY: Record<Role, number> = {
 
 export function hasAccess(userRole: Role, requiredRole: Role): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
+}
+
+export function navigateAfterLogin(
+  user: { role: Role } | null | undefined,
+  navigate: NavigateFunction
+) {
+  navigate(user && hasAccess(user.role, Role.ADMIN) ? PageRoutes.ADMIN : PageRoutes.HOME);
 }
 
 export function getInitials(name: string): string {

@@ -3,11 +3,11 @@ import { z } from "zod";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, projectSchema, updateProjectSchema } from "@/constants/schemas";
+import { projectSchema, updateProjectSchema } from "@/constants/schemas";
 import { pillars, projectImages, projectRegistrations, projects, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Object, getPresignedUploadUrl } from "@/lib/s3";
+import { deleteS3Objects, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 // Public
 const getProjects = async () => {
@@ -344,9 +344,7 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
     return project;
   });
 
-  await Promise.all(
-    imagesToDeleteFromS3.map((img) => deleteS3Object(img.url).catch(console.error))
-  );
+  await deleteS3Objects(imagesToDeleteFromS3.map((img) => img.url));
 
   return Response.json(updated);
 });
@@ -372,19 +370,14 @@ const deleteProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
     return Response.json({ error: "Project not found" }, { status: 404 });
   }
 
-  await Promise.all(images.map((img) => deleteS3Object(img.url).catch(console.error)));
+  await deleteS3Objects(images.map((img) => img.url));
 
   return Response.json({ success: true });
 });
 
 const getProjectUploadUrl = withRole(Role.ADMIN, async (req) => {
   const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
-
-  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
-    return Response.json({ error: "Unsupported image type" }, { status: 400 });
-  }
-
-  const ext = contentType.split("/")[1] ?? "jpg";
+  const ext = validateImageContentType(contentType);
   const key = `project-images/${crypto.randomUUID()}.${ext}`;
   const { uploadUrl, fileUrl } = await getPresignedUploadUrl(key, contentType);
 

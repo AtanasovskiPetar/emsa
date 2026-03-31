@@ -2,12 +2,12 @@ import { eq } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, updateMeSchema, updateUserSchema } from "@/constants/schemas";
+import { updateMeSchema, updateUserSchema } from "@/constants/schemas";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
-import { signJwt } from "@/lib/jwt";
+import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
-import { getPresignedUploadUrl } from "@/lib/s3";
+import { getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const meColumns = {
   id: users.id,
@@ -93,8 +93,8 @@ const updateMe = withRole(
     }
 
     // profileCompleted changed — re-issue JWT so the client is in sync
-    const token = await signJwt({
-      sub: user.sub,
+    const token = await createUserToken({
+      id: user.sub,
       name: updated.name,
       email: updated.email,
       role: updated.role,
@@ -110,12 +110,7 @@ const getPresignedUrl = withRole(
   Role.USER,
   async (req, user) => {
     const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
-
-    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType)) {
-      return Response.json({ error: "Unsupported image type" }, { status: 400 });
-    }
-
-    const ext = contentType.split("/")[1] ?? "jpg";
+    const ext = validateImageContentType(contentType);
     const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
       `avatars/${user.sub}.${ext}`,
       contentType

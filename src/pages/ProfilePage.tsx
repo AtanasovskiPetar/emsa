@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { ALLOWED_IMAGE_TYPES, type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
 import { type UserProfile } from "@/constants/types";
@@ -31,8 +32,8 @@ const FADE_UP = {
 
 function getMissingFields(profile: UserProfile): string[] {
   return [
-    !profile.phone && "Phone number",
-    !profile.index && "Student index",
+    !profile.phone?.trim() && "Phone number",
+    !profile.index?.trim() && "Student index",
     !profile.yearOfStudies && "Year of studies",
   ].filter(Boolean) as string[];
 }
@@ -53,7 +54,7 @@ export function ProfilePage() {
   }, [previewUrl]);
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ["me"],
+    queryKey: queryKeys.me(),
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
   });
 
@@ -103,7 +104,7 @@ export function ProfilePage() {
       onSuccess: ({ token, ...updated }) => {
         setPendingFile(null);
         setPreviewUrl(null);
-        queryClient.invalidateQueries({ queryKey: ["me"] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.me() });
         if (token) {
           login(token);
         } else {

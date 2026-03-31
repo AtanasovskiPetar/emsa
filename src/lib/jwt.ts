@@ -26,3 +26,19 @@ export async function verifyJwt(token: string): Promise<JwtUser> {
   const { payload } = await jwtVerify(token, secret);
   return payload as JwtUser;
 }
+
+export async function createUserToken(user: {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  profileCompleted: boolean;
+}): Promise<string> {
+  return signJwt({
+    sub: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    profileCompleted: user.profileCompleted,
+  });
+}
