@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type AdminUser, type Position } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -117,7 +118,7 @@ export function PositionsSection() {
   const [userId, setUserId] = useState("");
 
   const { data: positionsData = [], isLoading } = useQuery({
-    queryKey: ["positions"],
+    queryKey: queryKeys.positions(),
     queryFn: () => apiClient.get<Position[]>(ApiRoutes.POSITIONS),
   });
 
@@ -126,25 +127,25 @@ export function PositionsSection() {
   }, [positionsData]);
 
   const { data: allUsers = [] } = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
   });
 
   const { mutate: createPosition, isPending: isCreating } = useMutation({
     mutationFn: (payload: { title: string; userId: string }) =>
       apiClient.post<Position>(ApiRoutes.ADMIN_POSITIONS, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.positions() }),
   });
 
   const { mutate: updatePosition, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, ...payload }: { id: string; title: string; userId: string }) =>
       apiClient.patch<Position>(`${ApiRoutes.ADMIN_POSITIONS}/${id}`, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.positions() }),
   });
 
   const { mutate: deletePosition } = useMutation({
     mutationFn: (id: string) => apiClient.delete(`${ApiRoutes.ADMIN_POSITIONS}/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["positions"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.positions() }),
   });
 
   const { mutate: reorderPositions } = useMutation({

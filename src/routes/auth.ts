@@ -12,7 +12,7 @@ import { passwordResetTokens, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { env } from "@/lib/env";
-import { signJwt } from "@/lib/jwt";
+import { createUserToken } from "@/lib/jwt";
 
 const OAUTH_STATE_COOKIE = "oauth_state";
 
@@ -58,13 +58,7 @@ async function register(req: Request): Promise<Response> {
     return Response.json({ error: "Failed to create user" }, { status: 500 });
   }
 
-  const token = await signJwt({
-    sub: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profileCompleted: user.profileCompleted,
-  });
+  const token = await createUserToken(user);
   return Response.json({ token }, { status: 201 });
 }
 
@@ -87,13 +81,7 @@ async function login(req: Request): Promise<Response> {
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const token = await signJwt({
-    sub: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profileCompleted: user.profileCompleted,
-  });
+  const token = await createUserToken(user);
   return Response.json({ token });
 }
 
@@ -208,13 +196,7 @@ async function googleCallback(req: Request): Promise<Response> {
     return Response.json({ error: "Failed to resolve user" }, { status: 500 });
   }
 
-  const token = await signJwt({
-    sub: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profileCompleted: user.profileCompleted,
-  });
+  const token = await createUserToken(user);
   return new Response(null, {
     status: 302,
     headers: {

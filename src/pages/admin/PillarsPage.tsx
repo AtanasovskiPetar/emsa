@@ -32,9 +32,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
+import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
 
 function useColumns(
@@ -94,25 +96,24 @@ function useColumns(
 
 export function PillarsPage() {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingPillar, setEditingPillar] = useState<Pillar | undefined>(undefined);
+  const dialog = useDialogState<Pillar>();
   const [deletingPillar, setDeletingPillar] = useState<Pillar | undefined>(undefined);
 
   const { data: pillars = [], isLoading } = useQuery({
-    queryKey: ["admin", "pillars"],
+    queryKey: queryKeys.admin.pillars(),
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
 
   const { data: users = [] } = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
   });
 
   const { mutate: createPillar, isPending: isCreating } = useMutation({
     mutationFn: (body: PillarFormValues) => apiClient.post<Pillar>(ApiRoutes.ADMIN_PILLARS, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
-      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.pillars() });
+      dialog.close();
     },
   });
 
@@ -120,38 +121,28 @@ export function PillarsPage() {
     mutationFn: ({ id, body }: { id: string; body: PillarFormValues }) =>
       apiClient.patch<Pillar>(`${ApiRoutes.ADMIN_PILLARS}/${id}`, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
-      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.pillars() });
+      dialog.close();
     },
   });
 
   const { mutate: deletePillar, isPending: isDeleting } = useMutation({
     mutationFn: (id: string) => apiClient.delete(`${ApiRoutes.ADMIN_PILLARS}/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "pillars"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.pillars() });
       setDeletingPillar(undefined);
     },
   });
 
-  function handleEdit(pillar: Pillar) {
-    setEditingPillar(pillar);
-    setDialogOpen(true);
-  }
-
-  function handleDialogOpenChange(open: boolean) {
-    setDialogOpen(open);
-    if (!open) setEditingPillar(undefined);
-  }
-
   function handleSubmit(values: PillarFormValues) {
-    if (editingPillar) {
-      updatePillar({ id: editingPillar.id, body: values });
+    if (dialog.item) {
+      updatePillar({ id: dialog.item.id, body: values });
     } else {
       createPillar(values);
     }
   }
 
-  const columns = useColumns(handleEdit, setDeletingPillar);
+  const columns = useColumns(dialog.open, setDeletingPillar);
 
   const table = useReactTable({
     data: pillars,
@@ -189,7 +180,7 @@ export function PillarsPage() {
               className="w-full pl-8 sm:w-64"
             />
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => dialog.open()}>
             <Plus className="size-4" />
             New Pillar
           </Button>
@@ -237,9 +228,9 @@ export function PillarsPage() {
       <DataTablePagination table={table} />
 
       <PillarDialog
-        open={dialogOpen}
-        onOpenChange={handleDialogOpenChange}
-        pillar={editingPillar}
+        open={dialog.isOpen}
+        onOpenChange={(open) => !open && dialog.close()}
+        pillar={dialog.item}
         users={users}
         onSubmit={handleSubmit}
         isPending={isCreating || isUpdating}

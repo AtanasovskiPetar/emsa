@@ -48,10 +48,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
 import { type AdminUser, type Project, type ProjectRegistration } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
 import { getInitials, hasAccess, stripHtml } from "@/lib/utils";
 
@@ -141,7 +143,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   const [selectedUserId, setSelectedUserId] = useState("");
   const [drawerError, setDrawerError] = useState<string | null>(null);
 
-  const registrationsQueryKey = ["admin", "projects", project?.id, "registrations"];
+  const registrationsQueryKey = queryKeys.admin.projectRegistrations(project?.id ?? "");
 
   const { data: registrations = [], isLoading } = useQuery({
     queryKey: registrationsQueryKey,
@@ -153,7 +155,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   });
 
   const { data: allUsers = [] } = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
     enabled: isSuperAdmin && !!project,
   });
@@ -292,13 +294,12 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
 
 export function ProjectsPage() {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
+  const dialog = useDialogState<Project>();
   const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
   const [drawerProject, setDrawerProject] = useState<Project | undefined>(undefined);
 
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ["admin", "projects"],
+    queryKey: queryKeys.admin.projects(),
     queryFn: () => apiClient.get<Project[]>(ApiRoutes.ADMIN_PROJECTS),
   });
 
@@ -306,8 +307,8 @@ export function ProjectsPage() {
     mutationFn: (body: ProjectFormValues) =>
       apiClient.post<Project>(ApiRoutes.ADMIN_PROJECTS, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
-      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
+      dialog.close();
     },
   });
 
@@ -315,38 +316,28 @@ export function ProjectsPage() {
     mutationFn: ({ id, body }: { id: string; body: ProjectFormValues }) =>
       apiClient.patch<Project>(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id), body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
-      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
+      dialog.close();
     },
   });
 
   const { mutate: deleteProject, isPending: isDeleting } = useMutation({
     mutationFn: (id: string) => apiClient.delete(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
       setDeletingProject(undefined);
     },
   });
 
-  function handleEdit(project: Project) {
-    setEditingProject(project);
-    setDialogOpen(true);
-  }
-
-  function handleDialogOpenChange(open: boolean) {
-    setDialogOpen(open);
-    if (!open) setEditingProject(undefined);
-  }
-
   function handleSubmit(values: ProjectFormValues) {
-    if (editingProject) {
-      updateProject({ id: editingProject.id, body: values });
+    if (dialog.item) {
+      updateProject({ id: dialog.item.id, body: values });
     } else {
       createProject(values);
     }
   }
 
-  const columns = useColumns(handleEdit, setDeletingProject);
+  const columns = useColumns(dialog.open, setDeletingProject);
 
   const table = useReactTable({
     data: projects,
@@ -384,7 +375,7 @@ export function ProjectsPage() {
               className="w-full pl-8 sm:w-64"
             />
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => dialog.open()}>
             <Plus className="size-4" />
             New Project
           </Button>
@@ -436,9 +427,9 @@ export function ProjectsPage() {
       <DataTablePagination table={table} />
 
       <ProjectDialog
-        open={dialogOpen}
-        onOpenChange={handleDialogOpenChange}
-        project={editingProject}
+        open={dialog.isOpen}
+        onOpenChange={(open) => !open && dialog.close()}
+        project={dialog.item}
         onSubmit={handleSubmit}
         isPending={isCreating || isUpdating}
       />

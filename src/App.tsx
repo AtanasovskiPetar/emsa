@@ -110,7 +110,13 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTop />
             <ProfileGuard>
-              <Suspense fallback={null}>
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center">
+                    <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                }
+              >
                 <Routes>
                   {/* Public site */}
                   <Route element={<PublicLayout />}>
@@ -135,6 +141,7 @@ export default function App() {
                   <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
                   <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                   <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+                  <Route path="*" element={<Navigate to={PageRoutes.HOME} replace />} />
 
                   {/* Admin */}
                   <Route

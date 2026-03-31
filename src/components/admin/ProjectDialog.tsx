@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
 import { type ImageEntry, type Pillar, type Project } from "@/constants/types";
@@ -137,10 +138,11 @@ export function ProjectDialog({
   isPending,
 }: ProjectDialogProps) {
   const { data: pillars = [] } = useQuery({
-    queryKey: ["admin", "pillars"],
+    queryKey: queryKeys.admin.pillars(),
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
   const [images, setImages] = useState<ActiveImageEntry[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { mutateAsync: uploadImages, isPending: isUploading } = useMutation({
@@ -234,6 +236,7 @@ export function ProjectDialog({
   }
 
   async function handleSubmit(values: FormValues) {
+    setUploadError(null);
     try {
       const imageUrls = await uploadImages(images);
       onSubmit({
@@ -251,7 +254,7 @@ export function ProjectDialog({
         maxParticipants: values.maxParticipants ?? null,
       });
     } catch {
-      // upload failed, don't proceed
+      setUploadError("Image upload failed. Please try again.");
     }
   }
 
@@ -458,8 +461,9 @@ export function ProjectDialog({
           </Form>
         </div>
 
-        <DialogFooter className="pt-2">
-          <Button type="submit" form="project-form" disabled={isSubmitting}>
+        <DialogFooter className="flex-col items-start gap-2 pt-2 sm:flex-row sm:items-center">
+          {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
+          <Button type="submit" form="project-form" disabled={isSubmitting} className="sm:ml-auto">
             {isUploading
               ? "Uploading..."
               : isPending
