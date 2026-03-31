@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import type { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import type { UserProfile } from "@/constants/types";
 import { apiClient, ApiError } from "@/lib/api-client";
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: meError,
     isLoading: isLoadingMe,
   } = useQuery({
-    queryKey: ["me"],
+    queryKey: queryKeys.me(),
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
     enabled: !!token,
     retry: false,
@@ -109,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", newToken);
     setToken(newToken);
     setUser(decoded);
-    queryClient.removeQueries({ queryKey: ["me"] });
+    queryClient.removeQueries({ queryKey: queryKeys.me() });
     return decoded;
   }
 
@@ -117,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
-    queryClient.removeQueries({ queryKey: ["me"] });
+    queryClient.removeQueries({ queryKey: queryKeys.me() });
   }
 
   const updateUser = useCallback((patch: Partial<AuthUser>) => {

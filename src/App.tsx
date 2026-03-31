@@ -110,7 +110,13 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTop />
             <ProfileGuard>
-              <Suspense fallback={null}>
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center">
+                    <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                }
+              >
                 <Routes>
                   {/* Public site */}
                   <Route element={<PublicLayout />}>

@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
-import { useState } from "react";
 
+import { SpotlightCard } from "@/components/SpotlightCard";
 import { UserAvatar } from "@/components/UserAvatar";
 import { type PublicPosition } from "@/constants/types";
 
@@ -10,9 +10,6 @@ interface PositionCardProps {
 }
 
 export function PositionCard({ position, index }: PositionCardProps) {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [hovered, setHovered] = useState(false);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -20,24 +17,7 @@ export function PositionCard({ position, index }: PositionCardProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
     >
-      <div
-        className="relative overflow-hidden rounded-xl border bg-background p-6 transition-shadow duration-300 hover:shadow-lg"
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {/* Spotlight overlay */}
-        <div
-          className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-300"
-          style={{
-            opacity: hovered ? 1 : 0,
-            background: `radial-gradient(250px circle at ${mousePos.x}px ${mousePos.y}px, color-mix(in srgb, var(--primary) 10%, transparent), transparent 70%)`,
-          }}
-        />
-
+      <SpotlightCard className="p-6">
         {/* Large faint index number */}
         <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10">
           {String(index + 1).padStart(2, "0")}
@@ -54,7 +34,7 @@ export function PositionCard({ position, index }: PositionCardProps) {
             <span className="text-sm text-muted-foreground">{position.userName}</span>
           </div>
         </div>
-      </div>
+      </SpotlightCard>
     </motion.div>
   );
 }

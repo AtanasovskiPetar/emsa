@@ -15,12 +15,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Role } from "@/constants/enums";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type RegisterSchema, registerSchema } from "@/constants/schemas";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { hasAccess } from "@/lib/utils";
+import { navigateAfterLogin } from "@/lib/utils";
 
 export function RegisterPage() {
   const { login } = useAuth();
@@ -45,10 +44,7 @@ export function RegisterPage() {
 
   function onSubmit(values: RegisterSchema) {
     mutate(values, {
-      onSuccess: ({ token }) => {
-        const user = login(token);
-        navigate(user && hasAccess(user.role, Role.ADMIN) ? PageRoutes.ADMIN : PageRoutes.HOME);
-      },
+      onSuccess: ({ token }) => navigateAfterLogin(login(token), navigate),
     });
   }
 

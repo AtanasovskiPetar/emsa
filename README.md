@@ -65,10 +65,10 @@ drizzle/              # Generated SQL migrations
 
 ## Roles
 
-| Role          | Access                                                                              |
-| ------------- | ----------------------------------------------------------------------------------- |
-| `USER`        | Public pages, profile, project self-registration                                    |
-| `ADMIN`       | All of the above + dashboard, member list, project management                       |
+| Role          | Access                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `USER`        | Public pages, profile, project self-registration                                       |
+| `ADMIN`       | All of the above + dashboard, member list, project management                          |
 | `SUPER_ADMIN` | All of the above + pillars, positions, organisation settings, add/remove registrations |
 
 New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the Users admin page.
@@ -83,32 +83,32 @@ Members who haven't set their phone, student index, and year of studies are redi
 
 ### Public
 
-| Route              | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `/`                | Home — hero, featured projects, pillars, positions  |
-| `/projects`        | All public projects                                 |
-| `/projects/:id`    | Project detail with image gallery and registration  |
-| `/pillars/:id`     | Pillar detail                                       |
-| `/login`           | Email/password or Google login                      |
-| `/register`        | New member registration                             |
-| `/forgot-password` | Request a password reset email                      |
-| `/reset-password`  | Set a new password via reset link                   |
+| Route              | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `/`                | Home — hero, featured projects, pillars, positions |
+| `/projects`        | All public projects                                |
+| `/projects/:id`    | Project detail with image gallery and registration |
+| `/pillars/:id`     | Pillar detail                                      |
+| `/login`           | Email/password or Google login                     |
+| `/register`        | New member registration                            |
+| `/forgot-password` | Request a password reset email                     |
+| `/reset-password`  | Set a new password via reset link                  |
 
 ### Member
 
-| Route      | Description                                  |
-| ---------- | -------------------------------------------- |
-| `/profile` | Update personal info and upload avatar       |
+| Route      | Description                            |
+| ---------- | -------------------------------------- |
+| `/profile` | Update personal info and upload avatar |
 
 ### Admin (`/admin/*`)
 
-| Route           | Required Role | Description                                                         |
-| --------------- | ------------- | ------------------------------------------------------------------- |
-| `/dashboard`    | `ADMIN`       | Member stats overview                                               |
-| `/users`        | `ADMIN`       | Member list and role management                                     |
-| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                 |
-| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                       |
-| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials  |
+| Route           | Required Role | Description                                                        |
+| --------------- | ------------- | ------------------------------------------------------------------ |
+| `/dashboard`    | `ADMIN`       | Member stats overview                                              |
+| `/users`        | `ADMIN`       | Member list and role management                                    |
+| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                |
+| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                      |
+| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials |
 
 ---
 
@@ -239,20 +239,20 @@ bun start       # Start production server
 | `POST`             | `/api/admin/positions`                  | `SUPER_ADMIN` |
 | `PATCH` / `DELETE` | `/api/admin/positions/:id`              | `SUPER_ADMIN` |
 | `PATCH`            | `/api/admin/positions/reorder`          | `SUPER_ADMIN` |
-| `GET` / `PATCH`    | `/api/admin/organization`              | `SUPER_ADMIN` |
+| `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN` |
 | `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN` |
 
 ---
 
 ## Database Schema
 
-| Table                   | Description                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role     |
-| `pillars`               | Organisational pillars, each with a designated director (user)                                    |
-| `projects`              | Projects linked to a pillar; optional registration window and participant cap                     |
-| `project_images`        | Ordered images for a project                                                                      |
-| `project_registrations` | Members registered for a project, with an `attended` flag                                         |
-| `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page               |
-| `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                       |
-| `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                            |
+| Table                   | Description                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role |
+| `pillars`               | Organisational pillars, each with a designated director (user)                               |
+| `projects`              | Projects linked to a pillar; optional registration window and participant cap                |
+| `project_images`        | Ordered images for a project                                                                 |
+| `project_registrations` | Members registered for a project, with an `attended` flag                                    |
+| `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page           |
+| `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                   |
+| `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                       |
