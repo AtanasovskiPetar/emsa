@@ -141,6 +141,7 @@ export default function App() {
                   <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
                   <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                   <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+                  <Route path="*" element={<Navigate to={PageRoutes.HOME} replace />} />
 
                   {/* Admin */}
                   <Route
