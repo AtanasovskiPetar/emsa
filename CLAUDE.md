@@ -72,9 +72,11 @@ No test suite exists yet.
 - New utilities go in `src/lib/utils.ts` — don't create new utility files.
 - New shared types go in `src/constants/types.ts`.
 - New form schemas go in `src/constants/schemas.ts`.
+- All TanStack Query keys defined in `src/constants/query-keys.ts` — never use inline string arrays.
+- Custom hooks go in `src/hooks/` (e.g. `useDialogState`).
 - Always use `cn()` for Tailwind class merging.
 - Use CVA (`class-variance-authority`) for component variants.
-- Invalidate TanStack Query cache after mutations: `queryClient.invalidateQueries({ queryKey: [...] })`.
+- Invalidate TanStack Query cache after mutations: `queryClient.invalidateQueries({ queryKey: queryKeys.x() })`.
 - API errors are `ApiError` instances with a `.status` property.
 
 ## Code Style
