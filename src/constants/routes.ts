@@ -33,6 +33,8 @@ export const ApiRoutes = {
   AUTH_RESET_PASSWORD: "/api/auth/reset-password",
   ADMIN_USERS: "/api/admin/users",
   ADMIN_USER_BY_ID: "/api/admin/users/:id",
+  ADMIN_USER_ACTIVATIONS: "/api/admin/users/:id/activations",
+  ADMIN_ACTIVATION_BY_ID: "/api/admin/activations/:id",
   ADMIN_PILLARS: "/api/admin/pillars",
   ADMIN_PILLAR_BY_ID: "/api/admin/pillars/:id",
   ADMIN_PROJECTS: "/api/admin/projects",

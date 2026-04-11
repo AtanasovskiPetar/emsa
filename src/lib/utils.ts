@@ -88,6 +88,15 @@ export function getRegistrationStatus(project: PublicProject): RegistrationStatu
   return "open";
 }
 
+export function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString();
+}
+
+export function toDateStr(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
   if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
+import { MembershipBadge } from "@/components/MembershipBadge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -116,9 +117,16 @@ function UserMenu() {
           <UserAvatar name={user.name} imageUrl={user.imageUrl ?? null} className="size-8" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-50">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-medium">{user.name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium">{user.name}</p>
+            <MembershipBadge
+              isActive={user.isActive}
+              isAlumni={user.isAlumni}
+              className="h-4 rounded-sm px-1 text-[10px]"
+            />
+          </div>
           <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
         <DropdownMenuSeparator />
@@ -166,9 +174,12 @@ function MobileUserSection({ onClose }: { onClose: () => void }) {
       <div className="flex items-center gap-3">
         <UserAvatar name={user.name} imageUrl={user.imageUrl ?? null} className="size-9" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
-            {user.name}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
+              {user.name}
+            </p>
+            <MembershipBadge isActive={user.isActive} isAlumni={user.isAlumni} />
+          </div>
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>
         </div>
       </div>

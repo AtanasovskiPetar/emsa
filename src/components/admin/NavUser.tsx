@@ -1,6 +1,7 @@
 import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { MembershipBadge } from "@/components/MembershipBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,7 @@ import { PageRoutes } from "@/constants/routes";
 import type { AuthUser } from "@/context/auth";
 
 interface NavUserProps {
-  user: Pick<AuthUser, "name" | "email" | "imageUrl">;
+  user: Pick<AuthUser, "name" | "email" | "imageUrl" | "isActive" | "isAlumni">;
   onLogout: () => void;
 }
 
@@ -54,7 +55,14 @@ export function NavUser({ user, onLogout }: NavUserProps) {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <UserAvatar name={user.name} imageUrl={user.imageUrl} />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate font-medium">{user.name}</span>
+                    <MembershipBadge
+                      isActive={user.isActive}
+                      isAlumni={user.isAlumni}
+                      className="h-4 rounded-sm px-1 text-[10px]"
+                    />
+                  </div>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>

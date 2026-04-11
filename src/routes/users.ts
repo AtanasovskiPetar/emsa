@@ -1,9 +1,14 @@
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lte, ne } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { updateMeSchema, updateUserSchema } from "@/constants/schemas";
-import { users } from "@/db/schema";
+import {
+  createActivationSchema,
+  updateActivationSchema,
+  updateMeSchema,
+  updateUserSchema,
+} from "@/constants/schemas";
+import { userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
@@ -19,6 +24,7 @@ const meColumns = {
   index: users.index,
   yearOfStudies: users.yearOfStudies,
   profileCompleted: users.profileCompleted,
+  isAlumni: users.isAlumni,
   createdAt: users.createdAt,
 };
 
@@ -32,16 +38,33 @@ const adminUserColumns = {
   profileCompleted: users.profileCompleted,
   role: users.role,
   isAlumni: users.isAlumni,
-  activeUntil: users.activeUntil,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function activePeriodCondition(date: string) {
+  return and(
+    eq(userActivations.userId, users.id),
+    lte(userActivations.startDate, date),
+    gte(userActivations.endDate, date)
+  );
+}
 
 // Self
 const getMe = withRole(
   Role.USER,
   async (_req, user) => {
-    const [me] = await db.select(meColumns).from(users).where(eq(users.id, user.sub)).limit(1);
+    const today = todayStr();
+    const [me] = await db
+      .select({ ...meColumns, isActive: isNotNull(userActivations.id) })
+      .from(users)
+      .leftJoin(userActivations, activePeriodCondition(today))
+      .where(eq(users.id, user.sub))
+      .limit(1);
 
     if (!me) {
       return Response.json({ error: "User not found" }, { status: 404 });
@@ -78,6 +101,7 @@ const updateMe = withRole(
       data.yearOfStudies !== undefined ? data.yearOfStudies : current.yearOfStudies;
     const profileCompleted = !!(phone && index && yearOfStudies);
 
+    const today = todayStr();
     const [updated] = await db
       .update(users)
       .set({ ...data, phone, index, yearOfStudies, profileCompleted, updatedAt: new Date() })
@@ -88,8 +112,17 @@ const updateMe = withRole(
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
+    const [activeRow] = await db
+      .select({ isActive: isNotNull(userActivations.id) })
+      .from(users)
+      .leftJoin(userActivations, activePeriodCondition(today))
+      .where(eq(users.id, user.sub))
+      .limit(1);
+
+    const isActive = activeRow?.isActive ?? false;
+
     if (profileCompleted === current.profileCompleted) {
-      return Response.json(updated);
+      return Response.json({ ...updated, isActive });
     }
 
     // profileCompleted changed — re-issue JWT so the client is in sync
@@ -101,7 +134,7 @@ const updateMe = withRole(
       profileCompleted,
     });
 
-    return Response.json({ ...updated, token });
+    return Response.json({ ...updated, isActive, token });
   },
   { allowIncomplete: true }
 );
@@ -122,13 +155,28 @@ const getPresignedUrl = withRole(
 
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
-  const allUsers = await db.select(adminUserColumns).from(users).orderBy(users.createdAt);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
+  const [allUsers, allActivations] = await Promise.all([
+    db.select(adminUserColumns).from(users).orderBy(asc(users.createdAt)),
+    db.select().from(userActivations).orderBy(desc(userActivations.startDate)),
+  ]);
+
+  const activationsByUser = new Map<string, typeof allActivations>();
+  for (const a of allActivations) {
+    const list = activationsByUser.get(a.userId) ?? [];
+    list.push(a);
+    activationsByUser.set(a.userId, list);
+  }
+
   return Response.json(
-    allUsers.map((u) => ({
-      ...u,
-      isActive: u.activeUntil != null && u.activeUntil >= today,
-    }))
+    allUsers.map((u) => {
+      const activations = activationsByUser.get(u.id) ?? [];
+      return {
+        ...u,
+        activations,
+        isActive: activations.some((a) => a.startDate <= today && a.endDate >= today),
+      };
+    })
   );
 });
 
@@ -146,11 +194,108 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
+  const activationRows = await db
+    .select()
+    .from(userActivations)
+    .where(eq(userActivations.userId, id))
+    .orderBy(desc(userActivations.startDate));
+
   return Response.json({
     ...updated,
-    isActive: updated.activeUntil != null && updated.activeUntil >= today,
+    activations: activationRows,
+    isActive: activationRows.some((a) => a.startDate <= today && a.endDate >= today),
   });
+});
+
+// Activations
+async function checkOverlap(
+  userId: string,
+  startDate: string,
+  endDate: string,
+  excludeId?: string
+): Promise<boolean> {
+  const conditions = [
+    eq(userActivations.userId, userId),
+    lte(userActivations.startDate, endDate),
+    gte(userActivations.endDate, startDate),
+  ];
+  if (excludeId) conditions.push(ne(userActivations.id, excludeId));
+
+  const [overlap] = await db
+    .select({ id: userActivations.id })
+    .from(userActivations)
+    .where(and(...conditions))
+    .limit(1);
+
+  return !!overlap;
+}
+
+const createActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
+  const { id: userId } = req.params;
+  const data = await parseBody(req, createActivationSchema);
+
+  const hasOverlap = await checkOverlap(userId, data.startDate, data.endDate);
+  if (hasOverlap) {
+    return Response.json({ error: "Activation period overlaps an existing one" }, { status: 422 });
+  }
+
+  const [activation] = await db
+    .insert(userActivations)
+    .values({ userId, startDate: data.startDate, endDate: data.endDate })
+    .returning();
+
+  return Response.json(activation, { status: 201 });
+});
+
+const updateActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
+  const { id: activationId } = req.params;
+  const data = await parseBody(req, updateActivationSchema);
+
+  const [existing] = await db
+    .select()
+    .from(userActivations)
+    .where(eq(userActivations.id, activationId))
+    .limit(1);
+
+  if (!existing) {
+    return Response.json({ error: "Activation not found" }, { status: 404 });
+  }
+
+  const newStart = data.startDate ?? existing.startDate;
+  const newEnd = data.endDate ?? existing.endDate;
+
+  if (newStart > newEnd) {
+    return Response.json({ error: "End date must be on or after start date" }, { status: 400 });
+  }
+
+  const hasOverlap = await checkOverlap(existing.userId, newStart, newEnd, activationId);
+  if (hasOverlap) {
+    return Response.json({ error: "Activation period overlaps an existing one" }, { status: 422 });
+  }
+
+  const [updated] = await db
+    .update(userActivations)
+    .set({ startDate: newStart, endDate: newEnd })
+    .where(eq(userActivations.id, activationId))
+    .returning();
+
+  return Response.json(updated);
+});
+
+const deleteActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
+  const { id: activationId } = req.params;
+
+  const [deleted] = await db
+    .delete(userActivations)
+    .where(eq(userActivations.id, activationId))
+    .returning({ id: userActivations.id });
+
+  if (!deleted) {
+    return Response.json({ error: "Activation not found" }, { status: 404 });
+  }
+
+  return Response.json({ id: deleted.id });
 });
 
 export const userRoutes = {
@@ -158,4 +303,6 @@ export const userRoutes = {
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
   [ApiRoutes.ADMIN_USERS]: { GET: getUsers },
   [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser },
+  [ApiRoutes.ADMIN_USER_ACTIVATIONS]: { POST: createActivation },
+  [ApiRoutes.ADMIN_ACTIVATION_BY_ID]: { PATCH: updateActivation, DELETE: deleteActivation },
 };

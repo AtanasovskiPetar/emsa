@@ -7,28 +7,16 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { EllipsisVertical, Search } from "lucide-react";
+import { Pencil, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
+import { MembershipBadge } from "@/components/MembershipBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -47,12 +35,17 @@ import {
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
-import { type UpdateUserPayload } from "@/constants/schemas";
-import { type AdminUser } from "@/constants/types";
+import type {
+  CreateActivationPayload,
+  UpdateActivationPayload,
+  UpdateUserPayload,
+} from "@/constants/schemas";
+import type { AdminUser, UserActivation } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { hasAccess } from "@/lib/utils";
+import { formatDate, hasAccess, toDateStr } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, string> = {
   [Role.USER]: "User",
@@ -66,15 +59,13 @@ const ROLE_BADGE_VARIANT: Record<Role, "default" | "secondary" | "outline"> = {
   [Role.SUPER_ADMIN]: "default",
 };
 
-function defaultActiveUntil(): Date {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() + 1);
-  return d;
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function useColumns(
   updateUser: (args: { id: string; payload: UpdateUserPayload }) => void,
-  onEditDate: (user: AdminUser) => void,
+  onOpenActivations: (user: AdminUser) => void,
   isSuperAdmin: boolean
 ): ColumnDef<AdminUser>[] {
   return [
@@ -169,62 +160,47 @@ function useColumns(
     },
     {
       accessorKey: "isActive",
-      header: "Membership",
+      header: "Active",
       filterFn: (row, _columnId, filterValue: boolean | undefined) => {
         if (filterValue === undefined) return true;
         return row.original.isActive === filterValue;
       },
       cell: ({ row }) => {
-        const { isActive, activeUntil } = row.original;
+        const { isActive, activations } = row.original;
+        const today = todayStr();
+        const currentPeriod = activations.find((a) => a.startDate <= today && a.endDate >= today);
+        const latestExpired = activations[0];
         return (
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1">
-              {isActive ? (
-                <Badge className="bg-green-500 text-white hover:bg-green-500">Active</Badge>
-              ) : (
-                <Badge variant="outline" className="text-muted-foreground">
-                  Inactive
-                </Badge>
-              )}
-              {isSuperAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground transition-colors rounded p-0.5">
-                      <EllipsisVertical className="size-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {isActive ? (
-                      <>
-                        <DropdownMenuItem onClick={() => onEditDate(row.original)}>
-                          Edit date
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() =>
-                            updateUser({ id: row.original.id, payload: { activeUntil: null } })
-                          }
-                        >
-                          Deactivate
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <DropdownMenuItem onClick={() => onEditDate(row.original)}>
-                        Activate
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-            {activeUntil && (
+            <button onClick={() => onOpenActivations(row.original)} className="w-fit">
+              <MembershipBadge isActive={isActive} isAlumni={false} />
+            </button>
+            {currentPeriod && (
               <span className="text-xs text-muted-foreground">
-                {isActive ? "until" : "expired"} {new Date(activeUntil).toLocaleDateString()}
+                until {formatDate(currentPeriod.endDate)}
+              </span>
+            )}
+            {!currentPeriod && latestExpired && (
+              <span className="text-xs text-muted-foreground">
+                expired {formatDate(latestExpired.endDate)}
               </span>
             )}
           </div>
         );
       },
+    },
+    {
+      id: "activeOnFilter",
+      accessorFn: (row) => row.activations,
+      header: () => null,
+      enableHiding: true,
+      filterFn: (row, _columnId, filterDate: string | undefined) => {
+        if (!filterDate) return true;
+        return row.original.activations.some(
+          (a) => a.startDate <= filterDate && a.endDate >= filterDate
+        );
+      },
+      cell: () => null,
     },
     {
       accessorKey: "isAlumni",
@@ -255,16 +231,74 @@ function useColumns(
   ];
 }
 
+interface InlineEditFormProps {
+  form: { startDate: Date | undefined; endDate: Date | undefined };
+  onStartChange: (date: Date | undefined) => void;
+  onEndChange: (date: Date | undefined) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  error: string | null;
+  isSaving: boolean;
+}
+
+function InlineEditForm({
+  form,
+  onStartChange,
+  onEndChange,
+  onSave,
+  onCancel,
+  error,
+  isSaving,
+}: InlineEditFormProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Start date</span>
+          <DatePicker value={form.startDate} onChange={onStartChange} placeholder="Start date" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">End date</span>
+          <DatePicker
+            value={form.endDate}
+            onChange={onEndChange}
+            placeholder="End date"
+            disabled={(date) => (form.startDate ? date < form.startDate : false)}
+          />
+        </div>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex gap-2">
+        <Button size="sm" onClick={onSave} disabled={!form.startDate || !form.endDate || isSaving}>
+          Save
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function UsersPage() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && hasAccess(user.role, Role.SUPER_ADMIN);
   const queryClient = useQueryClient();
 
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [activeUntilDate, setActiveUntilDate] = useState<Date | undefined>(defaultActiveUntil);
+  // Activations popup
+  const [activationHistoryUser, setActivationHistoryUser] = useState<AdminUser | null>(null);
+  const [inlineEditId, setInlineEditId] = useState<string | "new" | null>(null);
+  const [inlineForm, setInlineForm] = useState<{
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+  }>({ startDate: undefined, endDate: undefined });
+  const [inlineError, setInlineError] = useState<string | null>(null);
+
+  // Date filter
+  const [activeOnDate, setActiveOnDate] = useState<Date | undefined>(undefined);
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
   });
 
@@ -272,27 +306,137 @@ export function UsersPage() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
       apiClient.patch<AdminUser>(`${ApiRoutes.ADMIN_USERS}/${id}`, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
     },
   });
 
-  function handleOpenEdit(targetUser: AdminUser) {
-    setActiveUntilDate(
-      targetUser.activeUntil ? new Date(targetUser.activeUntil) : defaultActiveUntil()
+  function refreshActivationHistoryUser(userId: string) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() }).then(() => {
+      setActivationHistoryUser((prev) => {
+        if (!prev || prev.id !== userId) return prev;
+        const fresh = queryClient.getQueryData<AdminUser[]>(queryKeys.admin.users());
+        return fresh?.find((u) => u.id === userId) ?? prev;
+      });
+    });
+  }
+
+  const { mutate: createActivation, isPending: isCreating } = useMutation({
+    mutationFn: ({ userId, payload }: { userId: string; payload: CreateActivationPayload }) =>
+      apiClient.post<UserActivation>(
+        ApiRoutes.ADMIN_USER_ACTIVATIONS.replace(":id", userId),
+        payload
+      ),
+    onSuccess: (_data, { userId }) => {
+      setInlineEditId(null);
+      setInlineError(null);
+      refreshActivationHistoryUser(userId);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Failed to save activation period";
+      setInlineError(msg);
+    },
+  });
+
+  const { mutate: updateActivation, isPending: isUpdating } = useMutation({
+    mutationFn: ({
+      activationId,
+      payload,
+    }: {
+      activationId: string;
+      userId: string;
+      payload: UpdateActivationPayload;
+    }) =>
+      apiClient.patch<UserActivation>(
+        ApiRoutes.ADMIN_ACTIVATION_BY_ID.replace(":id", activationId),
+        payload
+      ),
+    onSuccess: (_data, { userId }) => {
+      setInlineEditId(null);
+      setInlineError(null);
+      refreshActivationHistoryUser(userId);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Failed to save activation period";
+      setInlineError(msg);
+    },
+  });
+
+  const { mutate: deleteActivation } = useMutation({
+    mutationFn: ({ activationId }: { activationId: string; userId: string }) =>
+      apiClient.delete(ApiRoutes.ADMIN_ACTIVATION_BY_ID.replace(":id", activationId)),
+    onSuccess: (_data, { userId }) => {
+      refreshActivationHistoryUser(userId);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Failed to delete activation period";
+      setInlineError(msg);
+    },
+  });
+
+  function handleOpenActivations(targetUser: AdminUser) {
+    setActivationHistoryUser(targetUser);
+    setInlineEditId(null);
+    setInlineError(null);
+  }
+
+  function handleStartInlineEdit(activation: UserActivation | "new") {
+    setInlineError(null);
+    if (activation === "new") {
+      setInlineForm({ startDate: undefined, endDate: undefined });
+    } else {
+      setInlineForm({
+        startDate: new Date(activation.startDate),
+        endDate: new Date(activation.endDate),
+      });
+    }
+    setInlineEditId(activation === "new" ? "new" : activation.id);
+  }
+
+  function handleStartDateChange(date: Date | undefined) {
+    setInlineError(null);
+    setInlineForm((prev) => {
+      // Auto-set end date to 1 year after start only when creating and end date not yet chosen
+      const shouldAutoEnd = inlineEditId === "new" && !prev.endDate && date;
+      if (shouldAutoEnd) {
+        const autoEnd = new Date(date);
+        autoEnd.setFullYear(autoEnd.getFullYear() + 1);
+        return { startDate: date, endDate: autoEnd };
+      }
+      return { ...prev, startDate: date };
+    });
+  }
+
+  function checkClientOverlap(startDate: string, endDate: string, excludeId?: string): boolean {
+    if (!activationHistoryUser) return false;
+    return activationHistoryUser.activations.some(
+      (a) => a.id !== excludeId && a.startDate <= endDate && a.endDate >= startDate
     );
-    setEditingUser(targetUser);
   }
 
-  function handleConfirm() {
-    if (!editingUser || !activeUntilDate) return;
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const dateStr = `${activeUntilDate.getFullYear()}-${pad(activeUntilDate.getMonth() + 1)}-${pad(activeUntilDate.getDate())}`;
-    updateUser({ id: editingUser.id, payload: { activeUntil: dateStr } });
-    setEditingUser(null);
-    setActiveUntilDate(defaultActiveUntil());
+  function handleSaveInline() {
+    if (!activationHistoryUser || !inlineForm.startDate || !inlineForm.endDate) return;
+    const startDate = toDateStr(inlineForm.startDate);
+    const endDate = toDateStr(inlineForm.endDate);
+
+    const excludeId = inlineEditId !== "new" ? (inlineEditId ?? undefined) : undefined;
+    if (checkClientOverlap(startDate, endDate, excludeId)) {
+      setInlineError("Activation period overlaps an existing one.");
+      return;
+    }
+
+    setInlineError(null);
+    if (inlineEditId === "new") {
+      createActivation({ userId: activationHistoryUser.id, payload: { startDate, endDate } });
+    } else if (inlineEditId) {
+      updateActivation({
+        activationId: inlineEditId,
+        userId: activationHistoryUser.id,
+        payload: { startDate, endDate },
+      });
+    }
   }
 
-  const columns = useColumns(updateUser, handleOpenEdit, isSuperAdmin);
+  const columns = useColumns(updateUser, handleOpenActivations, isSuperAdmin);
 
   const table = useReactTable({
     data: users,
@@ -301,12 +445,23 @@ export function UsersPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: "includesString",
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: {
+      pagination: { pageSize: 10 },
+      columnVisibility: { activeOnFilter: false },
+    },
   });
+
+  function handleActiveOnChange(date: Date | undefined) {
+    setActiveOnDate(date);
+    table.getColumn("activeOnFilter")?.setFilterValue(date ? toDateStr(date) : undefined);
+    table.setPageIndex(0);
+  }
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading users...</div>;
   }
+
+  const isSaving = isCreating || isUpdating;
 
   return (
     <div className="flex flex-col gap-4">
@@ -364,6 +519,24 @@ export function UsersPage() {
               <SelectItem value="inactive">Inactive only</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex min-w-0 items-center gap-1">
+            <DatePicker
+              value={activeOnDate}
+              onChange={handleActiveOnChange}
+              placeholder="Active on..."
+              className="flex-1"
+            />
+            {activeOnDate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 shrink-0"
+                onClick={() => handleActiveOnChange(undefined)}
+              >
+                <X className="size-4" />
+              </Button>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
@@ -419,45 +592,154 @@ export function UsersPage() {
 
       <DataTablePagination table={table} />
 
+      {/* Activations dialog */}
       <Dialog
-        open={!!editingUser}
+        open={!!activationHistoryUser}
         onOpenChange={(open) => {
           if (!open) {
-            setEditingUser(null);
-            setActiveUntilDate(defaultActiveUntil());
+            setActivationHistoryUser(null);
+            setInlineEditId(null);
+            setInlineError(null);
           }
         }}
       >
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editingUser?.isActive ? "Edit membership" : "Activate membership"}
-            </DialogTitle>
+            <DialogTitle>Activations — {activationHistoryUser?.name}</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-2 py-2">
-            <p className="text-sm text-muted-foreground">
-              {editingUser?.isActive
-                ? "Updating active membership for"
-                : "Setting active membership for"}{" "}
-              <span className="font-medium text-foreground">{editingUser?.name}</span>.
-            </p>
-            <div className="flex flex-col gap-1.5">
-              <Label>Active until</Label>
-              <DatePicker
-                value={activeUntilDate}
-                onChange={setActiveUntilDate}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-              />
+
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-2">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Start</TableHead>
+                    <TableHead>End</TableHead>
+                    {isSuperAdmin && <TableHead className="w-20" />}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activationHistoryUser?.activations.length === 0 && inlineEditId !== "new" ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={isSuperAdmin ? 3 : 2}
+                        className="text-center text-sm text-muted-foreground"
+                      >
+                        No activation periods yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    activationHistoryUser?.activations.map((activation) => {
+                      const today = todayStr();
+                      const isCurrent =
+                        activation.startDate <= today && activation.endDate >= today;
+                      const isEditing = inlineEditId === activation.id;
+
+                      if (isEditing) {
+                        return (
+                          <TableRow key={activation.id}>
+                            <TableCell colSpan={isSuperAdmin ? 3 : 2} className="py-2">
+                              <InlineEditForm
+                                form={inlineForm}
+                                onStartChange={handleStartDateChange}
+                                onEndChange={(date) => {
+                                  setInlineError(null);
+                                  setInlineForm((prev) => ({ ...prev, endDate: date }));
+                                }}
+                                onSave={handleSaveInline}
+                                onCancel={() => {
+                                  setInlineEditId(null);
+                                  setInlineError(null);
+                                }}
+                                error={inlineError}
+                                isSaving={isSaving}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+
+                      return (
+                        <TableRow key={activation.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">{formatDate(activation.startDate)}</span>
+                              {isCurrent && (
+                                <Badge className="h-4 rounded-sm bg-green-500 px-1 text-[10px] text-white hover:bg-green-500">
+                                  Active
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {formatDate(activation.endDate)}
+                          </TableCell>
+                          {isSuperAdmin && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7"
+                                  onClick={() => handleStartInlineEdit(activation)}
+                                >
+                                  <Pencil className="size-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-destructive hover:text-destructive"
+                                  onClick={() =>
+                                    deleteActivation({
+                                      activationId: activation.id,
+                                      userId: activationHistoryUser.id,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })
+                  )}
+
+                  {/* Inline new row */}
+                  {inlineEditId === "new" && (
+                    <TableRow>
+                      <TableCell colSpan={isSuperAdmin ? 3 : 2} className="py-2">
+                        <InlineEditForm
+                          form={inlineForm}
+                          onStartChange={handleStartDateChange}
+                          onEndChange={(date) => {
+                            setInlineError(null);
+                            setInlineForm((prev) => ({ ...prev, endDate: date }));
+                          }}
+                          onSave={handleSaveInline}
+                          onCancel={() => {
+                            setInlineEditId(null);
+                            setInlineError(null);
+                          }}
+                          error={inlineError}
+                          isSaving={isSaving}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
+
+            {isSuperAdmin && inlineEditId === null && (
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => handleStartInlineEdit("new")}>
+                  + Add period
+                </Button>
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirm} disabled={!activeUntilDate}>
-              {editingUser?.isActive ? "Save" : "Activate"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
