@@ -1,8 +1,8 @@
-import { asc, count, gt, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, gte, lte, sql } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
-import { pillars, projects, users } from "@/db/schema";
+import { pillars, projects, userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { withRole } from "@/lib/middleware";
 
@@ -11,13 +11,19 @@ const getDashboardStats = withRole(Role.ADMIN, async () => {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+  const today = new Date().toISOString().slice(0, 10);
   const [userRow, projectRow, pillarRow, nextProjectRows] = await Promise.all([
     db
-      .select({
-        total: count(),
-        active: sql<number>`count(*) filter (where ${users.activeUntil} is not null and ${users.activeUntil} >= current_date)`,
-      })
+      .select({ total: count(), active: count(userActivations.id) })
       .from(users)
+      .leftJoin(
+        userActivations,
+        and(
+          eq(userActivations.userId, users.id),
+          lte(userActivations.startDate, today),
+          gte(userActivations.endDate, today)
+        )
+      )
       .then(([r]) => r!),
     db
       .select({

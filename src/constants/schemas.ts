@@ -48,16 +48,40 @@ export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
 export const updateUserSchema = z
   .object({
     role: z.enum(Object.values(Role) as [Role, ...Role[]]).optional(),
-    activeUntil: z.iso.date().nullable().optional(),
     isAlumni: z.boolean().optional(),
   })
-  .refine(
-    (data) =>
-      data.role !== undefined || data.activeUntil !== undefined || data.isAlumni !== undefined,
-    { message: "At least one field must be provided" }
-  );
+  .refine((data) => data.role !== undefined || data.isAlumni !== undefined, {
+    message: "At least one field must be provided",
+  });
 
 export type UpdateUserPayload = z.infer<typeof updateUserSchema>;
+
+export const createActivationSchema = z
+  .object({
+    startDate: z.iso.date(),
+    endDate: z.iso.date(),
+  })
+  .refine((d) => d.startDate <= d.endDate, {
+    message: "End date must be on or after start date",
+    path: ["endDate"],
+  });
+
+export type CreateActivationPayload = z.infer<typeof createActivationSchema>;
+
+export const updateActivationSchema = z
+  .object({
+    startDate: z.iso.date().optional(),
+    endDate: z.iso.date().optional(),
+  })
+  .refine((data) => data.startDate !== undefined || data.endDate !== undefined, {
+    message: "At least one field must be provided",
+  })
+  .refine((d) => !d.startDate || !d.endDate || d.startDate <= d.endDate, {
+    message: "End date must be on or after start date",
+    path: ["endDate"],
+  });
+
+export type UpdateActivationPayload = z.infer<typeof updateActivationSchema>;
 
 export const positionSchema = z.object({
   title: z.string().min(1, "Title is required"),

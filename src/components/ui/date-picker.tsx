@@ -11,6 +11,7 @@ interface DatePickerProps {
   onChange: (date: Date | undefined) => void;
   disabled?: (date: Date) => boolean;
   placeholder?: string;
+  className?: string;
 }
 
 export function DatePicker({
@@ -18,7 +19,10 @@ export function DatePicker({
   onChange,
   disabled,
   placeholder = "Pick a date",
+  className,
 }: DatePickerProps) {
+  const currentYear = new Date().getFullYear();
+
   return (
     <Popover modal={false}>
       <PopoverTrigger asChild>
@@ -26,10 +30,11 @@ export function DatePicker({
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            !value && "text-muted-foreground",
+            className
           )}
         >
-          <CalendarIcon className="mr-2 size-4" />
+          <CalendarIcon className="mr-2 size-4 shrink-0" />
           {value ? format(value, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
@@ -40,6 +45,9 @@ export function DatePicker({
           defaultMonth={value}
           onSelect={onChange}
           disabled={disabled}
+          captionLayout="dropdown"
+          startMonth={new Date(currentYear - 20, 0)}
+          endMonth={new Date(currentYear + 10, 11)}
           autoFocus
         />
       </PopoverContent>
