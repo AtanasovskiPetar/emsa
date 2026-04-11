@@ -5,6 +5,14 @@ export type ImageEntry =
   | { type: "existing"; url: string }
   | { type: "new"; file: File; previewUrl: string };
 
+export interface UserActivation {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
 export interface AdminUser {
   id: string;
   name: string;
@@ -15,8 +23,8 @@ export interface AdminUser {
   profileCompleted: boolean;
   role: Role;
   isAlumni: boolean;
-  activeUntil: string | null;
   isActive: boolean;
+  activations: UserActivation[];
   imageUrl: string | null;
   createdAt: string;
 }
@@ -31,6 +39,8 @@ export interface UserProfile {
   index: string | null;
   yearOfStudies: number | null;
   profileCompleted: boolean;
+  isAlumni: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
