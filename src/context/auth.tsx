@@ -22,6 +22,8 @@ export interface AuthUser {
   role: Role;
   imageUrl: string | null;
   profileCompleted: boolean;
+  isAlumni: boolean;
+  isActive: boolean;
 }
 
 interface AuthContextValue {
@@ -46,6 +48,8 @@ function decodeToken(token: string): AuthUser | null {
       role: payload.role,
       imageUrl: null,
       profileCompleted: payload.profileCompleted ?? false,
+      isAlumni: false,
+      isActive: false,
     };
   } catch {
     return null;
@@ -93,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: meData.name,
       imageUrl: meData.imageUrl,
       profileCompleted: meData.profileCompleted,
+      isAlumni: meData.isAlumni ?? false,
+      isActive: meData.isActive ?? false,
     };
   }, [user, meData]);
 

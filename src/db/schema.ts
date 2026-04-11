@@ -30,7 +30,6 @@ export const users = pgTable("users", {
   yearOfStudies: integer("year_of_studies"),
   profileCompleted: boolean("profile_completed").notNull().default(false),
   isAlumni: boolean("is_alumni").notNull().default(false),
-  activeUntil: date("active_until"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -132,6 +131,24 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const userActivations = pgTable("user_activations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+  activations: many(userActivations),
+}));
+
+export const userActivationsRelations = relations(userActivations, ({ one }) => ({
+  user: one(users, { fields: [userActivations.userId], references: [users.id] }),
+}));
 
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
