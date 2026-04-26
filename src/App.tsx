@@ -59,6 +59,9 @@ const ProjectDetailPage = lazy(() =>
 const PillarDetailPage = lazy(() =>
   import("@/pages/PillarDetailPage").then((m) => ({ default: m.PillarDetailPage }))
 );
+const NewspapersPage = lazy(() =>
+  import("@/pages/NewspapersPage").then((m) => ({ default: m.NewspapersPage }))
+);
 
 // Auth / misc
 const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })));
@@ -97,6 +100,9 @@ const AdminPillarsPage = lazy(() =>
 const AdminProjectsPage = lazy(() =>
   import("@/pages/admin/ProjectsPage").then((m) => ({ default: m.ProjectsPage }))
 );
+const AdminNewspapersPage = lazy(() =>
+  import("@/pages/admin/NewspapersPage").then((m) => ({ default: m.NewspapersPage }))
+);
 const OrganizationPage = lazy(() =>
   import("@/pages/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage }))
 );
@@ -124,6 +130,7 @@ export default function App() {
                     <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
                     <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
                     <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
+                    <Route path={PageRoutes.NEWSPAPERS} element={<NewspapersPage />} />
                     <Route
                       path={PageRoutes.PROFILE}
                       element={
@@ -183,6 +190,14 @@ export default function App() {
                       element={
                         <ProtectedRoute requiredRole={Role.ADMIN}>
                           <AdminProjectsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={PageRoutes.ADMIN_NEWSPAPERS_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.ADMIN}>
+                          <AdminNewspapersPage />
                         </ProtectedRoute>
                       }
                     />

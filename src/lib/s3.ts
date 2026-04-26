@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { ALLOWED_IMAGE_TYPES } from "@/constants/schemas";
+import { ALLOWED_IMAGE_TYPES, ALLOWED_PDF_TYPES } from "@/constants/schemas";
 import { env } from "@/lib/env";
 import { HttpError } from "@/lib/middleware";
 
@@ -43,4 +43,11 @@ export function validateImageContentType(contentType: string): string {
     throw new HttpError(400, "Unsupported image type");
   }
   return contentType.split("/")[1] ?? "jpg";
+}
+
+export function validatePdfContentType(contentType: string): string {
+  if (!(ALLOWED_PDF_TYPES as readonly string[]).includes(contentType)) {
+    throw new HttpError(400, "Only PDF files are allowed");
+  }
+  return "pdf";
 }

@@ -7,6 +7,7 @@ export const queryKeys = {
   publicProject: (id: string) => ["public-project", id] as const,
   publicPillar: (id: string) => ["public-pillar", id] as const,
   myRegistration: (projectId: string) => ["my-registration", projectId] as const,
+  newspapers: () => ["newspapers"] as const,
   admin: {
     users: () => ["admin", "users"] as const,
     projects: () => ["admin", "projects"] as const,

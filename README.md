@@ -12,13 +12,14 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 
 **Key features:**
 
-- Public-facing pages for projects and organisational pillars
+- Public-facing pages for projects, pillars, and newspapers
 - Member registration with profile completion gate
 - Email/password and Google OAuth login
 - Role-based access: `USER` → `ADMIN` → `SUPER_ADMIN`
-- Admin panel: members, projects, pillars, positions, organisation settings
+- Admin panel: members, projects, pillars, positions, organisation settings, newspapers
 - Project registration with configurable windows and participant caps
-- S3-backed image uploads via presigned URLs
+- S3-backed image and PDF uploads via presigned URLs
+- Inline PDF viewer for newspapers (iframe lightbox)
 - Password reset via email (Resend)
 
 ---
@@ -83,16 +84,17 @@ Members who haven't set their phone, student index, and year of studies are redi
 
 ### Public
 
-| Route              | Description                                        |
-| ------------------ | -------------------------------------------------- |
-| `/`                | Home — hero, featured projects, pillars, positions |
-| `/projects`        | All public projects                                |
-| `/projects/:id`    | Project detail with image gallery and registration |
-| `/pillars/:id`     | Pillar detail                                      |
-| `/login`           | Email/password or Google login                     |
-| `/register`        | New member registration                            |
-| `/forgot-password` | Request a password reset email                     |
-| `/reset-password`  | Set a new password via reset link                  |
+| Route              | Description                                                          |
+| ------------------ | -------------------------------------------------------------------- |
+| `/`                | Home — hero, latest newspaper, featured projects, pillars, positions |
+| `/projects`        | All public projects                                                  |
+| `/projects/:id`    | Project detail with image gallery and registration                   |
+| `/newspapers`      | All published newspapers — click any card to open iframe PDF lightbox |
+| `/pillars/:id`     | Pillar detail                                                        |
+| `/login`           | Email/password or Google login                                       |
+| `/register`        | New member registration                                              |
+| `/forgot-password` | Request a password reset email                                       |
+| `/reset-password`  | Set a new password via reset link                                    |
 
 ### Member
 
@@ -107,6 +109,7 @@ Members who haven't set their phone, student index, and year of studies are redi
 | `/dashboard`    | `ADMIN`       | Member stats overview                                              |
 | `/users`        | `ADMIN`       | Member list and role management                                    |
 | `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                |
+| `/newspapers`   | `ADMIN`       | Upload, edit, delete PDF newspapers                                |
 | `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                      |
 | `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials |
 
@@ -217,6 +220,8 @@ bun start       # Start production server
 | `GET`             | `/api/positions`                    | —      | All positions (ordered)             |
 | `GET`             | `/api/projects`                     | —      | All projects                        |
 | `GET`             | `/api/projects/:id`                 | —      | Single project                      |
+| `GET`             | `/api/newspapers`                   | —      | All newspapers (latest first)       |
+| `GET`             | `/api/newspapers/:id`               | —      | Single newspaper                    |
 | `POST` / `DELETE` | `/api/projects/:id/register`        | `USER` | Register / unregister for a project |
 | `GET`             | `/api/projects/:id/my-registration` | `USER` | Current user's registration status  |
 | `GET`             | `/api/pillars`                      | —      | All pillars                         |
@@ -241,6 +246,9 @@ bun start       # Start production server
 | `PATCH`            | `/api/admin/positions/reorder`          | `SUPER_ADMIN` |
 | `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN` |
 | `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN` |
+| `GET` / `POST`     | `/api/admin/newspapers`                 | `ADMIN`       |
+| `PATCH` / `DELETE` | `/api/admin/newspapers/:id`             | `ADMIN`       |
+| `GET`              | `/api/admin/newspapers/upload`          | `ADMIN`       |
 
 ---
 
@@ -254,5 +262,6 @@ bun start       # Start production server
 | `project_images`        | Ordered images for a project                                                                 |
 | `project_registrations` | Members registered for a project, with an `attended` flag                                    |
 | `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page           |
+| `newspapers`            | Published newspapers — title, release date, S3 PDF URL                                       |
 | `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                   |
 | `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                       |

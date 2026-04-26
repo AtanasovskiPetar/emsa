@@ -161,3 +161,12 @@ export interface Position {
 }
 
 export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";
+
+export interface Newspaper {
+  id: string;
+  title: string;
+  releaseDate: string;
+  pdfUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}

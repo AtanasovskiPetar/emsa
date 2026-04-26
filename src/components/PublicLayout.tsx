@@ -32,6 +32,7 @@ import { cn, hasAccess } from "@/lib/utils";
 const navLinks = [
   { label: "Home", to: PageRoutes.HOME },
   { label: "Projects", to: PageRoutes.PROJECTS },
+  { label: "Newspapers", to: PageRoutes.NEWSPAPERS },
 ];
 
 function OrgLogo({ org }: { org?: OrganizationPublic }) {

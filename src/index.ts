@@ -4,6 +4,7 @@ import index from "./index.html";
 import { env } from "./lib/env";
 import { authRoutes } from "./routes/auth";
 import { dashboardRoutes } from "./routes/dashboard";
+import { newspaperRoutes } from "./routes/newspapers";
 import { organizationRoutes } from "./routes/organization";
 import { pillarRoutes } from "./routes/pillars";
 import { positionRoutes } from "./routes/positions";
@@ -21,6 +22,7 @@ const server = serve({
     ...projectRoutes,
     ...userRoutes,
     ...dashboardRoutes,
+    ...newspaperRoutes,
   },
 
   development: process.env.NODE_ENV !== "production" && {

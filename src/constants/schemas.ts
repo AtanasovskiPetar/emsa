@@ -180,6 +180,23 @@ export type ProjectFormValues = z.infer<typeof projectSchema>;
 export type UpdateProjectPayload = z.infer<typeof updateProjectSchema>;
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const ALLOWED_PDF_TYPES = ["application/pdf"] as const;
+
+export const newspaperSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  releaseDate: z.iso.datetime({ message: "Release date is required" }),
+  pdfUrl: z.url("PDF URL is required"),
+});
+
+export const updateNewspaperSchema = newspaperSchema
+  .partial()
+  .refine(
+    (data) =>
+      data.title !== undefined || data.releaseDate !== undefined || data.pdfUrl !== undefined,
+    { message: "At least one field must be provided" }
+  );
+
+export type NewspaperFormValues = z.infer<typeof newspaperSchema>;
 
 export const updateMeSchema = z
   .object({

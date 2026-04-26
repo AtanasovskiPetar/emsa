@@ -150,6 +150,15 @@ export const userActivationsRelations = relations(userActivations, ({ one }) => 
   user: one(users, { fields: [userActivations.userId], references: [users.id] }),
 }));
 
+export const newspapers = pgTable("newspapers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  releaseDate: timestamp("release_date", { withTimezone: true }).notNull(),
+  pdfUrl: varchar("pdf_url", { length: 2048 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),

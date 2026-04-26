@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
+import { LatestNewspaperSection } from "@/components/LatestNewspaperSection";
 import { PillarCard } from "@/components/PillarCard";
 import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import {
+  type Newspaper,
   type OrganizationPublic,
   type PublicPillar,
   type PublicPosition,
@@ -55,6 +57,13 @@ export function HomePage() {
     queryKey: ["positions"],
     queryFn: () => apiClient.get<PublicPosition[]>(ApiRoutes.POSITIONS),
   });
+
+  const { data: newspapers } = useQuery({
+    queryKey: ["newspapers"],
+    queryFn: () => apiClient.get<Newspaper[]>(ApiRoutes.NEWSPAPERS),
+  });
+
+  const latestNewspaper = newspapers?.[0];
 
   const previewProjects = projects ? getPreviewProjects(projects) : [];
 
@@ -173,6 +182,9 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Newspapers preview */}
+      {latestNewspaper && <LatestNewspaperSection newspaper={latestNewspaper} />}
 
       {/* Projects preview */}
       <section className="border-t py-20">
