@@ -10,10 +10,19 @@ import { positionRoutes } from "./routes/positions";
 import { projectRoutes } from "./routes/projects";
 import { userRoutes } from "./routes/users";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const server = serve({
   port: env.PORT,
   routes: {
-    "/*": index,
+    "/*": isProd
+      ? async (req: Request) => {
+          const pathname = new URL(req.url).pathname;
+          const file = Bun.file(`./dist${pathname}`);
+          if (await file.exists()) return new Response(file);
+          return new Response(Bun.file("./dist/index.html"));
+        }
+      : index,
     ...authRoutes,
     ...organizationRoutes,
     ...pillarRoutes,
@@ -23,11 +32,8 @@ const server = serve({
     ...dashboardRoutes,
   },
 
-  development: process.env.NODE_ENV !== "production" && {
-    // Enable browser hot reloading in development
+  development: !isProd && {
     hmr: true,
-
-    // Echo console logs from the browser to the server
     console: true,
   },
 });

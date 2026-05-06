@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app-${ENV_NAME}
+    restart: always
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - emsa-shared
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=emsa-shared"
+      - "traefik.http.routers.app-${ENV_NAME}.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app-${ENV_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.app-${ENV_NAME}.tls=true"
+      - "traefik.http.services.app-${ENV_NAME}.loadbalancer.server.port=3000"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-${ENV_NAME}
+    restart: always
+    environment:
+      POSTGRES_USER: emsa
+      POSTGRES_DB: emsa_${ENV_NAME}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT}:5432"
+    volumes:
+      - /var/lib/emsa/postgres-${ENV_NAME}:/var/lib/postgresql/data
+    networks:
+      - emsa-shared
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emsa -d emsa_${ENV_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+networks:
+  emsa-shared:
+    external: true
