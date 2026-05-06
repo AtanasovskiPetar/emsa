@@ -1,0 +1,5 @@
+config:
+  emsa:deployType: infra
+  emsa:sshKeyName: emsa
+  hcloud:token:
+    secure: AAABAMK2c53zSYXsi6/kZadoulM3LkAlouCDW4NF9SoCueGESPofVI/HiGVL6k0BsujqdqAVxZ6q55P06Z/L6RFVllBkeK2gsTRdUN/lKALYsWyEIFoqaGiGmk/+Xs0R
