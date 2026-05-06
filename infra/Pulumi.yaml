@@ -1,0 +1,6 @@
+name: emsa
+description: EMSA infrastructure — Hetzner VPS + Traefik + Docker Compose
+runtime:
+  name: nodejs
+  options:
+    packagemanager: bun

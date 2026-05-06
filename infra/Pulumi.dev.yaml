@@ -1,0 +1,22 @@
+config:
+  emsa:deployType: app
+  emsa:sshKeyName: emsa
+  emsa:domain: dev.emsa.mk
+  emsa:pulumiOrg: emsamacedonia-yahoo-com
+  emsa:dbPassword:
+    secure: AAABAMAEArTIqQ1C9F7gyE2hBKSLH1G7qVsIbcP2puKdFPR8UkRH66O8XzllwsmY
+  emsa:jwtSecret:
+    secure: AAABAMAWzuPYYwZvo3ebQMYmBZ0qaWuPfyHK6K2CZG+OzORud8EiKTKttem12kWQM7luizsx8PXZWlEnUceqewqKXPa25se8973c
+  emsa:googleClientId:
+    secure: AAABAFNCGFSMRDIl0tN9FySfJGxazcUKTX/m/ZlxlrvK4KoVk7q1Ef3iMvVdwOVvk+04dWz0guQjGb5QwJ1zGn5QhAw42FE8Z2QKOl4GqgoOhj1gTP9X2+EwWQ9VKHirAKKSMNyWqmw=
+  emsa:googleClientSecret:
+    secure: AAABAG/AGDqB5aFzHjhgMxAX5szGEKzZZqMgSI4hBmo//8Di/l7scOewb0IDVNhiMZQzXFHQcXAzMzko0u2DiZv+qA==
+  emsa:awsAccessKeyId:
+    secure: AAABAOo4VUYMzb+rpa3DFXi2LvWI2CkjFONTEwgtCCEqeLYh/Xzu2QaZPox+VB4qF2Kthw==
+  emsa:awsSecretAccessKey:
+    secure: AAABALdeV6tqSH/T6O+SSGievn4gPaVCJNwO4Pvjek7hhF235B4d0PcP+HUy4SWw7rDKpLje5vS7seKGB+yeDQznst127xsT
+  emsa:awsRegion: eu-north-1
+  emsa:awsS3Bucket: emsa-dev
+  emsa:resendApiKey:
+    secure: AAABAIPNnZxqtGaA+HF6Fr2oLRbR8oUOFWbD1Jpu364A4my5eAI8tVX9Dmtg8TrEgKx1x+KSyWPq6KdUvFU3RHHwBhU=
+  emsa:fromEmail: dev-noreply@emsa.mk
