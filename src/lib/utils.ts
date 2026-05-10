@@ -97,6 +97,14 @@ export function toDateStr(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+export function escapeHtml(str: string) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
   if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
