@@ -5,6 +5,7 @@ import { organization } from "./db/schema";
 import index from "./index.html";
 import { db } from "./lib/db";
 import { env } from "./lib/env";
+import { escapeHtml } from "./lib/utils";
 import { authRoutes } from "./routes/auth";
 import { dashboardRoutes } from "./routes/dashboard";
 import { organizationRoutes } from "./routes/organization";
@@ -16,26 +17,27 @@ import { userRoutes } from "./routes/users";
 const isProd = process.env.NODE_ENV === "production";
 
 type OrgMeta = { name: string; logoUrl: string; description: string };
-let orgMetaCache: OrgMeta | null = null;
+let orgMetaPromise: Promise<OrgMeta> | null = null;
 
-async function getOrgMeta(): Promise<OrgMeta> {
-  if (orgMetaCache) return orgMetaCache;
-  const [org] = await db
-    .select({
-      name: organization.name,
-      logoUrl: organization.logoUrl,
-      description: organization.description,
-    })
-    .from(organization)
-    .where(eq(organization.id, 1))
-    .limit(1);
-  orgMetaCache = {
-    name: org?.name || "EMSA Macedonia",
-    logoUrl: org?.logoUrl || `${env.APP_URL}/logo.png`,
-    description:
-      org?.description || "EMSA Macedonia — European Medical Students' Association Macedonia.",
-  };
-  return orgMetaCache;
+function getOrgMeta(): Promise<OrgMeta> {
+  if (!orgMetaPromise) {
+    orgMetaPromise = db
+      .select({
+        name: organization.name,
+        logoUrl: organization.logoUrl,
+        description: organization.description,
+      })
+      .from(organization)
+      .where(eq(organization.id, 1))
+      .limit(1)
+      .then(([org]) => ({
+        name: org?.name || "EMSA Macedonia",
+        logoUrl: org?.logoUrl || `${env.APP_URL}/logo.png`,
+        description:
+          org?.description || "EMSA Macedonia — European Medical Students' Association Macedonia.",
+      }));
+  }
+  return orgMetaPromise;
 }
 
 const server = serve({
@@ -49,9 +51,9 @@ const server = serve({
           const org = await getOrgMeta();
           const html = (await Bun.file("./dist/index.html").text())
             .replaceAll("%APP_URL%", env.APP_URL)
-            .replaceAll("%ORG_NAME%", org.name)
-            .replaceAll("%ORG_LOGO_URL%", org.logoUrl)
-            .replaceAll("%ORG_DESCRIPTION%", org.description);
+            .replaceAll("%ORG_NAME%", escapeHtml(org.name))
+            .replaceAll("%ORG_LOGO_URL%", escapeHtml(org.logoUrl))
+            .replaceAll("%ORG_DESCRIPTION%", escapeHtml(org.description));
           return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
         }
       : index,
