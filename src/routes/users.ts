@@ -1,15 +1,17 @@
-import { and, asc, desc, eq, gte, isNotNull, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne } from "drizzle-orm";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import {
+  bulkImportSchema,
   createActivationSchema,
   updateActivationSchema,
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
-import { userActivations, users } from "@/db/schema";
+import { organization, userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { sendWelcomeEmail } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
 import { getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
@@ -298,6 +300,73 @@ const deleteActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) 
   return Response.json({ id: deleted.id });
 });
 
+const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
+  const data = await parseBody(req, bulkImportSchema);
+
+  const emails = data.users.map((u) => u.email);
+  const existing = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(inArray(users.email, emails));
+  const existingEmails = new Set(existing.map((e) => e.email));
+
+  const toCreate = data.users.filter((u) => !existingEmails.has(u.email));
+  const skipped = data.users
+    .filter((u) => existingEmails.has(u.email))
+    .map((u) => ({ email: u.email, reason: "already exists" }));
+
+  if (toCreate.length === 0) {
+    return Response.json({ created: 0, skipped });
+  }
+
+  const created = await db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(users)
+      .values(
+        toCreate.map((u) => ({
+          name: u.name,
+          email: u.email,
+          phone: u.phone ?? null,
+          role: u.role ?? Role.USER,
+          imageUrl: u.imageUrl ?? null,
+          index: u.index ?? null,
+          yearOfStudies: u.yearOfStudies ?? null,
+          isAlumni: u.isAlumni ?? false,
+          profileCompleted: !!(u.phone && u.index && u.yearOfStudies),
+        }))
+      )
+      .returning();
+
+    const toCreateByEmail = new Map(toCreate.map((u) => [u.email, u]));
+    const activationRows = inserted.flatMap((user) => {
+      const src = toCreateByEmail.get(user.email);
+      if (!src?.activationStartDate || !src?.activationEndDate) return [];
+      return [
+        { userId: user.id, startDate: src.activationStartDate, endDate: src.activationEndDate },
+      ];
+    });
+
+    if (activationRows.length > 0) {
+      await tx.insert(userActivations).values(activationRows);
+    }
+
+    return inserted;
+  });
+
+  if (data.sendWelcomeEmails) {
+    const [org] = await db
+      .select({ name: organization.name })
+      .from(organization)
+      .where(eq(organization.id, 1))
+      .limit(1);
+    const orgName = org?.name || "the platform";
+
+    await Promise.allSettled(created.map((u) => sendWelcomeEmail(u.email, u.name, orgName)));
+  }
+
+  return Response.json({ created: created.length, skipped }, { status: 201 });
+});
+
 export const userRoutes = {
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
@@ -305,4 +374,5 @@ export const userRoutes = {
   [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser },
   [ApiRoutes.ADMIN_USER_ACTIVATIONS]: { POST: createActivation },
   [ApiRoutes.ADMIN_ACTIVATION_BY_ID]: { PATCH: updateActivation, DELETE: deleteActivation },
+  [ApiRoutes.ADMIN_USERS_BULK_IMPORT]: { POST: bulkImportUsers },
 };

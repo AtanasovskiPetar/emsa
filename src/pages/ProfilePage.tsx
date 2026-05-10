@@ -156,18 +156,18 @@ export function ProfilePage() {
           transition={{ duration: 0.4, ease: "easeOut" as const }}
           className="flex items-start justify-between"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <UserAvatar
               name={profile.name}
               imageUrl={previewUrl ?? profile.imageUrl}
-              className="size-14 text-xl"
+              className="size-14 shrink-0 text-xl"
             />
-            <div>
-              <h1 className="text-2xl font-semibold">{profile.name}</h1>
-              <p className="text-sm text-muted-foreground">{profile.email}</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-semibold">{profile.name}</h1>
+              <p className="truncate text-sm text-muted-foreground">{profile.email}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={logout}>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={logout}>
             <LogOut className="size-4" />
             Log out
           </Button>

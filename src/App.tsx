@@ -77,6 +77,9 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import("@/pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage }))
 );
+const SetupPasswordPage = lazy(() =>
+  import("@/pages/SetupPasswordPage").then((m) => ({ default: m.SetupPasswordPage }))
+);
 const ProfilePage = lazy(() =>
   import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage }))
 );
@@ -139,6 +142,7 @@ export default function App() {
                   <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
                   <Route path={PageRoutes.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
                   <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
+                  <Route path={PageRoutes.SETUP_PASSWORD} element={<SetupPasswordPage />} />
                   <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
                   <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
                   <Route path="*" element={<Navigate to={PageRoutes.HOME} replace />} />
