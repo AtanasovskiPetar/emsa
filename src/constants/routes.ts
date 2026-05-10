@@ -21,6 +21,7 @@ export const PageRoutes = {
   AUTH_CALLBACK: "/auth/callback",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
+  SETUP_PASSWORD: "/setup-password",
 } as const;
 
 export const ApiRoutes = {
@@ -58,4 +59,6 @@ export const ApiRoutes = {
   POSITIONS: "/api/positions",
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
+  ADMIN_USERS_BULK_IMPORT: "/api/admin/users/bulk-import",
+  AUTH_SETUP_PASSWORD: "/api/auth/setup-password",
 } as const;
