@@ -7,10 +7,11 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
+  setupPasswordSchema,
 } from "@/constants/schemas";
-import { passwordResetTokens, users } from "@/db/schema";
+import { accountSetupTokens, passwordResetTokens, users } from "@/db/schema";
 import { db } from "@/lib/db";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendAccountSetupEmail, sendPasswordResetEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { createUserToken } from "@/lib/jwt";
 
@@ -72,7 +73,34 @@ async function login(req: Request): Promise<Response> {
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-  if (!user || !user.passwordHash) {
+  if (!user) {
+    return Response.json({ error: "Invalid credentials" }, { status: 401 });
+  }
+
+  if (!user.passwordHash && !user.googleId) {
+    const rawBytes = crypto.getRandomValues(new Uint8Array(32));
+    const rawToken = Buffer.from(rawBytes).toString("hex");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawToken));
+    const tokenHash = Buffer.from(hashBuffer).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await db
+      .update(accountSetupTokens)
+      .set({ usedAt: new Date() })
+      .where(and(eq(accountSetupTokens.userId, user.id), isNull(accountSetupTokens.usedAt)));
+
+    await db.insert(accountSetupTokens).values({ userId: user.id, tokenHash, expiresAt });
+
+    const setupUrl = `${env.APP_URL}${PageRoutes.SETUP_PASSWORD}?token=${rawToken}`;
+    await sendAccountSetupEmail(user.email, user.name, setupUrl);
+
+    return Response.json(
+      { error: "Account not yet set up. We've sent you an email to set your password." },
+      { status: 422 }
+    );
+  }
+
+  if (!user.passwordHash) {
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
@@ -289,6 +317,86 @@ async function resetPassword(req: Request): Promise<Response> {
   return Response.json({ success: true });
 }
 
+// GET /api/auth/setup-password?token=xxx
+async function getSetupPassword(req: Request): Promise<Response> {
+  const token = new URL(req.url).searchParams.get("token");
+  if (!token) {
+    return Response.json({ error: "Missing token" }, { status: 400 });
+  }
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const tokenHash = Buffer.from(hashBuffer).toString("hex");
+
+  const [record] = await db
+    .select({ name: users.name, email: users.email })
+    .from(accountSetupTokens)
+    .innerJoin(users, eq(accountSetupTokens.userId, users.id))
+    .where(
+      and(
+        eq(accountSetupTokens.tokenHash, tokenHash),
+        isNull(accountSetupTokens.usedAt),
+        gt(accountSetupTokens.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (!record) {
+    return Response.json({ error: "Invalid or expired link" }, { status: 400 });
+  }
+
+  return Response.json({ name: record.name, email: record.email });
+}
+
+// POST /api/auth/setup-password
+async function setupPassword(req: Request): Promise<Response> {
+  const body = setupPasswordSchema.safeParse(await req.json());
+  if (!body.success) {
+    return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
+  }
+
+  const { token, password } = body.data;
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const tokenHash = Buffer.from(hashBuffer).toString("hex");
+
+  const [record] = await db
+    .select({ id: accountSetupTokens.id, userId: accountSetupTokens.userId })
+    .from(accountSetupTokens)
+    .where(
+      and(
+        eq(accountSetupTokens.tokenHash, tokenHash),
+        isNull(accountSetupTokens.usedAt),
+        gt(accountSetupTokens.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (!record) {
+    return Response.json({ error: "Invalid or expired link" }, { status: 400 });
+  }
+
+  const passwordHash = await Bun.password.hash(password);
+
+  const [user] = await db.transaction(async (tx) => {
+    await tx
+      .update(accountSetupTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(accountSetupTokens.id, record.id));
+    return tx
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, record.userId))
+      .returning();
+  });
+
+  if (!user) {
+    return Response.json({ error: "Failed to set up account" }, { status: 500 });
+  }
+
+  const jwtToken = await createUserToken(user);
+  return Response.json({ token: jwtToken });
+}
+
 export const authRoutes = {
   [ApiRoutes.AUTH_REGISTER]: { POST: register },
   [ApiRoutes.AUTH_LOGIN]: { POST: login },
@@ -297,4 +405,5 @@ export const authRoutes = {
   [ApiRoutes.AUTH_GOOGLE_CALLBACK]: { GET: googleCallback },
   [ApiRoutes.AUTH_FORGOT_PASSWORD]: { POST: forgotPassword },
   [ApiRoutes.AUTH_RESET_PASSWORD]: { POST: resetPassword },
+  [ApiRoutes.AUTH_SETUP_PASSWORD]: { GET: getSetupPassword, POST: setupPassword },
 };

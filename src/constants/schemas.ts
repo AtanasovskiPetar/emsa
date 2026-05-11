@@ -233,3 +233,55 @@ export const updateOrganizationSchema = z
   );
 
 export type UpdateOrganizationPayload = z.infer<typeof updateOrganizationSchema>;
+
+export const setupPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[a-zA-Z]/, { message: "Password must contain at least one letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
+});
+
+export type SetupPasswordPayload = z.infer<typeof setupPasswordSchema>;
+
+export const bulkImportRowSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    email: z.email({ message: "Invalid email address" }),
+    phone: z.string().trim().min(1).optional(),
+    role: z
+      .enum(Object.values(Role) as [Role, ...Role[]])
+      .optional()
+      .default(Role.USER),
+    imageUrl: z.url({ message: "Invalid image URL" }).optional(),
+    index: z.string().trim().min(1).optional(),
+    yearOfStudies: z
+      .number()
+      .int()
+      .min(1, { message: "Year must be between 1 and 6" })
+      .max(6, { message: "Year must be between 1 and 6" })
+      .optional(),
+    isAlumni: z.boolean().optional().default(false),
+    activationStartDate: z.iso.date().optional(),
+    activationEndDate: z.iso.date().optional(),
+  })
+  .refine((d) => !!d.activationStartDate === !!d.activationEndDate, {
+    message: "Both activation dates must be provided or both omitted",
+  })
+  .refine(
+    (d) =>
+      !d.activationStartDate ||
+      !d.activationEndDate ||
+      d.activationEndDate >= d.activationStartDate,
+    { message: "activationEndDate must be on or after activationStartDate" }
+  );
+
+export type BulkImportRow = z.infer<typeof bulkImportRowSchema>;
+
+export const bulkImportSchema = z.object({
+  users: z.array(bulkImportRowSchema).min(1).max(500),
+  sendWelcomeEmails: z.boolean().default(true),
+});
+
+export type BulkImportPayload = z.infer<typeof bulkImportSchema>;

@@ -7,8 +7,9 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Pencil, Search, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, CheckCircle2, Info, Pencil, Search, Trash2, Upload, X } from "lucide-react";
+import Papa from "papaparse";
+import React, { useState } from "react";
 
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { MembershipBadge } from "@/components/MembershipBadge";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -33,14 +35,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
-import type {
-  CreateActivationPayload,
-  UpdateActivationPayload,
-  UpdateUserPayload,
+import {
+  type BulkImportPayload,
+  type BulkImportRow,
+  bulkImportRowSchema,
+  type CreateActivationPayload,
+  type UpdateActivationPayload,
+  type UpdateUserPayload,
 } from "@/constants/schemas";
 import type { AdminUser, UserActivation } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -280,6 +286,316 @@ function InlineEditForm({
   );
 }
 
+const CSV_TEMPLATE = [
+  "name,email,phone,role,imageUrl,index,yearOfStudies,isAlumni,activationStartDate,activationEndDate",
+  "Jane Doe,jane@example.com,+1234567890,USER,,EX-001,2,false,20.10.2025,20.10.2026",
+].join("\n");
+
+function downloadCsvTemplate() {
+  const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "users-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseDateStr(s: string | undefined): string | undefined {
+  const trimmed = s?.trim();
+  if (!trimmed) return undefined;
+  // dd.mm.yyyy → yyyy-mm-dd
+  const dotMatch = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (dotMatch) return `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
+  // already yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  return trimmed;
+}
+
+function preprocessCsvRow(raw: Record<string, string>) {
+  const clean = (s: string | undefined) => s?.trim() || undefined;
+  const parseBool = (s: string | undefined) => {
+    if (!s?.trim()) return false;
+    return ["true", "1", "yes"].includes(s.toLowerCase().trim());
+  };
+  const parseNum = (s: string | undefined) => {
+    if (!s?.trim()) return undefined;
+    const n = parseInt(s.trim(), 10);
+    return isNaN(n) ? undefined : n;
+  };
+  return {
+    name: clean(raw.name),
+    email: clean(raw.email),
+    phone: clean(raw.phone),
+    role: clean(raw.role)?.toUpperCase() || undefined,
+    imageUrl: clean(raw.imageUrl) ?? clean(raw["image_url"]),
+    index: clean(raw.index),
+    yearOfStudies: parseNum(raw.yearOfStudies ?? raw["year_of_studies"]),
+    isAlumni: parseBool(raw.isAlumni ?? raw["is_alumni"]),
+    activationStartDate: parseDateStr(raw.activationStartDate ?? raw["activation_start_date"]),
+    activationEndDate: parseDateStr(raw.activationEndDate ?? raw["activation_end_date"]),
+  };
+}
+
+interface ParsedRow {
+  raw: Record<string, string>;
+  data: BulkImportRow | null;
+  error: string | null;
+}
+
+interface ImportUsersDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps) {
+  const [stage, setStage] = useState<"select" | "preview" | "done">("select");
+  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [sendWelcomeEmails, setSendWelcomeEmails] = useState(true);
+  const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
+
+  function resetAndClose() {
+    setStage("select");
+    setRows([]);
+    setSendWelcomeEmails(true);
+    setResult(null);
+    onClose();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const parsed = Papa.parse<Record<string, string>>(content, {
+        header: true,
+        skipEmptyLines: true,
+      });
+      const validatedRows: ParsedRow[] = parsed.data.map((raw) => {
+        const processed = preprocessCsvRow(raw);
+        const validation = bulkImportRowSchema.safeParse(processed);
+        if (validation.success) {
+          return { raw, data: validation.data, error: null };
+        }
+        return {
+          raw,
+          data: null,
+          error: validation.error.issues[0]?.message ?? "Invalid row",
+        };
+      });
+      setRows(validatedRows);
+      if (validatedRows.length > 0) setStage("preview");
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  const validRows = rows.filter((r): r is ParsedRow & { data: BulkImportRow } => r.data !== null);
+  const invalidCount = rows.filter((r) => r.error !== null).length;
+
+  const { mutate: importUsers, isPending } = useMutation({
+    mutationFn: (payload: BulkImportPayload) =>
+      apiClient.post<{ created: number; skipped: Array<{ email: string; reason: string }> }>(
+        ApiRoutes.ADMIN_USERS_BULK_IMPORT,
+        payload
+      ),
+    onSuccess: (data) => {
+      setResult({ created: data.created, skipped: data.skipped.length });
+      setStage("done");
+      onSuccess();
+    },
+  });
+
+  function handleImport() {
+    importUsers({ users: validRows.map((r) => r.data), sendWelcomeEmails });
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) resetAndClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {stage === "done" ? "Import complete" : "Import Users from CSV"}
+          </DialogTitle>
+        </DialogHeader>
+
+        {stage === "select" && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Upload a CSV file to bulk-create users. Required columns:{" "}
+              <code className="rounded bg-muted px-1 text-xs">name</code>,{" "}
+              <code className="rounded bg-muted px-1 text-xs">email</code>.
+            </p>
+            <label
+              htmlFor="csv-upload"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+            >
+              <Upload className="size-6" />
+              Click to choose a CSV file
+              <input
+                id="csv-upload"
+                type="file"
+                accept=".csv"
+                className="sr-only"
+                onChange={handleFileChange}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={downloadCsvTemplate}
+              className="self-start text-xs text-primary underline-offset-4 hover:underline"
+            >
+              Download template CSV
+            </button>
+            <div className="flex items-center gap-3">
+              <Switch checked={sendWelcomeEmails} onCheckedChange={setSendWelcomeEmails} />
+              <Label>Send welcome emails</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-4 cursor-help text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    Sends a welcome message to each imported user. They will receive a password
+                    setup link the first time they try to sign in.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={resetAndClose}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {stage === "preview" && (
+          <div className="flex min-w-0 flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{validRows.length} valid</span>
+              {invalidCount > 0 && (
+                <>
+                  {", "}
+                  <span className="font-medium text-destructive">{invalidCount} invalid</span>
+                  {" — only valid rows will be imported"}
+                </>
+              )}
+            </p>
+            <div className="max-h-80 overflow-auto rounded-md border">
+              <Table className="min-w-max text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8">#</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Image URL</TableHead>
+                    <TableHead>Index</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead>Alumni</TableHead>
+                    <TableHead>Activation Start</TableHead>
+                    <TableHead>Activation End</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell>
+                        {row.error ? (
+                          <span className="flex items-center gap-1 text-destructive">
+                            <AlertCircle className="size-3 shrink-0" />
+                            {row.error}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <CheckCircle2 className="size-3 shrink-0" />
+                            Valid
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{row.raw.name || "—"}</TableCell>
+                      <TableCell>{row.raw.email || "—"}</TableCell>
+                      <TableCell>{row.raw.phone || "—"}</TableCell>
+                      <TableCell>{row.raw.role || "USER"}</TableCell>
+                      <TableCell className="max-w-32 truncate">
+                        {row.raw.imageUrl || row.raw["image_url"] || "—"}
+                      </TableCell>
+                      <TableCell>{row.raw.index || "—"}</TableCell>
+                      <TableCell>{row.raw.yearOfStudies || "—"}</TableCell>
+                      <TableCell>{row.raw.isAlumni || row.raw["is_alumni"] || "false"}</TableCell>
+                      <TableCell>
+                        {row.raw.activationStartDate || row.raw["activation_start_date"] || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {row.raw.activationEndDate || row.raw["activation_end_date"] || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={sendWelcomeEmails} onCheckedChange={setSendWelcomeEmails} />
+              <Label>Send welcome emails</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-4 cursor-help text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    Sends a welcome message to each imported user. They will receive a password
+                    setup link the first time they try to sign in.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex justify-between gap-2">
+              <Button variant="outline" onClick={() => setStage("select")} disabled={isPending}>
+                Back
+              </Button>
+              <Button onClick={handleImport} disabled={validRows.length === 0 || isPending}>
+                {isPending
+                  ? "Importing..."
+                  : `Import ${validRows.length} user${validRows.length === 1 ? "" : "s"}`}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {stage === "done" && result && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 rounded-md bg-green-50 p-4 text-green-700 dark:bg-green-950 dark:text-green-400">
+              <CheckCircle2 className="size-5 shrink-0" />
+              <div>
+                <p className="font-medium">
+                  {result.created} user{result.created === 1 ? "" : "s"} created
+                </p>
+                {result.skipped > 0 && (
+                  <p className="text-sm">{result.skipped} skipped — email already in use</p>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={resetAndClose}>Close</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function UsersPage() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && hasAccess(user.role, Role.SUPER_ADMIN);
@@ -296,6 +612,9 @@ export function UsersPage() {
 
   // Date filter
   const [activeOnDate, setActiveOnDate] = useState<Date | undefined>(undefined);
+
+  // Import dialog
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: queryKeys.admin.users(),
@@ -467,7 +786,15 @@ export function UsersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Users</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Users</h2>
+            {isSuperAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
+                <Upload className="size-4" />
+                Import CSV
+              </Button>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {users.length} users
           </p>
@@ -742,6 +1069,12 @@ export function UsersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImportUsersDialog
+        open={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })}
+      />
     </div>
   );
 }
