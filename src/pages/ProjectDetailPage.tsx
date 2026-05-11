@@ -111,7 +111,7 @@ function Lightbox({
 interface RegistrationSectionProps {
   project: PublicProject;
   status: ReturnType<typeof getRegistrationStatus>;
-  user: { id: string } | null;
+  user: { id: string; isActive: boolean } | null;
   myRegistration: MyRegistration | undefined;
   isRegistering: boolean;
   isUnregistering: boolean;
@@ -160,12 +160,27 @@ function RegistrationSection({
     return <p className="text-sm text-muted-foreground">{label}</p>;
   }
 
-  // open
+  // open — check active-only restriction before showing register button
+  if (status === "open" && project.activeMembersOnly && user && !user.isActive) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Registration is open for active members only. Become an active member to join this project.
+      </p>
+    );
+  }
+
   if (!user) {
     return (
-      <Button variant="outline" size="sm" asChild>
-        <Link to={PageRoutes.LOGIN}>Log in to register</Link>
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="outline" size="sm" className="w-fit" asChild>
+          <Link to={PageRoutes.LOGIN}>Log in to register</Link>
+        </Button>
+        {project.activeMembersOnly && (
+          <p className="text-xs text-muted-foreground">
+            Active membership is required to register for this project.
+          </p>
+        )}
+      </div>
     );
   }
 
@@ -223,15 +238,21 @@ export function ProjectDetailPage() {
 
   const regStatus = project ? getRegistrationStatus(project) : "none";
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
+
+  const formatProjectDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
   const date = project
-    ? new Date(project.startingAt).toLocaleString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+    ? project.endingAt
+      ? `${formatProjectDate(project.startingAt)} – ${formatProjectDate(project.endingAt)}`
+      : formatProjectDate(project.startingAt)
     : null;
 
   const cover = project?.images[0];
@@ -326,7 +347,7 @@ export function ProjectDetailPage() {
                 <RegistrationSection
                   project={project}
                   status={regStatus}
-                  user={user}
+                  user={user ? { id: user.id, isActive: user.isActive } : null}
                   myRegistration={myRegistration}
                   isRegistering={isRegistering}
                   isUnregistering={isUnregistering}

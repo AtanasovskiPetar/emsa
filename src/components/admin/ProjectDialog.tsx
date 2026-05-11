@@ -10,7 +10,7 @@ import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { GripVertical, ImagePlus, X } from "lucide-react";
+import { GripVertical, ImagePlus, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
@@ -53,10 +54,12 @@ const formSchema = z
     title: z.string().min(1, "Title is required"),
     description: z.string(),
     startingAt: z.string().min(1, "Starting date is required"),
+    endingAt: z.string().optional(),
     pillarId: z.string(),
     registrationOpensAt: z.string().optional(),
     registrationClosesAt: z.string().optional(),
     maxParticipants: z.number().int().min(1, "Must be at least 1").optional(),
+    activeMembersOnly: z.boolean(),
   })
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
@@ -70,7 +73,11 @@ const formSchema = z
         new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
       ),
     { message: "Close date must be after open date", path: ["registrationClosesAt"] }
-  );
+  )
+  .refine((data) => !(data.endingAt && new Date(data.endingAt) <= new Date(data.startingAt)), {
+    message: "Ending date must be after starting date",
+    path: ["endingAt"],
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -168,6 +175,7 @@ export function ProjectDialog({
           title: project.title,
           description: project.description,
           startingAt: toDatetimeLocalValue(project.startingAt),
+          endingAt: project.endingAt ? toDatetimeLocalValue(project.endingAt) : "",
           pillarId: project.pillarId ?? "none",
           registrationOpensAt: project.registrationOpensAt
             ? toDatetimeLocalValue(project.registrationOpensAt)
@@ -176,15 +184,18 @@ export function ProjectDialog({
             ? toDatetimeLocalValue(project.registrationClosesAt)
             : "",
           maxParticipants: project.maxParticipants ?? undefined,
+          activeMembersOnly: project.activeMembersOnly,
         }
       : {
           title: "",
           description: "",
           startingAt: "",
+          endingAt: "",
           pillarId: "none",
           registrationOpensAt: "",
           registrationClosesAt: "",
           maxParticipants: undefined,
+          activeMembersOnly: false,
         },
   });
 
@@ -243,6 +254,7 @@ export function ProjectDialog({
         title: values.title,
         description: values.description,
         startingAt: new Date(values.startingAt).toISOString(),
+        endingAt: values.endingAt ? new Date(values.endingAt).toISOString() : null,
         pillarId: values.pillarId === "none" ? null : values.pillarId,
         imageUrls,
         registrationOpensAt: values.registrationOpensAt
@@ -252,6 +264,7 @@ export function ProjectDialog({
           ? new Date(values.registrationClosesAt).toISOString()
           : null,
         maxParticipants: values.maxParticipants ?? null,
+        activeMembersOnly: values.activeMembersOnly,
       });
     } catch {
       setUploadError("Image upload failed. Please try again.");
@@ -320,49 +333,83 @@ export function ProjectDialog({
 
                 <FormField
                   control={form.control}
-                  name="pillarId"
+                  name="endingAt"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pillar</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="No pillar" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No pillar</SelectItem>
-                          {pillars.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Ending Date</FormLabel>
+                      <FormControl>
+                        <DateTimePicker value={field.value ?? ""} onChange={field.onChange} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
+              <FormField
+                control={form.control}
+                name="pillarId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pillar</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="No pillar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No pillar</SelectItem>
+                        {pillars.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex flex-col gap-3 rounded-md border p-3">
-                <div className="flex items-center justify-start gap-2">
-                  <span className="text-sm font-medium">Registration</span>
-                  {form.watch("registrationOpensAt") && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-5 text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        form.setValue("registrationOpensAt", "");
-                        form.setValue("registrationClosesAt", "");
-                        form.setValue("maxParticipants", undefined);
-                      }}
-                    >
-                      <X className="size-3" />
-                    </Button>
-                  )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Registration</span>
+                    {form.watch("registrationOpensAt") && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-5 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          form.setValue("registrationOpensAt", "");
+                          form.setValue("registrationClosesAt", "");
+                          form.setValue("maxParticipants", undefined);
+                          form.setValue("activeMembersOnly", false);
+                        }}
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="activeMembersOnly"
+                    render={({ field }) => (
+                      <FormItem
+                        className={`flex items-center gap-2 space-y-0 transition-opacity ${!form.watch("registrationOpensAt") ? "pointer-events-none opacity-40" : ""}`}
+                      >
+                        <Users className="size-3.5 text-muted-foreground" />
+                        <FormLabel className="cursor-pointer text-xs text-muted-foreground">
+                          Active members only
+                        </FormLabel>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <FormField
                   control={form.control}

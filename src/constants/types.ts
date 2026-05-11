@@ -49,12 +49,14 @@ export interface Project {
   title: string;
   description: string;
   startingAt: string;
+  endingAt: string | null;
   pillarId: string | null;
   pillarName: string | null;
   images: string[];
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   maxParticipants: number | null;
+  activeMembersOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,12 +85,14 @@ export interface PublicProject {
   title: string;
   description: string;
   startingAt: string;
+  endingAt: string | null;
   pillarId: string | null;
   pillarName: string | null;
   images: string[];
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   maxParticipants: number | null;
+  activeMembersOnly: boolean;
   participantCount: number;
 }
 

@@ -54,10 +54,12 @@ export const projects = pgTable("projects", {
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description").notNull().default(""),
   startingAt: timestamp("starting_at", { withTimezone: true }).notNull(),
+  endingAt: timestamp("ending_at", { withTimezone: true }),
   pillarId: uuid("pillar_id").references(() => pillars.id, { onDelete: "set null" }),
   registrationOpensAt: timestamp("registration_opens_at", { withTimezone: true }),
   registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
   maxParticipants: integer("max_participants"),
+  activeMembersOnly: boolean("active_members_only").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
