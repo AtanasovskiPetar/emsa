@@ -171,5 +171,8 @@ export const organization = pgTable("organization", {
   aboutUs: text("about_us").notNull().default(""),
   instagramUrl: varchar("instagram_url", { length: 2048 }),
   facebookUrl: varchar("facebook_url", { length: 2048 }),
+  location: varchar("location", { length: 500 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
