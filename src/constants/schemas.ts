@@ -115,11 +115,13 @@ export const projectSchema = z
     title: z.string().min(1, "Title is required"),
     description: z.string().default(""),
     startingAt: z.iso.datetime({ message: "Starting date is required" }),
+    endingAt: z.iso.datetime().nullable().optional(),
     pillarId: z.uuid().nullable().optional(),
     imageUrls: z.array(z.url()).default([]),
     registrationOpensAt: z.iso.datetime().nullable().optional(),
     registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
+    activeMembersOnly: z.boolean().default(false),
   })
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
@@ -133,29 +135,37 @@ export const projectSchema = z
         new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
       ),
     { message: "Registration close date must be after open date", path: ["registrationClosesAt"] }
-  );
+  )
+  .refine((data) => !(data.endingAt && new Date(data.endingAt) <= new Date(data.startingAt)), {
+    message: "Ending date must be after starting date",
+    path: ["endingAt"],
+  });
 
 export const updateProjectSchema = z
   .object({
     title: z.string().min(1, "Title is required").optional(),
     description: z.string().optional(),
     startingAt: z.iso.datetime().optional(),
+    endingAt: z.iso.datetime().nullable().optional(),
     pillarId: z.uuid().nullable().optional(),
     imageUrls: z.array(z.url()).optional(),
     registrationOpensAt: z.iso.datetime().nullable().optional(),
     registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
+    activeMembersOnly: z.boolean().optional(),
   })
   .refine(
     (data) =>
       data.title !== undefined ||
       data.description !== undefined ||
       data.startingAt !== undefined ||
+      data.endingAt !== undefined ||
       data.pillarId !== undefined ||
       data.imageUrls !== undefined ||
       data.registrationOpensAt !== undefined ||
       data.registrationClosesAt !== undefined ||
-      data.maxParticipants !== undefined,
+      data.maxParticipants !== undefined ||
+      data.activeMembersOnly !== undefined,
     { message: "At least one field must be provided" }
   )
   .refine(
@@ -174,6 +184,11 @@ export const updateProjectSchema = z
         new Date(data.registrationClosesAt) <= new Date(data.registrationOpensAt)
       ),
     { message: "Registration close date must be after open date", path: ["registrationClosesAt"] }
+  )
+  .refine(
+    (data) =>
+      !(data.endingAt && data.startingAt && new Date(data.endingAt) <= new Date(data.startingAt)),
+    { message: "Ending date must be after starting date", path: ["endingAt"] }
   );
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;
