@@ -8,6 +8,12 @@ export class ApiError extends Error {
   }
 }
 
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: () => void): void {
+  onUnauthorized = handler;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem("token");
 
@@ -21,6 +27,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
 
   const data = await res.json();
+
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new ApiError(401, (data as { error?: string }).error ?? "Unauthorized");
+  }
 
   if (!res.ok) {
     throw new ApiError(res.status, (data as { error?: string }).error ?? "Request failed");

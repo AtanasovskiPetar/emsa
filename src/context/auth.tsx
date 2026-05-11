@@ -13,7 +13,7 @@ import type { Role } from "@/constants/enums";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import type { UserProfile } from "@/constants/types";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { apiClient, ApiError, setUnauthorizedHandler } from "@/lib/api-client";
 
 export interface AuthUser {
   id: string;
@@ -78,6 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(getStoredToken);
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+    queryClient.removeQueries({ queryKey: queryKeys.me() });
+  }, [queryClient]);
+
+  const login = useCallback(
+    (newToken: string): AuthUser | null => {
+      const decoded = decodeToken(newToken);
+      if (!decoded) return null;
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+      setUser(decoded);
+      queryClient.removeQueries({ queryKey: queryKeys.me() });
+      return decoded;
+    },
+    [queryClient]
+  );
+
   const {
     data: meData,
     error: meError,
@@ -95,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       ...user,
       name: meData.name,
+      role: meData.role,
       imageUrl: meData.imageUrl,
       profileCompleted: meData.profileCompleted,
       isAlumni: meData.isAlumni ?? false,
@@ -103,29 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, meData]);
 
   useEffect(() => {
+    setUnauthorizedHandler(logout);
+  }, [logout]);
+
+  useEffect(() => {
     if (meError instanceof ApiError && meError.status === 401) {
-      localStorage.removeItem("token");
-      setToken(null);
-      setUser(null);
+      logout();
     }
-  }, [meError]);
-
-  function login(newToken: string): AuthUser | null {
-    const decoded = decodeToken(newToken);
-    if (!decoded) return null;
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
-    setUser(decoded);
-    queryClient.removeQueries({ queryKey: queryKeys.me() });
-    return decoded;
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
-    queryClient.removeQueries({ queryKey: queryKeys.me() });
-  }
+  }, [meError, logout]);
 
   const updateUser = useCallback((patch: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...patch } : prev));
