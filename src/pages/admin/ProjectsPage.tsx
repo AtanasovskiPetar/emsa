@@ -47,6 +47,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Role } from "@/constants/enums";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
@@ -55,7 +56,7 @@ import { type AdminUser, type Project, type ProjectRegistration } from "@/consta
 import { useAuth } from "@/context/auth";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
-import { getInitials, hasAccess, stripHtml } from "@/lib/utils";
+import { formatDate, getInitials, hasAccess, stripHtml } from "@/lib/utils";
 
 function useColumns(
   onEdit: (project: Project) => void,
@@ -65,7 +66,23 @@ function useColumns(
     {
       accessorKey: "title",
       header: "Title",
-      cell: ({ row }) => <span className="font-medium">{row.getValue("title")}</span>,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.getValue("title")}</span>
+          {row.original.activeMembersOnly && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Users className="size-3.5 text-muted-foreground" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Active members only</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: "description",
@@ -79,11 +96,15 @@ function useColumns(
     {
       accessorKey: "startingAt",
       header: "Starting",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {new Date(row.getValue<string>("startingAt")).toLocaleDateString()}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const start = formatDate(row.getValue<string>("startingAt"));
+        const end = row.original.endingAt;
+        return (
+          <span className="text-sm text-muted-foreground">
+            {end ? `${start} – ${formatDate(end)}` : start}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "registrationOpensAt",

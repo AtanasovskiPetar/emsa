@@ -1,10 +1,17 @@
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import { projectSchema, updateProjectSchema } from "@/constants/schemas";
-import { pillars, projectImages, projectRegistrations, projects, users } from "@/db/schema";
+import {
+  pillars,
+  projectImages,
+  projectRegistrations,
+  projects,
+  userActivations,
+  users,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
 import { deleteS3Objects, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
@@ -17,11 +24,13 @@ const getProjects = async () => {
       title: projects.title,
       description: projects.description,
       startingAt: projects.startingAt,
+      endingAt: projects.endingAt,
       pillarId: projects.pillarId,
       pillarName: pillars.name,
       registrationOpensAt: projects.registrationOpensAt,
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
+      activeMembersOnly: projects.activeMembersOnly,
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
@@ -71,11 +80,13 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
       title: projects.title,
       description: projects.description,
       startingAt: projects.startingAt,
+      endingAt: projects.endingAt,
       pillarId: projects.pillarId,
       pillarName: pillars.name,
       registrationOpensAt: projects.registrationOpensAt,
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
+      activeMembersOnly: projects.activeMembersOnly,
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
@@ -151,6 +162,7 @@ const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user)
       registrationOpensAt: projects.registrationOpensAt,
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
+      activeMembersOnly: projects.activeMembersOnly,
     })
     .from(projects)
     .where(eq(projects.id, id))
@@ -166,6 +178,28 @@ const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user)
 
   if (project.registrationClosesAt && project.registrationClosesAt < now) {
     return Response.json({ error: "Registration has closed" }, { status: 422 });
+  }
+
+  if (project.activeMembersOnly) {
+    const today = now.toISOString().split("T")[0]!;
+    const [activation] = await db
+      .select({ id: userActivations.id })
+      .from(userActivations)
+      .where(
+        and(
+          eq(userActivations.userId, user.sub),
+          lte(userActivations.startDate, today),
+          gte(userActivations.endDate, today)
+        )
+      )
+      .limit(1);
+
+    if (!activation) {
+      return Response.json(
+        { error: "Registration is open for active members only" },
+        { status: 403 }
+      );
+    }
   }
 
   try {
@@ -214,11 +248,13 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
       title: projects.title,
       description: projects.description,
       startingAt: projects.startingAt,
+      endingAt: projects.endingAt,
       pillarId: projects.pillarId,
       pillarName: pillars.name,
       registrationOpensAt: projects.registrationOpensAt,
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
+      activeMembersOnly: projects.activeMembersOnly,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
     })
@@ -245,7 +281,7 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
 });
 
 const createProject = withRole(Role.ADMIN, async (req) => {
-  const { imageUrls, startingAt, registrationOpensAt, registrationClosesAt, ...rest } =
+  const { imageUrls, startingAt, endingAt, registrationOpensAt, registrationClosesAt, ...rest } =
     await parseBody(req, projectSchema);
 
   const project = await db.transaction(async (tx) => {
@@ -254,6 +290,7 @@ const createProject = withRole(Role.ADMIN, async (req) => {
       .values({
         ...rest,
         startingAt: new Date(startingAt),
+        endingAt: endingAt ? new Date(endingAt) : null,
         registrationOpensAt: registrationOpensAt ? new Date(registrationOpensAt) : null,
         registrationClosesAt: registrationClosesAt ? new Date(registrationClosesAt) : null,
       })
@@ -275,7 +312,7 @@ const createProject = withRole(Role.ADMIN, async (req) => {
 
 const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   const { id } = req.params;
-  const { imageUrls, startingAt, registrationOpensAt, registrationClosesAt, ...rest } =
+  const { imageUrls, startingAt, endingAt, registrationOpensAt, registrationClosesAt, ...rest } =
     await parseBody(req, updateProjectSchema);
 
   let imagesToDeleteFromS3: { url: string }[] = [];
@@ -286,6 +323,7 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
       .set({
         ...rest,
         ...(startingAt !== undefined && { startingAt: new Date(startingAt) }),
+        ...(endingAt !== undefined && { endingAt: endingAt ? new Date(endingAt) : null }),
         ...(registrationOpensAt !== undefined && {
           registrationOpensAt: registrationOpensAt ? new Date(registrationOpensAt) : null,
         }),
