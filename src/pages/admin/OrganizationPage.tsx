@@ -77,6 +77,9 @@ type FormValues = {
   aboutUs: string;
   instagramUrl: string;
   facebookUrl: string;
+  location: string;
+  email: string;
+  phone: string;
 };
 
 export function OrganizationPage() {
@@ -89,7 +92,16 @@ export function OrganizationPage() {
   });
 
   const { register, setValue, watch, handleSubmit } = useForm<FormValues>({
-    defaultValues: { name: "", description: "", aboutUs: "", instagramUrl: "", facebookUrl: "" },
+    defaultValues: {
+      name: "",
+      description: "",
+      aboutUs: "",
+      instagramUrl: "",
+      facebookUrl: "",
+      location: "",
+      email: "",
+      phone: "",
+    },
   });
 
   // Populate form when data loads
@@ -100,6 +112,9 @@ export function OrganizationPage() {
     setValue("aboutUs", org.aboutUs);
     setValue("instagramUrl", org.instagramUrl ?? "");
     setValue("facebookUrl", org.facebookUrl ?? "");
+    setValue("location", org.location ?? "");
+    setValue("email", org.email ?? "");
+    setValue("phone", org.phone ?? "");
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
@@ -131,6 +146,9 @@ export function OrganizationPage() {
         logoUrl,
         instagramUrl: values.instagramUrl.trim() || null,
         facebookUrl: values.facebookUrl.trim() || null,
+        location: values.location.trim() || null,
+        email: values.email.trim() || null,
+        phone: values.phone.trim() || null,
       });
     } catch {
       // upload failed, don't proceed
@@ -156,6 +174,36 @@ export function OrganizationPage() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">Organization Name</Label>
           <Input id="name" placeholder="Organization name" {...register("name")} />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="font-medium">Contact</h3>
+            <p className="text-sm text-muted-foreground">
+              Shown in the contact section of the public site.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              placeholder="e.g. Skopje, North Macedonia"
+              {...register("location")}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="contact@yourorg.com"
+              {...register("email")}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input id="phone" type="tel" placeholder="+389 2 123 456" {...register("phone")} />
+          </div>
         </div>
 
         <ImageUpload label="Logo" state={logo} onChange={setLogo} />
