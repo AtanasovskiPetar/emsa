@@ -272,8 +272,29 @@ export function PublicLayout() {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
           </p>
-          {(org?.instagramUrl || org?.facebookUrl) && (
+          {(org?.facebookUrl || org?.instagramUrl || org?.email) && (
             <div className="flex items-center gap-3">
+              {org.facebookUrl && (
+                <a
+                  href={org.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Facebook"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                  </svg>
+                </a>
+              )}
               {org.instagramUrl && (
                 <a
                   href={org.instagramUrl}
@@ -297,13 +318,11 @@ export function PublicLayout() {
                   </svg>
                 </a>
               )}
-              {org.facebookUrl && (
+              {org.email && (
                 <a
-                  href={org.facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`mailto:${org.email}`}
                   className="text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label="Facebook"
+                  aria-label="Email"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -314,7 +333,8 @@ export function PublicLayout() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                   </svg>
                 </a>
               )}
