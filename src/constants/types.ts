@@ -78,6 +78,9 @@ export interface OrganizationPublic {
   aboutUs: string;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  location: string | null;
+  email: string | null;
+  phone: string | null;
 }
 
 export interface PublicProject {
@@ -122,6 +125,9 @@ export interface Organization {
   aboutUs: string;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  location: string | null;
+  email: string | null;
+  phone: string | null;
   updatedAt: string;
 }
 

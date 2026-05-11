@@ -20,6 +20,9 @@ const getOrganization = async () => {
       aboutUs: organization.aboutUs,
       instagramUrl: organization.instagramUrl,
       facebookUrl: organization.facebookUrl,
+      location: organization.location,
+      email: organization.email,
+      phone: organization.phone,
     })
     .from(organization)
     .where(eq(organization.id, ORG_ID))

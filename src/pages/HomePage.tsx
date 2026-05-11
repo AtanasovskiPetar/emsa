@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
@@ -308,6 +308,85 @@ export function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Contact */}
+      {(org?.location || org?.email || org?.phone) && (
+        <section id="contact" className="border-t py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mb-12">
+              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <span className="h-px w-6 bg-primary" />
+                Contact
+              </div>
+              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+                Get in touch
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+              {/* Contact details */}
+              <div className="flex flex-col gap-6">
+                {org.email && (
+                  <div className="flex items-start gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Mail className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Email</p>
+                      <a
+                        href={`mailto:${org.email}`}
+                        className="mt-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {org.email}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {org.phone && (
+                  <div className="flex items-start gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Phone className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Phone</p>
+                      <a
+                        href={`tel:${org.phone}`}
+                        className="mt-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {org.phone}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {org.location && (
+                  <div className="flex items-start gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <MapPin className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Location</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{org.location}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Embedded map */}
+              {org.location && (
+                <div className="h-72 overflow-hidden rounded-xl border lg:h-full">
+                  <iframe
+                    title="Location map"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(org.location)}&output=embed`}
+                    className="h-full w-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
