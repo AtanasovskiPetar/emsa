@@ -1,6 +1,9 @@
+import { eq } from "drizzle-orm";
 import { type ZodType } from "zod";
 
 import { type Role } from "@/constants/enums";
+import { users } from "@/db/schema";
+import { db } from "@/lib/db";
 import { type JwtUser, verifyJwt } from "@/lib/jwt";
 import { hasAccess } from "@/lib/utils";
 
@@ -22,7 +25,14 @@ async function getAuthUser(req: Request): Promise<JwtUser | null> {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   try {
-    return await verifyJwt(auth.slice(7));
+    const jwtUser = await verifyJwt(auth.slice(7));
+    const [dbUser] = await db
+      .select({ role: users.role, profileCompleted: users.profileCompleted })
+      .from(users)
+      .where(eq(users.id, jwtUser.sub))
+      .limit(1);
+    if (!dbUser) return null;
+    return { ...jwtUser, role: dbUser.role, profileCompleted: dbUser.profileCompleted };
   } catch {
     return null;
   }
@@ -47,7 +57,10 @@ export function withRole<P extends Record<string, string> = Record<string, strin
 ): (req: BunRequest<P>) => Promise<Response> {
   return async (req: BunRequest<P>): Promise<Response> => {
     const user = await getAuthUser(req);
-    if (!user || !hasAccess(user.role, role)) {
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!hasAccess(user.role, role)) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
