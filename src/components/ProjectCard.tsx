@@ -18,11 +18,21 @@ interface ProjectCardProps {
 export function ProjectCard({ project, index, featured = false, className }: ProjectCardProps) {
   const cover = project.images[0];
   const isUpcoming = new Date(project.startingAt) >= new Date();
-  const date = new Date(project.startingAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const formatCardDate = (dateStr: string, opts?: Intl.DateTimeFormatOptions) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      ...opts,
+    });
+  const startOpts: Intl.DateTimeFormatOptions =
+    project.endingAt &&
+    new Date(project.startingAt).getFullYear() === new Date(project.endingAt).getFullYear()
+      ? { month: "short", day: "numeric" }
+      : {};
+  const date = project.endingAt
+    ? `${formatCardDate(project.startingAt, startOpts)} – ${formatCardDate(project.endingAt)}`
+    : formatCardDate(project.startingAt);
   const regStatus = getRegistrationStatus(project);
 
   return (
