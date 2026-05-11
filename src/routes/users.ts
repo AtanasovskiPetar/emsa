@@ -9,7 +9,7 @@ import {
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
-import { organization, userActivations, users } from "@/db/schema";
+import { userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
@@ -354,14 +354,7 @@ const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
   });
 
   if (data.sendWelcomeEmails) {
-    const [org] = await db
-      .select({ name: organization.name })
-      .from(organization)
-      .where(eq(organization.id, 1))
-      .limit(1);
-    const orgName = org?.name || "the platform";
-
-    await Promise.allSettled(created.map((u) => sendWelcomeEmail(u.email, u.name, orgName)));
+    await Promise.allSettled(created.map((u) => sendWelcomeEmail(u.email, u.name)));
   }
 
   return Response.json({ created: created.length, skipped }, { status: 201 });
