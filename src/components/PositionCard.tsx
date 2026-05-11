@@ -12,12 +12,13 @@ interface PositionCardProps {
 export function PositionCard({ position, index }: PositionCardProps) {
   return (
     <motion.div
+      className="h-full"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
     >
-      <SpotlightCard className="p-6">
+      <SpotlightCard className="h-full p-6">
         {/* Large faint index number */}
         <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10">
           {String(index + 1).padStart(2, "0")}
