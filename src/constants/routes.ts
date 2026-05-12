@@ -60,5 +60,6 @@ export const ApiRoutes = {
   USERS_ME: "/api/users/me",
   UPLOAD_PRESIGNED: "/api/upload/presigned",
   ADMIN_USERS_BULK_IMPORT: "/api/admin/users/bulk-import",
+  ADMIN_USERS_RESEND_WELCOME: "/api/admin/users/resend-welcome",
   AUTH_SETUP_PASSWORD: "/api/auth/setup-password",
 } as const;

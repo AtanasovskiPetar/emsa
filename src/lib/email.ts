@@ -43,6 +43,33 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
   });
 }
 
+export async function sendBulkWelcomeEmails(
+  recipients: { email: string; name: string }[]
+): Promise<void> {
+  if (recipients.length === 0) return;
+  const brand = await getBrand();
+  // Resend batch.send accepts up to 100 emails per call
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    await resend.batch.send(
+      batch.map(({ email, name }) => ({
+        from: env.FROM_EMAIL,
+        to: email,
+        subject: `Welcome to ${brand.orgName}`,
+        html: renderTemplate({
+          brand,
+          preheader: `Your ${brand.orgName} account is ready.`,
+          heading: `Welcome, ${escapeHtml(name)}`,
+          intro: `Your account on <strong>${escapeHtml(brand.orgName)}</strong> has been created. Log in any time to set your password and start exploring the platform.`,
+          cta: { label: "Go to the platform", url: env.APP_URL },
+          outro: "We're glad to have you with us.",
+        }),
+      }))
+    );
+  }
+}
+
 export async function sendAccountSetupEmail(
   to: string,
   name: string,

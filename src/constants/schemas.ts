@@ -300,6 +300,12 @@ export const bulkImportRowSchema = z
 
 export type BulkImportRow = z.infer<typeof bulkImportRowSchema>;
 
+export const resendWelcomeEmailsSchema = z.object({
+  userIds: z.array(z.uuid()).min(1, "At least one user ID is required"),
+});
+
+export type ResendWelcomeEmailsPayload = z.infer<typeof resendWelcomeEmailsSchema>;
+
 export const bulkImportSchema = z.object({
   users: z.array(bulkImportRowSchema).min(1).max(500),
   sendWelcomeEmails: z.boolean().default(true),
