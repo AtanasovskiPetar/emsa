@@ -5,13 +5,14 @@ import { ApiRoutes } from "@/constants/routes";
 import {
   bulkImportSchema,
   createActivationSchema,
+  resendWelcomeEmailsSchema,
   updateActivationSchema,
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
 import { userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
 import { getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
@@ -354,10 +355,27 @@ const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
   });
 
   if (data.sendWelcomeEmails) {
-    await Promise.allSettled(created.map((u) => sendWelcomeEmail(u.email, u.name)));
+    await sendBulkWelcomeEmails(created.map((u) => ({ email: u.email, name: u.name })));
   }
 
   return Response.json({ created: created.length, skipped }, { status: 201 });
+});
+
+const resendWelcomeEmails = withRole(Role.SUPER_ADMIN, async (req) => {
+  const data = await parseBody(req, resendWelcomeEmailsSchema);
+
+  const recipients = await db
+    .select({ id: users.id, email: users.email, name: users.name })
+    .from(users)
+    .where(inArray(users.id, data.userIds));
+
+  if (recipients.length === 0) {
+    return Response.json({ error: "No matching users found" }, { status: 404 });
+  }
+
+  await sendBulkWelcomeEmails(recipients.map((u) => ({ email: u.email, name: u.name })));
+
+  return Response.json({ sent: recipients.length });
 });
 
 export const userRoutes = {
@@ -368,4 +386,5 @@ export const userRoutes = {
   [ApiRoutes.ADMIN_USER_ACTIVATIONS]: { POST: createActivation },
   [ApiRoutes.ADMIN_ACTIVATION_BY_ID]: { PATCH: updateActivation, DELETE: deleteActivation },
   [ApiRoutes.ADMIN_USERS_BULK_IMPORT]: { POST: bulkImportUsers },
+  [ApiRoutes.ADMIN_USERS_RESEND_WELCOME]: { POST: resendWelcomeEmails },
 };
