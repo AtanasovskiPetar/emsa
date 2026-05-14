@@ -23,27 +23,28 @@ export function PillarCard({ pillar, index, className }: PillarCardProps) {
       className={cn("h-full", className)}
     >
       <Link to={PageRoutes.PILLAR_DETAIL.replace(":id", pillar.id)} className="group block h-full">
-        <SpotlightCard className="h-full p-6">
-          {pillar.imageUrl ? (
-            <div className="pointer-events-none absolute right-4 top-4">
-              <img src={pillar.imageUrl} alt="" className="size-16 rounded-lg object-cover" />
-            </div>
-          ) : (
-            <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10 transition-colors duration-300 group-hover:text-primary/15">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-          )}
+        <SpotlightCard className="flex h-full flex-col p-0">
+          {/* Image */}
+          <div className="h-40 shrink-0 overflow-hidden">
+            {pillar.imageUrl ? (
+              <img
+                src={pillar.imageUrl}
+                alt={pillar.name}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <div className="h-full bg-gradient-to-br from-primary/10 to-chart-2/10" />
+            )}
+          </div>
 
           {/* Content */}
-          <div
-            className={cn("relative z-10 flex h-full flex-col gap-3", pillar.imageUrl && "pr-20")}
-          >
+          <div className="flex flex-1 flex-col gap-2 p-5">
             <h3 className="text-base font-semibold">{pillar.name}</h3>
             <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">
               {pillar.description}
             </p>
             {pillar.directorName && (
-              <div className="flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2 border-t pt-3">
                 <UserAvatar
                   name={pillar.directorName}
                   imageUrl={pillar.directorImageUrl}

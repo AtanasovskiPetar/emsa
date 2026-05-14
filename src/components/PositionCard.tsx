@@ -19,17 +19,16 @@ export function PositionCard({ position, index }: PositionCardProps) {
       transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
     >
       <SpotlightCard className="h-full p-6">
-        <div className="pointer-events-none absolute right-4 top-4">
+        <div className="flex h-full flex-col items-center gap-4 text-center">
           <UserAvatar
             name={position.userName}
             imageUrl={position.userImageUrl}
-            className="size-16 rounded-full"
+            className="size-20 rounded-full"
           />
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-3 pr-20">
-          <h3 className="text-base font-semibold">{position.title}</h3>
-          <span className="text-sm text-muted-foreground">{position.userName}</span>
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold leading-tight">{position.userName}</span>
+            <span className="text-sm text-muted-foreground">{position.title}</span>
+          </div>
         </div>
       </SpotlightCard>
     </motion.div>
