@@ -19,21 +19,17 @@ export function PositionCard({ position, index }: PositionCardProps) {
       transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
     >
       <SpotlightCard className="h-full p-6">
-        {/* Large faint index number */}
-        <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10">
-          {String(index + 1).padStart(2, "0")}
-        </span>
+        <div className="pointer-events-none absolute right-4 top-4">
+          <UserAvatar
+            name={position.userName}
+            imageUrl={position.userImageUrl}
+            className="size-16 rounded-full"
+          />
+        </div>
 
-        <div className="relative z-10 flex flex-col gap-3">
+        <div className="relative z-10 flex flex-col gap-3 pr-20">
           <h3 className="text-base font-semibold">{position.title}</h3>
-          <div className="flex items-center gap-2">
-            <UserAvatar
-              name={position.userName}
-              imageUrl={position.userImageUrl}
-              className="size-6"
-            />
-            <span className="text-sm text-muted-foreground">{position.userName}</span>
-          </div>
+          <span className="text-sm text-muted-foreground">{position.userName}</span>
         </div>
       </SpotlightCard>
     </motion.div>

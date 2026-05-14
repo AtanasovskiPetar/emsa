@@ -41,6 +41,7 @@ export const pillars = pgTable("pillars", {
   directorId: uuid("director_id")
     .notNull()
     .references(() => users.id, { onDelete: "restrict" }),
+  imageUrl: varchar("image_url", { length: 2048 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
