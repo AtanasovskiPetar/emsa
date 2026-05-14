@@ -2,9 +2,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, LogOut } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,11 +20,11 @@ import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/UserAvatar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
-import { ALLOWED_IMAGE_TYPES, type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
-import { type UserProfile } from "@/constants/types";
+import { type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
+import { type ImageEntry, type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { uploadImageToS3 } from "@/lib/utils";
+import { getImageSrc, uploadImageToS3 } from "@/lib/utils";
 
 const FADE_UP = {
   initial: { opacity: 0, y: 20 },
@@ -41,25 +42,12 @@ function getMissingFields(profile: UserProfile): string[] {
 export function ProfilePage() {
   const queryClient = useQueryClient();
   const { logout, updateUser, login, user } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  const [imageEntry, setImageEntry] = useState<ImageEntry>({ type: "none" });
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: queryKeys.me(),
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
-  });
-
-  const { mutateAsync: uploadAvatar, isPending: isUploading } = useMutation({
-    mutationFn: (file: File) => uploadImageToS3(file, ApiRoutes.UPLOAD_PRESIGNED),
   });
 
   const { mutate: updateMe, isPending } = useMutation({
@@ -71,18 +59,18 @@ export function ProfilePage() {
     resolver: zodResolver(updateMeSchema),
   });
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (file.size > MAX_FILE_SIZE) {
-      setFileError("File size must be 5MB or less.");
-      return;
-    }
-    setFileError(null);
-    setPendingFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  }
+  useEffect(() => {
+    if (!profile) return;
+    setImageEntry(
+      profile.imageUrl ? { type: "existing", url: profile.imageUrl } : { type: "none" }
+    );
+    form.reset({
+      name: profile.name,
+      phone: profile.phone,
+      index: profile.index,
+      yearOfStudies: profile.yearOfStudies,
+    });
+  }, [profile, form]);
 
   async function handleSubmit(values: UpdateMePayload) {
     const payload: UpdateMePayload = {
@@ -92,18 +80,21 @@ export function ProfilePage() {
       yearOfStudies: values.yearOfStudies,
     };
 
-    if (pendingFile) {
+    if (imageEntry.type === "new") {
+      setIsUploading(true);
       try {
-        payload.imageUrl = await uploadAvatar(pendingFile);
+        payload.imageUrl = await uploadImageToS3(imageEntry.file, ApiRoutes.UPLOAD_PRESIGNED);
       } catch {
+        setIsUploading(false);
         return;
       }
+      setIsUploading(false);
+    } else {
+      payload.imageUrl = imageEntry.type === "existing" ? imageEntry.url : null;
     }
 
     updateMe(payload, {
       onSuccess: ({ token, ...updated }) => {
-        setPendingFile(null);
-        setPreviewUrl(null);
         queryClient.invalidateQueries({ queryKey: queryKeys.me() });
         if (token) {
           login(token);
@@ -117,16 +108,6 @@ export function ProfilePage() {
       },
     });
   }
-
-  useEffect(() => {
-    form.reset({
-      name: profile?.name,
-      phone: profile?.phone,
-      imageUrl: profile?.imageUrl,
-      index: profile?.index,
-      yearOfStudies: profile?.yearOfStudies,
-    });
-  }, [profile, form]);
 
   if (isLoading) {
     return (
@@ -159,7 +140,7 @@ export function ProfilePage() {
           <div className="flex min-w-0 items-center gap-4">
             <UserAvatar
               name={profile.name}
-              imageUrl={previewUrl ?? profile.imageUrl}
+              imageUrl={getImageSrc(imageEntry)}
               className="size-14 shrink-0 text-xl"
             />
             <div className="min-w-0">
@@ -223,29 +204,13 @@ export function ProfilePage() {
               <CardTitle>Profile photo</CardTitle>
               <CardDescription>JPG, PNG or WebP. Max 5 MB.</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <UserAvatar
+            <CardContent>
+              <ImageUpload
+                state={imageEntry}
+                onChange={setImageEntry}
+                variant="avatar"
                 name={profile.name}
-                imageUrl={previewUrl ?? profile.imageUrl}
-                className="size-20 text-lg"
-              />
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  {isUploading ? "Uploading..." : pendingFile ? "Photo selected" : "Change photo"}
-                </Button>
-                {fileError && <p className="text-xs text-destructive">{fileError}</p>}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ALLOWED_IMAGE_TYPES.join(",")}
-                className="hidden"
-                onChange={handleAvatarChange}
+                maxSizeBytes={5 * 1024 * 1024}
               />
             </CardContent>
           </Card>
@@ -340,7 +305,7 @@ export function ProfilePage() {
                   />
                   <div className="flex justify-end pt-1">
                     <Button type="submit" disabled={isPending || isUploading}>
-                      {isUploading ? "Uploading..." : isPending ? "Saving..." : "Save changes"}
+                      {isPending ? "Saving..." : "Save changes"}
                     </Button>
                   </div>
                 </form>

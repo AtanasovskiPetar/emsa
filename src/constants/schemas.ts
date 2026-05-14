@@ -98,13 +98,17 @@ export const pillarSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
   directorId: z.uuid("Director must be a valid user"),
+  imageUrl: z.url().nullable().optional(),
 });
 
 export const updatePillarSchema = pillarSchema
   .partial()
   .refine(
     (data) =>
-      data.name !== undefined || data.description !== undefined || data.directorId !== undefined,
+      data.name !== undefined ||
+      data.description !== undefined ||
+      data.directorId !== undefined ||
+      data.imageUrl !== undefined,
     { message: "At least one field must be provided" }
   );
 

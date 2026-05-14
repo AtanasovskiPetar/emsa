@@ -24,50 +24,72 @@ export function PillarDetailPage() {
     <div className="flex flex-col">
       {/* Hero banner */}
       <div className="relative overflow-hidden border-b bg-primary/5 py-16">
-        <div className="pointer-events-none absolute -right-32 -top-32 size-[500px] rounded-full border border-primary/10" />
-        <div className="pointer-events-none absolute -right-20 -top-20 size-[300px] rounded-full border border-chart-2/10" />
-        <div className="pointer-events-none absolute bottom-0 left-0 size-[400px] translate-y-1/2 -translate-x-1/4 rounded-full bg-chart-2/8 blur-[80px]" />
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute right-0 top-0 size-[600px] -translate-y-1/4 translate-x-1/4 rounded-full bg-primary/10 blur-[120px]" />
+          <div className="absolute bottom-0 left-0 size-[400px] translate-y-1/2 -translate-x-1/4 rounded-full bg-chart-2/10 blur-[100px]" />
+        </div>
 
-        <div className="relative mx-auto max-w-6xl px-4">
+        <div className="relative z-10 mx-auto max-w-6xl px-4">
           {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-1/2" />
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-16 w-3/4" />
+            <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-1/2" />
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-16 w-3/4" />
+              </div>
             </div>
           ) : pillar ? (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            >
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                <span className="h-px w-6 bg-primary" />
-                Pillar
-              </div>
-
-              <div className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent">
-                {pillar.name}
-              </div>
-
-              {pillar.directorName && (
-                <div className="mt-4 flex items-center gap-2.5 text-sm text-muted-foreground">
-                  <UserAvatar
-                    name={pillar.directorName}
-                    imageUrl={pillar.directorImageUrl}
-                    className="size-7 rounded-full"
-                  />
-                  Director:{" "}
-                  <span className="font-medium text-foreground">{pillar.directorName}</span>
+            <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+              {/* Left: text */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                  <span className="h-px w-6 bg-primary" />
+                  Pillar
                 </div>
-              )}
 
-              {pillar.description && (
-                <p className="mt-5 max-w-2xl text-muted-foreground leading-relaxed">
-                  {pillar.description}
-                </p>
+                <div className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent">
+                  {pillar.name}
+                </div>
+
+                {pillar.directorName && (
+                  <div className="mt-4 flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <UserAvatar
+                      name={pillar.directorName}
+                      imageUrl={pillar.directorImageUrl}
+                      className="size-7 rounded-full"
+                    />
+                    Director:{" "}
+                    <span className="font-medium text-foreground">{pillar.directorName}</span>
+                  </div>
+                )}
+
+                {pillar.description && (
+                  <p className="mt-5 max-w-xl leading-relaxed text-muted-foreground">
+                    {pillar.description}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Right: image */}
+              {pillar.imageUrl && (
+                <motion.div
+                  className="relative flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  <img
+                    src={pillar.imageUrl}
+                    alt={pillar.name}
+                    className="relative size-52 object-contain drop-shadow-2xl lg:size-64"
+                  />
+                </motion.div>
               )}
-            </motion.div>
+            </div>
           ) : null}
         </div>
       </div>

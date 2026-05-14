@@ -1,6 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -26,8 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues, pillarSchema } from "@/constants/schemas";
-import { type AdminUser, type Pillar } from "@/constants/types";
+import { type AdminUser, type ImageEntry, type Pillar } from "@/constants/types";
+import { uploadImageToS3 } from "@/lib/utils";
 
 interface PillarDialogProps {
   open: boolean;
@@ -46,12 +51,34 @@ export function PillarDialog({
   onSubmit,
   isPending,
 }: PillarDialogProps) {
+  const [imageEntry, setImageEntry] = useState<ImageEntry>({ type: "none" });
+  const [isUploading, setIsUploading] = useState(false);
+
   const form = useForm<PillarFormValues>({
     resolver: zodResolver(pillarSchema),
     values: pillar
       ? { name: pillar.name, description: pillar.description, directorId: pillar.directorId }
       : { name: "", description: "", directorId: "" },
   });
+
+  useEffect(() => {
+    setImageEntry(pillar?.imageUrl ? { type: "existing", url: pillar.imageUrl } : { type: "none" });
+  }, [pillar]);
+
+  async function handleSubmit(values: PillarFormValues) {
+    try {
+      setIsUploading(true);
+      const imageUrl =
+        imageEntry.type === "new"
+          ? await uploadImageToS3(imageEntry.file, ApiRoutes.ADMIN_PILLARS_UPLOAD)
+          : imageEntry.type === "existing"
+            ? imageEntry.url
+            : null;
+      onSubmit({ ...values, imageUrl });
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +87,7 @@ export function PillarDialog({
           <DialogTitle>{pillar ? "Edit Pillar" : "Create Pillar"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
             <FormField
               control={form.control}
               name="name"
@@ -87,6 +114,13 @@ export function PillarDialog({
                 </FormItem>
               )}
             />
+
+            {/* Image upload */}
+            <div className="flex flex-col gap-2">
+              <Label>Image</Label>
+              <ImageUpload state={imageEntry} onChange={setImageEntry} />
+            </div>
+
             <FormField
               control={form.control}
               name="directorId"
@@ -112,7 +146,7 @@ export function PillarDialog({
               )}
             />
             <DialogFooter>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || isUploading}>
                 {pillar ? "Save changes" : "Create"}
               </Button>
             </DialogFooter>
