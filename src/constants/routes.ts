@@ -38,6 +38,7 @@ export const ApiRoutes = {
   ADMIN_ACTIVATION_BY_ID: "/api/admin/activations/:id",
   ADMIN_PILLARS: "/api/admin/pillars",
   ADMIN_PILLAR_BY_ID: "/api/admin/pillars/:id",
+  ADMIN_PILLARS_UPLOAD: "/api/admin/pillars/upload",
   ADMIN_PROJECTS: "/api/admin/projects",
   ADMIN_PROJECT_BY_ID: "/api/admin/projects/:id",
   ADMIN_PROJECTS_UPLOAD: "/api/admin/projects/upload",

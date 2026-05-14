@@ -109,6 +109,7 @@ export interface PublicPillar {
   id: string;
   name: string;
   description: string;
+  imageUrl: string | null;
   directorName: string | null;
   directorImageUrl: string | null;
 }
@@ -146,6 +147,7 @@ export interface Pillar {
   id: string;
   name: string;
   description: string;
+  imageUrl: string | null;
   directorId: string;
   directorName: string | null;
   createdAt: string;

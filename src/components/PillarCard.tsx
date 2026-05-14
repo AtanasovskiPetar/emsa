@@ -24,13 +24,20 @@ export function PillarCard({ pillar, index, className }: PillarCardProps) {
     >
       <Link to={PageRoutes.PILLAR_DETAIL.replace(":id", pillar.id)} className="group block h-full">
         <SpotlightCard className="h-full p-6">
-          {/* Large faint index number */}
-          <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10 transition-colors duration-300 group-hover:text-primary/15">
-            {String(index + 1).padStart(2, "0")}
-          </span>
+          {pillar.imageUrl ? (
+            <div className="pointer-events-none absolute right-4 top-4">
+              <img src={pillar.imageUrl} alt="" className="size-16 rounded-lg object-cover" />
+            </div>
+          ) : (
+            <span className="pointer-events-none absolute right-4 top-2 select-none text-7xl font-bold text-primary/10 transition-colors duration-300 group-hover:text-primary/15">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+          )}
 
           {/* Content */}
-          <div className="relative z-10 flex h-full flex-col gap-3">
+          <div
+            className={cn("relative z-10 flex h-full flex-col gap-3", pillar.imageUrl && "pr-20")}
+          >
             <h3 className="text-base font-semibold">{pillar.name}</h3>
             <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">
               {pillar.description}
