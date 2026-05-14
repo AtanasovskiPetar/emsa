@@ -1,7 +1,7 @@
 import { serve } from "bun";
 import { eq } from "drizzle-orm";
 
-import { organization } from "./db/schema";
+import { organization, pillars, projects } from "./db/schema";
 import index from "./index.html";
 import { db } from "./lib/db";
 import { env } from "./lib/env";
@@ -40,9 +40,50 @@ function getOrgMeta(): Promise<OrgMeta> {
   return orgMetaPromise;
 }
 
+async function buildSitemap(): Promise<string> {
+  const base = env.APP_URL.replace(/\/$/, "");
+  const now = new Date().toISOString().split("T")[0];
+
+  const [projectRows, pillarRows] = await Promise.all([
+    db.select({ id: projects.id, updatedAt: projects.updatedAt }).from(projects),
+    db.select({ id: pillars.id, updatedAt: pillars.updatedAt }).from(pillars),
+  ]);
+
+  const staticUrls = [
+    `<url><loc>${base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority><lastmod>${now}</lastmod></url>`,
+    `<url><loc>${base}/projects</loc><changefreq>weekly</changefreq><priority>0.8</priority><lastmod>${now}</lastmod></url>`,
+  ];
+
+  const projectUrls = projectRows.map(
+    (p) =>
+      `<url><loc>${base}/projects/${p.id}</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${p.updatedAt.toISOString().split("T")[0]}</lastmod></url>`
+  );
+
+  const pillarUrls = pillarRows.map(
+    (p) =>
+      `<url><loc>${base}/pillars/${p.id}</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${p.updatedAt.toISOString().split("T")[0]}</lastmod></url>`
+  );
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${[...staticUrls, ...projectUrls, ...pillarUrls].join("\n")}
+</urlset>`;
+}
+
 const server = serve({
   port: env.PORT,
   routes: {
+    "/robots.txt": () =>
+      new Response(
+        `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: ${env.APP_URL.replace(/\/$/, "")}/sitemap.xml\n`,
+        { headers: { "Content-Type": "text/plain; charset=utf-8" } }
+      ),
+    "/sitemap.xml": async () => {
+      const xml = await buildSitemap();
+      return new Response(xml, {
+        headers: { "Content-Type": "application/xml; charset=utf-8" },
+      });
+    },
     "/*": isProd
       ? async (req: Request) => {
           const pathname = new URL(req.url).pathname;
