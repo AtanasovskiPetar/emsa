@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
-import { getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const meColumns = {
   id: users.id,
@@ -89,6 +89,7 @@ const updateMe = withRole(
         index: users.index,
         yearOfStudies: users.yearOfStudies,
         profileCompleted: users.profileCompleted,
+        imageUrl: users.imageUrl,
       })
       .from(users)
       .where(eq(users.id, user.sub))
@@ -113,6 +114,10 @@ const updateMe = withRole(
 
     if (!updated) {
       return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (current.imageUrl && data.imageUrl !== undefined && data.imageUrl !== current.imageUrl) {
+      deleteS3Object(current.imageUrl).catch(console.error);
     }
 
     const [activeRow] = await db

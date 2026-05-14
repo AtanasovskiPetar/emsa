@@ -6,6 +6,7 @@ import { pillarSchema, updatePillarSchema } from "@/constants/schemas";
 import { pillars, projectImages, projects, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, parseBody, withRole } from "@/lib/middleware";
+import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 // Public
 const getPillars = async () => {
@@ -14,6 +15,7 @@ const getPillars = async () => {
       id: pillars.id,
       name: pillars.name,
       description: pillars.description,
+      imageUrl: pillars.imageUrl,
       directorName: users.name,
       directorImageUrl: users.imageUrl,
     })
@@ -32,6 +34,7 @@ const getPillarById = async (req: BunRequest<{ id: string }>) => {
       id: pillars.id,
       name: pillars.name,
       description: pillars.description,
+      imageUrl: pillars.imageUrl,
       directorName: users.name,
       directorImageUrl: users.imageUrl,
     })
@@ -91,6 +94,7 @@ const getPillarsAdmin = withRole(Role.SUPER_ADMIN, async () => {
       id: pillars.id,
       name: pillars.name,
       description: pillars.description,
+      imageUrl: pillars.imageUrl,
       directorId: pillars.directorId,
       directorName: users.name,
       createdAt: pillars.createdAt,
@@ -118,6 +122,8 @@ const updatePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
   const data = await parseBody(req, updatePillarSchema);
 
+  const [existing] = await db.select().from(pillars).where(eq(pillars.id, id)).limit(1);
+
   const [updated] = await db
     .update(pillars)
     .set({ ...data, updatedAt: new Date() })
@@ -126,6 +132,10 @@ const updatePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
 
   if (!updated) {
     return Response.json({ error: "Pillar not found" }, { status: 404 });
+  }
+
+  if (existing?.imageUrl && data.imageUrl !== undefined && data.imageUrl !== existing.imageUrl) {
+    deleteS3Object(existing.imageUrl).catch(console.error);
   }
 
   return Response.json(updated);
@@ -146,9 +156,18 @@ const deletePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   return Response.json({ success: true });
 });
 
+const getPillarUploadUrl = withRole(Role.SUPER_ADMIN, async (req) => {
+  const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
+  const ext = validateImageContentType(contentType);
+  const key = `pillar/${crypto.randomUUID()}.${ext}`;
+  const { uploadUrl, fileUrl } = await getPresignedUploadUrl(key, contentType);
+  return Response.json({ uploadUrl, fileUrl, key });
+});
+
 export const pillarRoutes = {
   [ApiRoutes.PILLARS]: { GET: getPillars },
   [ApiRoutes.PILLAR_BY_ID]: { GET: getPillarById },
   [ApiRoutes.ADMIN_PILLARS]: { GET: getPillarsAdmin, POST: createPillar },
   [ApiRoutes.ADMIN_PILLAR_BY_ID]: { PATCH: updatePillar, DELETE: deletePillar },
+  [ApiRoutes.ADMIN_PILLARS_UPLOAD]: { GET: getPillarUploadUrl },
 };

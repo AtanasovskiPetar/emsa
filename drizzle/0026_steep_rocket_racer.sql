@@ -1,0 +1,1 @@
+ALTER TABLE "pillars" ADD COLUMN "image_url" varchar(2048);

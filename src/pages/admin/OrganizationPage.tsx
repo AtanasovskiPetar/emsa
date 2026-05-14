@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
@@ -13,63 +13,7 @@ import { ApiRoutes } from "@/constants/routes";
 import { type UpdateOrganizationPayload } from "@/constants/schemas";
 import { type ImageEntry, type Organization } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
-import { getImageSrc, uploadImageToS3 } from "@/lib/utils";
-
-interface ImageUploadProps {
-  label: string;
-  state: ImageEntry;
-  onChange: (state: ImageEntry) => void;
-}
-
-function ImageUpload({ label, state, onChange }: ImageUploadProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const src = getImageSrc(state);
-
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (state.type === "new") URL.revokeObjectURL(state.previewUrl);
-    onChange({ type: "new", file, previewUrl: URL.createObjectURL(file) });
-    e.target.value = "";
-  }
-
-  function handleRemove() {
-    if (state.type === "new") URL.revokeObjectURL(state.previewUrl);
-    onChange({ type: "none" });
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      {src ? (
-        <div className="group relative w-fit">
-          <img src={src} alt={label} className="h-32 rounded-md border object-cover" />
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      ) : (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="flex h-32 w-48 cursor-pointer items-center justify-center rounded-md border border-dashed text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-        >
-          <ImagePlus className="size-5" />
-        </div>
-      )}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-    </div>
-  );
-}
+import { uploadImageToS3 } from "@/lib/utils";
 
 type FormValues = {
   name: string;
@@ -206,7 +150,10 @@ export function OrganizationPage() {
           </div>
         </div>
 
-        <ImageUpload label="Logo" state={logo} onChange={setLogo} />
+        <div className="flex flex-col gap-2">
+          <Label>Logo</Label>
+          <ImageUpload state={logo} onChange={setLogo} />
+        </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="description">Description</Label>

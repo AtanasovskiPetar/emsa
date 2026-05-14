@@ -183,6 +183,13 @@
       "when": 1778530925588,
       "tag": "0025_far_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778776358529,
+      "tag": "0026_steep_rocket_racer",
+      "breakpoints": true
     }
   ]
 }
