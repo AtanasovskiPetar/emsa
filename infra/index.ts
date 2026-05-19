@@ -132,10 +132,11 @@ if (deployType === "app") {
   const jwtSecret = config.requireSecret("jwtSecret");
   const googleClientId = config.requireSecret("googleClientId");
   const googleClientSecret = config.requireSecret("googleClientSecret");
-  const awsAccessKeyId = config.requireSecret("awsAccessKeyId");
-  const awsSecretAccessKey = config.requireSecret("awsSecretAccessKey");
-  const awsRegion = config.get("awsRegion") ?? "eu-north-1";
-  const awsS3Bucket = config.get("awsS3Bucket") ?? "emsa-bucket";
+  const r2AccessKeyId = config.requireSecret("r2AccessKeyId");
+  const r2SecretAccessKey = config.requireSecret("r2SecretAccessKey");
+  const r2AccountId = config.requireSecret("r2AccountId");
+  const r2Bucket = config.require("r2Bucket");
+  const r2PublicUrl = config.require("r2PublicUrl");
   const resendApiKey = config.requireSecret("resendApiKey");
   const fromEmail = config.get("fromEmail") ?? "noreply@emsa.mk";
 
@@ -219,10 +220,11 @@ GOOGLE_CLIENT_ID=${googleClientId}
 GOOGLE_CLIENT_SECRET=${googleClientSecret}
 GOOGLE_REDIRECT_URI=https://${domain}/api/auth/google/callback
 APP_URL=https://${domain}
-AWS_ACCESS_KEY_ID=${awsAccessKeyId}
-AWS_SECRET_ACCESS_KEY=${awsSecretAccessKey}
-AWS_REGION=${awsRegion}
-AWS_S3_BUCKET=${awsS3Bucket}
+R2_ACCESS_KEY_ID=${r2AccessKeyId}
+R2_SECRET_ACCESS_KEY=${r2SecretAccessKey}
+R2_ACCOUNT_ID=${r2AccountId}
+R2_BUCKET=${r2Bucket}
+R2_PUBLIC_URL=${r2PublicUrl}
 RESEND_API_KEY=${resendApiKey}
 FROM_EMAIL=${fromEmail}
 ENVEOF`;

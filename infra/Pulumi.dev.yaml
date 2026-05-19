@@ -11,12 +11,14 @@ config:
     secure: AAABAFNCGFSMRDIl0tN9FySfJGxazcUKTX/m/ZlxlrvK4KoVk7q1Ef3iMvVdwOVvk+04dWz0guQjGb5QwJ1zGn5QhAw42FE8Z2QKOl4GqgoOhj1gTP9X2+EwWQ9VKHirAKKSMNyWqmw=
   emsa:googleClientSecret:
     secure: AAABAG/AGDqB5aFzHjhgMxAX5szGEKzZZqMgSI4hBmo//8Di/l7scOewb0IDVNhiMZQzXFHQcXAzMzko0u2DiZv+qA==
-  emsa:awsAccessKeyId:
-    secure: AAABAOo4VUYMzb+rpa3DFXi2LvWI2CkjFONTEwgtCCEqeLYh/Xzu2QaZPox+VB4qF2Kthw==
-  emsa:awsSecretAccessKey:
-    secure: AAABALdeV6tqSH/T6O+SSGievn4gPaVCJNwO4Pvjek7hhF235B4d0PcP+HUy4SWw7rDKpLje5vS7seKGB+yeDQznst127xsT
-  emsa:awsRegion: eu-north-1
-  emsa:awsS3Bucket: emsa-dev
   emsa:resendApiKey:
     secure: AAABAIPNnZxqtGaA+HF6Fr2oLRbR8oUOFWbD1Jpu364A4my5eAI8tVX9Dmtg8TrEgKx1x+KSyWPq6KdUvFU3RHHwBhU=
   emsa:fromEmail: dev-noreply@emsa.mk
+  emsa:r2AccessKeyId:
+    secure: AAABAAuxQGdKVY7vobsZn5zOUW9sl6ym4c+46g0F9Oe2LUG5ZVGiTBb5gl4XUDqolz6HwtCmNSOqai1QsHD4gQ==
+  emsa:r2SecretAccessKey:
+    secure: AAABAKgaYFVTZzMFgcz0h2RBfGqAmWj83QFWBXrV74rQ661plgXMix8c4LhDtv/9NSF5bqGL0hDdojK7e51bXkGDs3nW0/QinnY2W09tGMzeV2liX/SPenvV2U2l3o9n
+  emsa:r2AccountId:
+    secure: AAABABGojDwl3oVtg5l1stNV0piIyo0wkOCCQErn4Z1xZM9WU3M5udUZFpgMVPFXkXRBMtpJ7/ReQIwwKZb5qA==
+  emsa:r2Bucket: emsa-dev
+  emsa:r2PublicUrl: https://pub-57e798f3075548e5b438633bf55edc46.r2.dev
