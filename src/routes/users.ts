@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
 import { parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import { deleteObject, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const meColumns = {
   id: users.id,
@@ -117,7 +117,7 @@ const updateMe = withRole(
     }
 
     if (current.imageUrl && data.imageUrl !== undefined && data.imageUrl !== current.imageUrl) {
-      deleteS3Object(current.imageUrl).catch(console.error);
+      deleteObject(current.imageUrl).catch(console.error);
     }
 
     const [activeRow] = await db

@@ -6,7 +6,7 @@ import { pillarSchema, updatePillarSchema } from "@/constants/schemas";
 import { pillars, projectImages, projects, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import { deleteObject, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 // Public
 const getPillars = async () => {
@@ -135,7 +135,7 @@ const updatePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   }
 
   if (existing?.imageUrl && data.imageUrl !== undefined && data.imageUrl !== existing.imageUrl) {
-    deleteS3Object(existing.imageUrl).catch(console.error);
+    deleteObject(existing.imageUrl).catch(console.error);
   }
 
   return Response.json(updated);
