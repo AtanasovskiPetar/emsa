@@ -112,7 +112,10 @@ export function HomePage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <a href="#about">Learn more</a>
+                  <a href="#pillars">Pillars</a>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <a href="#about">About Us</a>
                 </Button>
               </motion.div>
 
@@ -279,7 +282,7 @@ export function HomePage() {
       )}
 
       {/* Pillars */}
-      <section className={cn("py-20", org?.aboutUs ? "bg-primary/5" : "border-t")}>
+      <section id="pillars" className={cn("py-20", org?.aboutUs ? "bg-primary/5" : "border-t")}>
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-12">
             <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
