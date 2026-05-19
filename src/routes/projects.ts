@@ -14,7 +14,7 @@ import {
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Objects, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import { deleteObjects, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 // Public
 const getProjects = async () => {
@@ -315,7 +315,7 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   const { imageUrls, startingAt, endingAt, registrationOpensAt, registrationClosesAt, ...rest } =
     await parseBody(req, updateProjectSchema);
 
-  let imagesToDeleteFromS3: { url: string }[] = [];
+  let imagesToDelete: { url: string }[] = [];
 
   const updated = await db.transaction(async (tx) => {
     const [project] = await tx
@@ -359,7 +359,7 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
             )
           )
         );
-        imagesToDeleteFromS3 = toDelete;
+        imagesToDelete = toDelete;
       }
 
       if (toInsert.length > 0) {
@@ -382,7 +382,7 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
     return project;
   });
 
-  await deleteS3Objects(imagesToDeleteFromS3.map((img) => img.url));
+  await deleteObjects(imagesToDelete.map((img) => img.url));
 
   return Response.json(updated);
 });
@@ -408,7 +408,7 @@ const deleteProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
     return Response.json({ error: "Project not found" }, { status: 404 });
   }
 
-  await deleteS3Objects(images.map((img) => img.url));
+  await deleteObjects(images.map((img) => img.url));
 
   return Response.json({ success: true });
 });

@@ -5,7 +5,7 @@ import { ALLOWED_IMAGE_TYPES } from "@/constants/schemas";
 import { env } from "@/lib/env";
 import { HttpError } from "@/lib/middleware";
 
-const s3 = new S3Client({
+const r2 = new S3Client({
   region: "auto",
   endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
@@ -24,19 +24,19 @@ export async function getPresignedUploadUrl(
     ContentType: contentType,
   });
 
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
+  const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 300 });
   const fileUrl = `${env.R2_PUBLIC_URL}/${key}`;
 
   return { uploadUrl, fileUrl };
 }
 
-export async function deleteS3Object(fileUrl: string): Promise<void> {
+export async function deleteObject(fileUrl: string): Promise<void> {
   const key = new URL(fileUrl).pathname.slice(1);
-  await s3.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
+  await r2.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
 }
 
-export async function deleteS3Objects(urls: string[]): Promise<void> {
-  await Promise.all(urls.map((url) => deleteS3Object(url).catch(console.error)));
+export async function deleteObjects(urls: string[]): Promise<void> {
+  await Promise.all(urls.map((url) => deleteObject(url).catch(console.error)));
 }
 
 export function validateImageContentType(contentType: string): string {

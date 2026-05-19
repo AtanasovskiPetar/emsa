@@ -6,7 +6,7 @@ import { updateOrganizationSchema } from "@/constants/schemas";
 import { organization } from "@/db/schema";
 import { db } from "@/lib/db";
 import { parseBody, withRole } from "@/lib/middleware";
-import { deleteS3Object, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import { deleteObject, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const ORG_ID = 1;
 
@@ -56,7 +56,7 @@ const updateOrganization = withRole(Role.SUPER_ADMIN, async (req) => {
     .returning();
 
   if (existing?.logoUrl && data.logoUrl !== undefined && data.logoUrl !== existing.logoUrl) {
-    deleteS3Object(existing.logoUrl).catch(console.error);
+    deleteObject(existing.logoUrl).catch(console.error);
   }
 
   return Response.json(updated);
