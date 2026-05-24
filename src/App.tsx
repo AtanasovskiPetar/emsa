@@ -10,6 +10,7 @@ import { ProfileGuard } from "@/components/ProfileGuard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { AuthProvider } from "@/context/auth";
@@ -17,7 +18,7 @@ import { apiClient } from "@/lib/api-client";
 
 function OrganizationMeta() {
   const { data: org } = useQuery({
-    queryKey: ["organization"],
+    queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
     staleTime: Infinity,
   });
@@ -58,6 +59,9 @@ const ProjectDetailPage = lazy(() =>
 );
 const PillarDetailPage = lazy(() =>
   import("@/pages/PillarDetailPage").then((m) => ({ default: m.PillarDetailPage }))
+);
+const GalleryPage = lazy(() =>
+  import("@/pages/GalleryPage").then((m) => ({ default: m.GalleryPage }))
 );
 
 // Auth / misc
@@ -127,6 +131,7 @@ export default function App() {
                     <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
                     <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
                     <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
+                    <Route path={PageRoutes.GALLERY} element={<GalleryPage />} />
                     <Route
                       path={PageRoutes.PROFILE}
                       element={

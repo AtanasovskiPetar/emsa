@@ -20,6 +20,7 @@ export interface AdminUser {
   phone: string | null;
   index: string | null;
   yearOfStudies: number | null;
+  university: string | null;
   profileCompleted: boolean;
   role: Role;
   isAlumni: boolean;
@@ -38,6 +39,7 @@ export interface UserProfile {
   imageUrl: string | null;
   index: string | null;
   yearOfStudies: number | null;
+  university: string | null;
   profileCompleted: boolean;
   isAlumni: boolean;
   isActive: boolean;
@@ -68,6 +70,8 @@ export interface ProjectRegistration {
   userEmail: string;
   userIndex: string | null;
   attended: boolean;
+  certificateUrl: string | null;
+  certificateFilename: string | null;
   createdAt: string;
 }
 
@@ -103,6 +107,8 @@ export interface MyRegistration {
   registered: boolean;
   id?: string;
   createdAt?: string;
+  certificateUrl?: string | null;
+  certificateFilename?: string | null;
 }
 
 export interface PublicPillar {
@@ -173,3 +179,14 @@ export interface Position {
 }
 
 export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";
+
+export interface GalleryImage {
+  url: string;
+  label: string;
+}
+
+export interface GalleryResponse {
+  images: GalleryImage[];
+  total: number;
+  hasMore: boolean;
+}

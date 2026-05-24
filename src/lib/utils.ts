@@ -61,20 +61,20 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
-export async function uploadImageToS3(file: File, uploadRoute: string): Promise<string> {
-  const { uploadUrl, fileUrl } = await apiClient.get<{
-    uploadUrl: string;
-    fileUrl: string;
-    key: string;
-  }>(`${uploadRoute}?contentType=${encodeURIComponent(file.type)}`);
-
-  await fetch(uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
-  });
-
+async function presignedUpload(file: File, uploadRoute: string): Promise<string> {
+  const { uploadUrl, fileUrl } = await apiClient.get<{ uploadUrl: string; fileUrl: string }>(
+    `${uploadRoute}?contentType=${encodeURIComponent(file.type)}`
+  );
+  await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
   return fileUrl;
+}
+
+export async function uploadImageToS3(file: File, uploadRoute: string): Promise<string> {
+  return presignedUpload(file, uploadRoute);
+}
+
+export async function uploadFileToR2(file: File, uploadRoute: string): Promise<string> {
+  return presignedUpload(file, uploadRoute);
 }
 
 export function getRegistrationStatus(project: PublicProject): RegistrationStatus {
@@ -89,7 +89,7 @@ export function getRegistrationStatus(project: PublicProject): RegistrationStatu
 }
 
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
+  return new Date(dateStr).toLocaleDateString("en-GB");
 }
 
 export function toDateStr(date: Date): string {

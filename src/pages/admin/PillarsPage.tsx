@@ -7,11 +7,13 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
+import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { PillarDialog } from "@/components/admin/PillarDialog";
+import { RowActions } from "@/components/admin/RowActions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,7 @@ import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type Pillar } from "@/constants/types";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
+import { formatDate } from "@/lib/utils";
 
 function useColumns(
   onEdit: (pillar: Pillar) => void,
@@ -68,7 +71,7 @@ function useColumns(
       header: "Created",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(row.getValue<string>("createdAt")).toLocaleDateString()}
+          {formatDate(row.getValue<string>("createdAt"))}
         </span>
       ),
     },
@@ -76,19 +79,7 @@ function useColumns(
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)}>
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:text-destructive"
-            onClick={() => onDelete(row.original)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
+        <RowActions onEdit={() => onEdit(row.original)} onDelete={() => onDelete(row.original)} />
       ),
     },
   ];
@@ -202,14 +193,7 @@ export function PillarsPage() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No pillars found.
-                </TableCell>
-              </TableRow>
+              <DataTableEmptyRow colSpan={columns.length} message="No pillars found." />
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>

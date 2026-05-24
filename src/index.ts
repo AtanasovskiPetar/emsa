@@ -8,6 +8,7 @@ import { env } from "./lib/env";
 import { escapeHtml } from "./lib/utils";
 import { authRoutes } from "./routes/auth";
 import { dashboardRoutes } from "./routes/dashboard";
+import { galleryRoutes } from "./routes/gallery";
 import { organizationRoutes } from "./routes/organization";
 import { pillarRoutes } from "./routes/pillars";
 import { positionRoutes } from "./routes/positions";
@@ -99,6 +100,7 @@ const server = serve({
         }
       : index,
     ...authRoutes,
+    ...galleryRoutes,
     ...organizationRoutes,
     ...pillarRoutes,
     ...positionRoutes,

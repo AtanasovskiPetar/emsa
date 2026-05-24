@@ -23,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -32,6 +33,7 @@ import { cn, hasAccess } from "@/lib/utils";
 const navLinks = [
   { label: "Home", to: PageRoutes.HOME },
   { label: "Projects", to: PageRoutes.PROJECTS },
+  { label: "Gallery", to: PageRoutes.GALLERY },
 ];
 
 function OrgLogo({ org }: { org?: OrganizationPublic }) {
@@ -217,7 +219,7 @@ function MobileUserSection({ onClose }: { onClose: () => void }) {
 export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: org } = useQuery({
-    queryKey: ["organization"],
+    queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
     staleTime: Infinity,
   });

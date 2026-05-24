@@ -3,6 +3,7 @@ import { CalendarDays, ChevronRight, FolderOpen, Mountain, Users } from "lucide-
 import { Link } from "react-router-dom";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type DashboardStats } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -16,7 +17,7 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-const TODAY = new Date().toLocaleDateString("en-US", {
+const TODAY = new Date().toLocaleDateString("en-GB", {
   weekday: "long",
   year: "numeric",
   month: "long",
@@ -86,7 +87,7 @@ export function DashboardPage() {
   const { user } = useAuth();
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["admin", "dashboard"],
+    queryKey: queryKeys.admin.dashboard(),
     queryFn: () => apiClient.get<DashboardStats>(ApiRoutes.ADMIN_DASHBOARD),
   });
 
@@ -139,7 +140,7 @@ export function DashboardPage() {
                 <span>
                   Next: <span className="font-medium text-foreground">{nextProject.title}</span>
                   {" · "}
-                  {new Date(nextProject.startingAt).toLocaleDateString("en-US", {
+                  {new Date(nextProject.startingAt).toLocaleDateString("en-GB", {
                     month: "short",
                     day: "numeric",
                   })}

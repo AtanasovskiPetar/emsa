@@ -11,6 +11,7 @@ import { AlertCircle, CheckCircle2, Info, Pencil, Search, Trash2, Upload, X } fr
 import Papa from "papaparse";
 import React, { useState } from "react";
 
+import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { MembershipBadge } from "@/components/MembershipBadge";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,15 @@ function useColumns(
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {row.getValue<number | null>("yearOfStudies") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "university",
+      header: "University",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue<string | null>("university") ?? "—"}
         </span>
       ),
     },
@@ -230,7 +240,7 @@ function useColumns(
       header: "Joined",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(row.getValue<string>("createdAt")).toLocaleDateString()}
+          {formatDate(row.getValue<string>("createdAt"))}
         </span>
       ),
     },
@@ -894,14 +904,7 @@ export function UsersPage() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No users found.
-                </TableCell>
-              </TableRow>
+              <DataTableEmptyRow colSpan={columns.length} message="No users found." />
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
