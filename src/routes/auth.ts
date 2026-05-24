@@ -32,7 +32,7 @@ async function register(req: Request): Promise<Response> {
   if (!body.success) {
     return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
   }
-  const { name, email, password, phone, index, yearOfStudies } = body.data;
+  const { name, email, password, phone, index, yearOfStudies, university } = body.data;
 
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
@@ -50,6 +50,7 @@ async function register(req: Request): Promise<Response> {
       phone,
       index,
       yearOfStudies,
+      university: university ?? null,
       profileCompleted: true,
       role: Role.USER,
     })

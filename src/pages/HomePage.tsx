@@ -9,6 +9,7 @@ import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import {
   type OrganizationPublic,
@@ -36,23 +37,23 @@ function getPreviewProjects(projects: PublicProject[]): PublicProject[] {
 
 export function HomePage() {
   const { data: org } = useQuery({
-    queryKey: ["organization"],
+    queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
     staleTime: Infinity,
   });
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["public-projects"],
+    queryKey: queryKeys.publicProjects(),
     queryFn: () => apiClient.get<PublicProject[]>(ApiRoutes.PROJECTS),
   });
 
   const { data: pillars, isLoading: pillarsLoading } = useQuery({
-    queryKey: ["public-pillars"],
+    queryKey: queryKeys.publicPillars(),
     queryFn: () => apiClient.get<PublicPillar[]>(ApiRoutes.PILLARS),
   });
 
   const { data: positions, isLoading: positionsLoading } = useQuery({
-    queryKey: ["positions"],
+    queryKey: queryKeys.positions(),
     queryFn: () => apiClient.get<PublicPosition[]>(ApiRoutes.POSITIONS),
   });
 

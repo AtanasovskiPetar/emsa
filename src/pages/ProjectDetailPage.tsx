@@ -2,111 +2,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
+  Award,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
+  Download,
   Images,
   Layers,
-  X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { Lightbox } from "@/components/Lightbox";
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type MyRegistration, type PublicProject } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
 import { cn, getRegistrationStatus } from "@/lib/utils";
-
-function Lightbox({
-  images,
-  index,
-  onClose,
-}: {
-  images: string[];
-  index: number;
-  onClose: () => void;
-}) {
-  const [current, setCurrent] = useState(index);
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") setCurrent((i) => (i + 1) % images.length);
-      if (e.key === "ArrowLeft") setCurrent((i) => (i - 1 + images.length) % images.length);
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [images.length, onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-4"
-      onClick={onClose}
-    >
-      {/* Close */}
-      <button
-        aria-label="Close"
-        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
-        onClick={onClose}
-      >
-        <X className="size-5" />
-      </button>
-
-      {/* Image */}
-      <motion.img
-        key={current}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.2 }}
-        src={images[current]}
-        alt={`Image ${current + 1}`}
-        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      {/* Prev / Next */}
-      {images.length > 1 && (
-        <>
-          <button
-            aria-label="Previous image"
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrent((i) => (i - 1 + images.length) % images.length);
-            }}
-          >
-            <ChevronLeft className="size-6" />
-          </button>
-          <button
-            aria-label="Next image"
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrent((i) => (i + 1) % images.length);
-            }}
-          >
-            <ChevronRight className="size-6" />
-          </button>
-        </>
-      )}
-
-      {/* Counter */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-        {current + 1} / {images.length}
-      </div>
-    </motion.div>
-  );
-}
 
 interface RegistrationSectionProps {
   project: PublicProject;
@@ -136,14 +53,30 @@ function RegistrationSection({
 
   if (myRegistration?.registered) {
     return (
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 text-sm text-green-600">
-          <CheckCircle2 className="size-4" />
-          <span>You&apos;re registered</span>
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 text-sm text-green-600">
+            <CheckCircle2 className="size-4" />
+            <span>You&apos;re registered</span>
+          </div>
+          {canUnregister && (
+            <Button variant="outline" size="sm" onClick={onUnregister} disabled={isUnregistering}>
+              {isUnregistering ? "Cancelling..." : "Cancel registration"}
+            </Button>
+          )}
         </div>
-        {canUnregister && (
-          <Button onClick={onUnregister} disabled={isUnregistering}>
-            {isUnregistering ? "Cancelling..." : "Cancel"}
+        {myRegistration.certificateUrl && (
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href={myRegistration.certificateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={myRegistration.certificateFilename ?? undefined}
+            >
+              <Award className="size-4" />
+              <Download className="size-3.5" />
+              Certificate
+            </a>
           </Button>
         )}
       </div>
@@ -153,7 +86,7 @@ function RegistrationSection({
   if (status === "not_open" || status === "closed" || status === "full") {
     const label =
       status === "not_open"
-        ? `Registration opens ${new Date(project.registrationOpensAt!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+        ? `Registration opens ${new Date(project.registrationOpensAt!).toLocaleString("en-GB", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
         : status === "full"
           ? "No spots remaining"
           : "Registration closed";
@@ -205,21 +138,21 @@ export function ProjectDetailPage() {
   const { user } = useAuth();
 
   const { data: project, isLoading } = useQuery({
-    queryKey: ["public-project", id],
+    queryKey: queryKeys.publicProject(id!),
     queryFn: () => apiClient.get<PublicProject>(ApiRoutes.PROJECT_BY_ID.replace(":id", id!)),
     enabled: !!id,
   });
 
   const { data: myRegistration } = useQuery({
-    queryKey: ["my-registration", id],
+    queryKey: queryKeys.myRegistration(id!),
     queryFn: () =>
       apiClient.get<MyRegistration>(ApiRoutes.PROJECT_MY_REGISTRATION.replace(":id", id!)),
     enabled: !!id && !!user,
   });
 
   const invalidateRegistration = () => {
-    queryClient.invalidateQueries({ queryKey: ["my-registration", id] });
-    queryClient.invalidateQueries({ queryKey: ["public-project", id] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myRegistration(id!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.publicProject(id!) });
   };
 
   const {
@@ -240,7 +173,7 @@ export function ProjectDetailPage() {
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
 
   const formatProjectDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleString("en-US", {
+    new Date(dateStr).toLocaleString("en-GB", {
       weekday: "long",
       month: "long",
       day: "numeric",

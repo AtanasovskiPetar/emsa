@@ -7,6 +7,7 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/UserAvatar";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type PublicPillarDetail } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
@@ -15,7 +16,7 @@ export function PillarDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const { data: pillar, isLoading } = useQuery({
-    queryKey: ["public-pillar", id],
+    queryKey: queryKeys.publicPillar(id!),
     queryFn: () => apiClient.get<PublicPillarDetail>(ApiRoutes.PILLAR_BY_ID.replace(":id", id!)),
     enabled: !!id,
   });

@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   imageUrl: varchar("image_url", { length: 2048 }),
   index: varchar("student_index", { length: 50 }),
   yearOfStudies: integer("year_of_studies"),
+  university: varchar("university", { length: 500 }),
   profileCompleted: boolean("profile_completed").notNull().default(false),
   isAlumni: boolean("is_alumni").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -100,9 +101,31 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   registrations: many(projectRegistrations),
 }));
 
+export const registrationCertificates = pgTable("registration_certificates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  registrationId: uuid("registration_id")
+    .notNull()
+    .unique()
+    .references(() => projectRegistrations.id, { onDelete: "cascade" }),
+  url: varchar("url", { length: 2048 }).notNull(),
+  filename: varchar("filename", { length: 500 }).notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const projectRegistrationsRelations = relations(projectRegistrations, ({ one }) => ({
   project: one(projects, { fields: [projectRegistrations.projectId], references: [projects.id] }),
   user: one(users, { fields: [projectRegistrations.userId], references: [users.id] }),
+  certificate: one(registrationCertificates, {
+    fields: [projectRegistrations.id],
+    references: [registrationCertificates.registrationId],
+  }),
+}));
+
+export const registrationCertificatesRelations = relations(registrationCertificates, ({ one }) => ({
+  registration: one(projectRegistrations, {
+    fields: [registrationCertificates.registrationId],
+    references: [projectRegistrations.id],
+  }),
 }));
 
 export const projectImagesRelations = relations(projectImages, ({ one }) => ({

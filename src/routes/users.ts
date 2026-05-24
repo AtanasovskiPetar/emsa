@@ -26,6 +26,7 @@ const meColumns = {
   imageUrl: users.imageUrl,
   index: users.index,
   yearOfStudies: users.yearOfStudies,
+  university: users.university,
   profileCompleted: users.profileCompleted,
   isAlumni: users.isAlumni,
   createdAt: users.createdAt,
@@ -38,6 +39,7 @@ const adminUserColumns = {
   phone: users.phone,
   index: users.index,
   yearOfStudies: users.yearOfStudies,
+  university: users.university,
   profileCompleted: users.profileCompleted,
   role: users.role,
   isAlumni: users.isAlumni,
@@ -88,6 +90,7 @@ const updateMe = withRole(
         phone: users.phone,
         index: users.index,
         yearOfStudies: users.yearOfStudies,
+        university: users.university,
         profileCompleted: users.profileCompleted,
         imageUrl: users.imageUrl,
       })
@@ -160,6 +163,16 @@ const getPresignedUrl = withRole(
   },
   { allowIncomplete: true }
 );
+
+// Public
+const getUniversities = async () => {
+  const rows = await db
+    .selectDistinct({ university: users.university })
+    .from(users)
+    .where(isNotNull(users.university))
+    .orderBy(asc(users.university));
+  return Response.json(rows.map((r) => r.university).filter(Boolean));
+};
 
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
@@ -384,6 +397,7 @@ const resendWelcomeEmails = withRole(Role.SUPER_ADMIN, async (req) => {
 });
 
 export const userRoutes = {
+  [ApiRoutes.UNIVERSITIES]: { GET: getUniversities },
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
   [ApiRoutes.ADMIN_USERS]: { GET: getUsers },
