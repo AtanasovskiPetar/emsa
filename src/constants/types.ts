@@ -184,3 +184,9 @@ export interface GalleryImage {
   url: string;
   label: string;
 }
+
+export interface GalleryResponse {
+  images: GalleryImage[];
+  total: number;
+  hasMore: boolean;
+}
