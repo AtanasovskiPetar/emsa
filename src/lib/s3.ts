@@ -45,3 +45,17 @@ export function validateImageContentType(contentType: string): string {
   }
   return contentType.split("/")[1] ?? "jpg";
 }
+
+const ALLOWED_CERTIFICATE_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export function validateCertificateContentType(contentType: string): string {
+  if (!(ALLOWED_CERTIFICATE_TYPES as readonly string[]).includes(contentType)) {
+    throw new HttpError(400, "Unsupported file type. Allowed: PDF, JPEG, PNG, WebP.");
+  }
+  return contentType === "application/pdf" ? "pdf" : (contentType.split("/")[1] ?? "jpg");
+}

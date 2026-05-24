@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "university" varchar(500);

@@ -6,6 +6,8 @@ export const queryKeys = {
   publicPillars: () => ["public-pillars"] as const,
   publicProject: (id: string) => ["public-project", id] as const,
   publicPillar: (id: string) => ["public-pillar", id] as const,
+  gallery: () => ["gallery"] as const,
+  universities: () => ["universities"] as const,
   myRegistration: (projectId: string) => ["my-registration", projectId] as const,
   admin: {
     users: () => ["admin", "users"] as const,

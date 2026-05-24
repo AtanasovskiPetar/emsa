@@ -7,11 +7,13 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Pencil, Plus, Search, Trash2, UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Award, Plus, Search, Trash2, Upload, UserPlus, Users, X } from "lucide-react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
+import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { ProjectDialog } from "@/components/admin/ProjectDialog";
+import { RowActions } from "@/components/admin/RowActions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,7 +58,7 @@ import { type AdminUser, type Project, type ProjectRegistration } from "@/consta
 import { useAuth } from "@/context/auth";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
-import { formatDate, getInitials, hasAccess, stripHtml } from "@/lib/utils";
+import { formatDate, getInitials, hasAccess, stripHtml, uploadFileToR2 } from "@/lib/utils";
 
 function useColumns(
   onEdit: (project: Project) => void,
@@ -112,9 +114,7 @@ function useColumns(
       cell: ({ row }) => {
         const val = row.getValue<string | null>("registrationOpensAt");
         return val ? (
-          <span className="text-sm text-muted-foreground">
-            {new Date(val).toLocaleDateString()}
-          </span>
+          <span className="text-sm text-muted-foreground">{formatDate(val)}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
         );
@@ -124,29 +124,7 @@ function useColumns(
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(row.original);
-            }}
-          >
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(row.original);
-            }}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
+        <RowActions onEdit={() => onEdit(row.original)} onDelete={() => onDelete(row.original)} />
       ),
     },
   ];
@@ -157,10 +135,120 @@ interface ProjectRegistrationsDrawerProps {
   onClose: () => void;
 }
 
+function CertificateCell({ reg, onRefresh }: { reg: ProjectRegistration; onRefresh: () => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { mutate: saveCert, isPending: isSaving } = useMutation({
+    mutationFn: (body: { url: string; filename: string }) =>
+      apiClient.post(ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE.replace(":id", reg.id), body),
+    onSuccess: () => {
+      setError(null);
+      onRefresh();
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  const { mutate: deleteCert, isPending: isDeleting } = useMutation({
+    mutationFn: () =>
+      apiClient.delete(ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE.replace(":id", reg.id)),
+    onSuccess: () => {
+      setError(null);
+      onRefresh();
+    },
+    onError: (err) => setError(err.message),
+  });
+
+  const isWorking = uploading || isSaving;
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const uploadRoute = ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE_UPLOAD.replace(":id", reg.id);
+      const fileUrl = await uploadFileToR2(file, uploadRoute);
+      saveCert({ url: fileUrl, filename: file.name });
+    } catch {
+      setError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  if (reg.certificateUrl) {
+    return (
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-1">
+          <a
+            href={reg.certificateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={reg.certificateFilename ?? undefined}
+            className="flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <Award className="size-3" />
+            Certificate
+          </a>
+          <button
+            onClick={() => deleteCert()}
+            disabled={isDeleting}
+            className="ml-1 rounded p-0.5 text-muted-foreground hover:text-destructive"
+            aria-label="Remove certificate"
+          >
+            <X className="size-3" />
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isWorking}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+            aria-label="Replace certificate"
+          >
+            <Upload className="size-3" />
+          </button>
+        </div>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
+          className="sr-only"
+          onChange={handleFileChange}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isWorking}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <Upload className="size-3" />
+        {isWorking ? "Uploading..." : "Upload certificate"}
+      </button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        className="sr-only"
+        onChange={handleFileChange}
+      />
+    </div>
+  );
+}
+
 function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDrawerProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
+  const isAdmin = hasAccess(user?.role ?? Role.USER, Role.ADMIN);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [drawerError, setDrawerError] = useState<string | null>(null);
 
@@ -276,7 +364,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
                       <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <div className="flex items-center gap-1.5">
                       <Switch
                         id={`attended-${reg.id}`}
@@ -291,16 +379,24 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
                       >
                         Attended
                       </label>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteRegistration(reg.id)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
                     </div>
-                    {isSuperAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteRegistration(reg.id)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                    {isAdmin && (
+                      <CertificateCell
+                        reg={reg}
+                        onRefresh={() =>
+                          queryClient.invalidateQueries({ queryKey: registrationsQueryKey })
+                        }
+                      />
                     )}
                   </div>
                 </li>
@@ -418,14 +514,7 @@ export function ProjectsPage() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No projects found.
-                </TableCell>
-              </TableRow>
+              <DataTableEmptyRow colSpan={columns.length} message="No projects found." />
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow

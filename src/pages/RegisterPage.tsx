@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type RegisterSchema, registerSchema } from "@/constants/schemas";
 import { useAuth } from "@/context/auth";
@@ -34,6 +35,7 @@ export function RegisterPage() {
       phone: "",
       index: "",
       yearOfStudies: undefined,
+      university: null,
     },
   });
 
@@ -147,6 +149,20 @@ export function RegisterPage() {
                         value={field.value ?? ""}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="university"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>University</FormLabel>
+                    <FormControl>
+                      <UniversityCombobox value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type PublicPillar, type PublicProject } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
@@ -21,12 +22,12 @@ export function ProjectsPage() {
   const [onlyUpcoming, setOnlyUpcoming] = useState(false);
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["public-projects"],
+    queryKey: queryKeys.publicProjects(),
     queryFn: () => apiClient.get<PublicProject[]>(ApiRoutes.PROJECTS),
   });
 
   const { data: pillars } = useQuery({
-    queryKey: ["public-pillars"],
+    queryKey: queryKeys.publicPillars(),
     queryFn: () => apiClient.get<PublicPillar[]>(ApiRoutes.PILLARS),
   });
 
