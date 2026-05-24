@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { UserAvatar } from "@/components/UserAvatar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
@@ -69,6 +70,7 @@ export function ProfilePage() {
       phone: profile.phone,
       index: profile.index,
       yearOfStudies: profile.yearOfStudies,
+      university: profile.university,
     });
   }, [profile, form]);
 
@@ -78,6 +80,7 @@ export function ProfilePage() {
       phone: values.phone,
       index: values.index,
       yearOfStudies: values.yearOfStudies,
+      university: values.university,
     };
 
     if (imageEntry.type === "new") {
@@ -298,6 +301,19 @@ export function ProfilePage() {
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
                           />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="university"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>University</FormLabel>
+                        <FormControl>
+                          <UniversityCombobox value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

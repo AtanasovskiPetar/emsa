@@ -19,7 +19,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
   const cover = project.images[0];
   const isUpcoming = new Date(project.startingAt) >= new Date();
   const formatCardDate = (dateStr: string, opts?: Intl.DateTimeFormatOptions) =>
-    new Date(dateStr).toLocaleDateString("en-US", {
+    new Date(dateStr).toLocaleDateString("en-GB", {
       month: "short",
       day: "numeric",
       year: "numeric",

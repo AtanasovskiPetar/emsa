@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type UpdateOrganizationPayload } from "@/constants/schemas";
 import { type ImageEntry, type Organization } from "@/constants/types";
@@ -31,7 +32,7 @@ export function OrganizationPage() {
   const [logo, setLogo] = useState<ImageEntry>({ type: "none" });
 
   const { data: org, isLoading } = useQuery({
-    queryKey: ["admin", "organization"],
+    queryKey: queryKeys.admin.organization(),
     queryFn: () => apiClient.get<Organization | null>(ApiRoutes.ADMIN_ORGANIZATION),
   });
 

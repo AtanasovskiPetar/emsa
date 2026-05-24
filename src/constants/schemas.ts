@@ -24,6 +24,7 @@ export const registerSchema = z.object({
     .int()
     .min(1, { message: "Year must be between 1 and 6" })
     .max(6, { message: "Year must be between 1 and 6" }),
+  university: z.string().trim().min(1).optional().nullable(),
 });
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
@@ -218,6 +219,7 @@ export const updateMeSchema = z
       .max(6, { message: "Year must be between 1 and 6" })
       .optional()
       .nullable(),
+    university: z.string().trim().min(1).optional().nullable(),
   })
   .refine(
     (data) =>
@@ -225,7 +227,8 @@ export const updateMeSchema = z
       data.phone !== undefined ||
       data.imageUrl !== undefined ||
       data.index !== undefined ||
-      data.yearOfStudies !== undefined,
+      data.yearOfStudies !== undefined ||
+      data.university !== undefined,
     { message: "At least one field must be provided" }
   );
 

@@ -21,6 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Role } from "@/constants/enums";
+import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -107,7 +108,7 @@ export function AdminLayout() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const { data: org } = useQuery({
-    queryKey: ["organization"],
+    queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
     staleTime: Infinity,
   });

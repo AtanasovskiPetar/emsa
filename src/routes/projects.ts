@@ -9,12 +9,19 @@ import {
   projectImages,
   projectRegistrations,
   projects,
+  registrationCertificates,
   userActivations,
   users,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
-import { deleteObjects, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
+import {
+  deleteObject,
+  deleteObjects,
+  getPresignedUploadUrl,
+  validateCertificateContentType,
+  validateImageContentType,
+} from "@/lib/s3";
 
 // Public
 const getProjects = async () => {
@@ -118,13 +125,30 @@ const getMyRegistration = withRole<{ id: string }>(Role.USER, async (req, user) 
   const { id } = req.params;
 
   const [reg] = await db
-    .select({ id: projectRegistrations.id, createdAt: projectRegistrations.createdAt })
+    .select({
+      id: projectRegistrations.id,
+      createdAt: projectRegistrations.createdAt,
+      certificateUrl: registrationCertificates.url,
+      certificateFilename: registrationCertificates.filename,
+    })
     .from(projectRegistrations)
+    .leftJoin(
+      registrationCertificates,
+      eq(registrationCertificates.registrationId, projectRegistrations.id)
+    )
     .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
     .limit(1);
 
   return Response.json(
-    reg ? { registered: true, id: reg.id, createdAt: reg.createdAt } : { registered: false }
+    reg
+      ? {
+          registered: true,
+          id: reg.id,
+          createdAt: reg.createdAt,
+          certificateUrl: reg.certificateUrl ?? null,
+          certificateFilename: reg.certificateFilename ?? null,
+        }
+      : { registered: false }
   );
 });
 
@@ -433,14 +457,26 @@ const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req)
       userEmail: users.email,
       userIndex: users.index,
       attended: projectRegistrations.attended,
+      certificateUrl: registrationCertificates.url,
+      certificateFilename: registrationCertificates.filename,
       createdAt: projectRegistrations.createdAt,
     })
     .from(projectRegistrations)
     .innerJoin(users, eq(projectRegistrations.userId, users.id))
+    .leftJoin(
+      registrationCertificates,
+      eq(registrationCertificates.registrationId, projectRegistrations.id)
+    )
     .where(eq(projectRegistrations.projectId, id))
     .orderBy(projectRegistrations.createdAt);
 
-  return Response.json(rows);
+  return Response.json(
+    rows.map((r) => ({
+      ...r,
+      certificateUrl: r.certificateUrl ?? null,
+      certificateFilename: r.certificateFilename ?? null,
+    }))
+  );
 });
 
 const updateRegistrationAttended = withRole<{ id: string }>(Role.ADMIN, async (req) => {
@@ -493,6 +529,77 @@ const deleteProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, asy
   return Response.json({ success: true });
 });
 
+const getCertificateUploadUrl = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+  const contentType = new URL(req.url).searchParams.get("contentType") ?? "application/pdf";
+  const ext = validateCertificateContentType(contentType);
+
+  const [reg] = await db
+    .select({ id: projectRegistrations.id })
+    .from(projectRegistrations)
+    .where(eq(projectRegistrations.id, id))
+    .limit(1);
+
+  if (!reg) return Response.json({ error: "Registration not found" }, { status: 404 });
+
+  const key = `certificates/${id}/${crypto.randomUUID()}.${ext}`;
+  const { uploadUrl, fileUrl } = await getPresignedUploadUrl(key, contentType);
+  return Response.json({ uploadUrl, fileUrl });
+});
+
+const saveCertificate = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+  const body = await parseBody(req, z.object({ url: z.url(), filename: z.string().min(1) }));
+
+  const [reg] = await db
+    .select({ id: projectRegistrations.id })
+    .from(projectRegistrations)
+    .where(eq(projectRegistrations.id, id))
+    .limit(1);
+
+  if (!reg) return Response.json({ error: "Registration not found" }, { status: 404 });
+
+  const [existing] = await db
+    .select({ url: registrationCertificates.url })
+    .from(registrationCertificates)
+    .where(eq(registrationCertificates.registrationId, id))
+    .limit(1);
+
+  if (existing) {
+    const [updated] = await db
+      .update(registrationCertificates)
+      .set({ url: body.url, filename: body.filename, uploadedAt: new Date() })
+      .where(eq(registrationCertificates.registrationId, id))
+      .returning();
+    deleteObject(existing.url).catch(console.error);
+    return Response.json(updated);
+  }
+
+  const [created] = await db
+    .insert(registrationCertificates)
+    .values({ registrationId: id, url: body.url, filename: body.filename })
+    .returning();
+  return Response.json(created, { status: 201 });
+});
+
+const deleteCertificate = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+
+  const [cert] = await db
+    .select({ url: registrationCertificates.url })
+    .from(registrationCertificates)
+    .where(eq(registrationCertificates.registrationId, id))
+    .limit(1);
+
+  if (!cert) return Response.json({ error: "Certificate not found" }, { status: 404 });
+
+  await db.delete(registrationCertificates).where(eq(registrationCertificates.registrationId, id));
+
+  deleteObject(cert.url).catch(console.error);
+
+  return Response.json({ success: true });
+});
+
 export const projectRoutes = {
   [ApiRoutes.PROJECTS]: { GET: getProjects },
   [ApiRoutes.PROJECT_BY_ID]: { GET: getProjectById },
@@ -508,5 +615,10 @@ export const projectRoutes = {
   [ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID]: {
     PATCH: updateRegistrationAttended,
     DELETE: deleteProjectRegistration,
+  },
+  [ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE_UPLOAD]: { GET: getCertificateUploadUrl },
+  [ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE]: {
+    POST: saveCertificate,
+    DELETE: deleteCertificate,
   },
 };
