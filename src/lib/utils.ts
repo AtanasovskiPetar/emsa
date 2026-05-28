@@ -65,7 +65,12 @@ async function presignedUpload(file: File, uploadRoute: string): Promise<string>
   const { uploadUrl, fileUrl } = await apiClient.get<{ uploadUrl: string; fileUrl: string }>(
     `${uploadRoute}?contentType=${encodeURIComponent(file.type)}`
   );
-  await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type },
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
   return fileUrl;
 }
 
@@ -75,6 +80,15 @@ export async function uploadImageToS3(file: File, uploadRoute: string): Promise<
 
 export async function uploadFileToR2(file: File, uploadRoute: string): Promise<string> {
   return presignedUpload(file, uploadRoute);
+}
+
+export async function resolveImageEntry(
+  entry: ImageEntry,
+  uploadRoute: string
+): Promise<string | null> {
+  if (entry.type === "new") return uploadImageToS3(entry.file, uploadRoute);
+  if (entry.type === "existing") return entry.url;
+  return null;
 }
 
 export function getRegistrationStatus(project: PublicProject): RegistrationStatus {
@@ -103,6 +117,43 @@ export function escapeHtml(str: string) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+export async function cropImage(
+  src: string,
+  pixelCrop: { x: number; y: number; width: number; height: number },
+  mimeType: string
+): Promise<File> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+  return new Promise<File>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Canvas is empty"));
+        return;
+      }
+      resolve(new File([blob], "cropped", { type: mimeType }));
+    }, mimeType);
+  });
 }
 
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {

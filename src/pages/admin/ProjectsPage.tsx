@@ -54,11 +54,23 @@ import { Role } from "@/constants/enums";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
-import { type AdminUser, type Project, type ProjectRegistration } from "@/constants/types";
+import {
+  type ActiveImageEntry,
+  type AdminUser,
+  type Project,
+  type ProjectRegistration,
+} from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
-import { formatDate, getInitials, hasAccess, stripHtml, uploadFileToR2 } from "@/lib/utils";
+import {
+  formatDate,
+  getInitials,
+  hasAccess,
+  resolveImageEntry,
+  stripHtml,
+  uploadFileToR2,
+} from "@/lib/utils";
 
 function useColumns(
   onEdit: (project: Project) => void,
@@ -421,8 +433,20 @@ export function ProjectsPage() {
   });
 
   const { mutate: createProject, isPending: isCreating } = useMutation({
-    mutationFn: (body: ProjectFormValues) =>
-      apiClient.post<Project>(ApiRoutes.ADMIN_PROJECTS, body),
+    mutationFn: async ({
+      payload,
+      images,
+    }: {
+      payload: Omit<ProjectFormValues, "imageUrls">;
+      images: ActiveImageEntry[];
+    }) => {
+      const imageUrls: string[] = [];
+      for (const img of images) {
+        const url = await resolveImageEntry(img, ApiRoutes.ADMIN_PROJECTS_UPLOAD);
+        if (url) imageUrls.push(url);
+      }
+      return apiClient.post<Project>(ApiRoutes.ADMIN_PROJECTS, { ...payload, imageUrls });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
       dialog.close();
@@ -430,8 +454,25 @@ export function ProjectsPage() {
   });
 
   const { mutate: updateProject, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: ProjectFormValues }) =>
-      apiClient.patch<Project>(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id), body),
+    mutationFn: async ({
+      id,
+      payload,
+      images,
+    }: {
+      id: string;
+      payload: Omit<ProjectFormValues, "imageUrls">;
+      images: ActiveImageEntry[];
+    }) => {
+      const imageUrls: string[] = [];
+      for (const img of images) {
+        const url = await resolveImageEntry(img, ApiRoutes.ADMIN_PROJECTS_UPLOAD);
+        if (url) imageUrls.push(url);
+      }
+      return apiClient.patch<Project>(ApiRoutes.ADMIN_PROJECT_BY_ID.replace(":id", id), {
+        ...payload,
+        imageUrls,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
       dialog.close();
@@ -446,11 +487,11 @@ export function ProjectsPage() {
     },
   });
 
-  function handleSubmit(values: ProjectFormValues) {
+  function handleSubmit(payload: Omit<ProjectFormValues, "imageUrls">, images: ActiveImageEntry[]) {
     if (dialog.item) {
-      updateProject({ id: dialog.item.id, body: values });
+      updateProject({ id: dialog.item.id, payload, images });
     } else {
-      createProject(values);
+      createProject({ payload, images });
     }
   }
 
