@@ -270,12 +270,12 @@ export function PublicLayout() {
       </main>
 
       <footer className="border-t bg-muted/40 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 sm:relative sm:flex-row sm:gap-0">
+          <p className="text-center text-sm text-muted-foreground sm:flex-1">
             © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
           </p>
           {(org?.facebookUrl || org?.instagramUrl || org?.email) && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 sm:absolute sm:right-4">
               {org.facebookUrl && (
                 <a
                   href={org.facebookUrl}
