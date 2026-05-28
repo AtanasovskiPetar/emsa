@@ -9,7 +9,7 @@ import {
 import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { GripVertical, ImagePlus, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -45,9 +45,9 @@ import { Switch } from "@/components/ui/switch";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
-import { type ImageEntry, type Pillar, type Project } from "@/constants/types";
+import { type ActiveImageEntry, type Pillar, type Project } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
-import { getImageId, getImageSrc, toDatetimeLocalValue, uploadImageToS3 } from "@/lib/utils";
+import { getImageId, getImageSrc, toDatetimeLocalValue } from "@/lib/utils";
 
 const formSchema = z
   .object({
@@ -80,8 +80,6 @@ const formSchema = z
   });
 
 type FormValues = z.infer<typeof formSchema>;
-
-type ActiveImageEntry = Exclude<ImageEntry, { type: "none" }>;
 
 interface SortableImageProps {
   img: ActiveImageEntry;
@@ -133,7 +131,7 @@ interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Project;
-  onSubmit: (values: ProjectFormValues) => void;
+  onSubmit: (payload: Omit<ProjectFormValues, "imageUrls">, images: ActiveImageEntry[]) => void;
   isPending: boolean;
 }
 
@@ -149,22 +147,7 @@ export function ProjectDialog({
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
   const [images, setImages] = useState<ActiveImageEntry[]>([]);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { mutateAsync: uploadImages, isPending: isUploading } = useMutation({
-    mutationFn: async (imgs: ActiveImageEntry[]) => {
-      const imageUrls: string[] = [];
-      for (const img of imgs) {
-        if (img.type === "existing") {
-          imageUrls.push(img.url);
-        } else {
-          imageUrls.push(await uploadImageToS3(img.file, ApiRoutes.ADMIN_PROJECTS_UPLOAD));
-        }
-      }
-      return imageUrls;
-    },
-  });
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -246,17 +229,14 @@ export function ProjectDialog({
     onOpenChange(open);
   }
 
-  async function handleSubmit(values: FormValues) {
-    setUploadError(null);
-    try {
-      const imageUrls = await uploadImages(images);
-      onSubmit({
+  function handleSubmit(values: FormValues) {
+    onSubmit(
+      {
         title: values.title,
         description: values.description,
         startingAt: new Date(values.startingAt).toISOString(),
         endingAt: values.endingAt ? new Date(values.endingAt).toISOString() : null,
         pillarId: values.pillarId === "none" ? null : values.pillarId,
-        imageUrls,
         registrationOpensAt: values.registrationOpensAt
           ? new Date(values.registrationOpensAt).toISOString()
           : null,
@@ -265,13 +245,10 @@ export function ProjectDialog({
           : null,
         maxParticipants: values.maxParticipants ?? null,
         activeMembersOnly: values.activeMembersOnly,
-      });
-    } catch {
-      setUploadError("Image upload failed. Please try again.");
-    }
+      },
+      images
+    );
   }
-
-  const isSubmitting = isUploading || isPending;
   const imageIds = images.map(getImageId);
 
   return (
@@ -508,16 +485,9 @@ export function ProjectDialog({
           </Form>
         </div>
 
-        <DialogFooter className="flex-col items-start gap-2 pt-2 sm:flex-row sm:items-center">
-          {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
-          <Button type="submit" form="project-form" disabled={isSubmitting} className="sm:ml-auto">
-            {isUploading
-              ? "Uploading..."
-              : isPending
-                ? "Saving..."
-                : project
-                  ? "Save changes"
-                  : "Create"}
+        <DialogFooter className="pt-2">
+          <Button type="submit" form="project-form" disabled={isPending} className="sm:ml-auto">
+            {isPending ? "Saving..." : project ? "Save changes" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>

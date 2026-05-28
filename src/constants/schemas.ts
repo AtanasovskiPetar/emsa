@@ -197,7 +197,6 @@ export const updateProjectSchema = z
   );
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;
-export type UpdateProjectPayload = z.infer<typeof updateProjectSchema>;
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -259,8 +258,6 @@ export const updateOrganizationSchema = z
       data.phone !== undefined,
     { message: "At least one field must be provided" }
   );
-
-export type UpdateOrganizationPayload = z.infer<typeof updateOrganizationSchema>;
 
 export const setupPasswordSchema = z.object({
   token: z.string().min(1),

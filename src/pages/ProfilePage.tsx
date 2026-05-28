@@ -25,7 +25,7 @@ import { type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
 import { type ImageEntry, type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { getImageSrc, uploadImageToS3 } from "@/lib/utils";
+import { getImageSrc, resolveImageEntry } from "@/lib/utils";
 
 const FADE_UP = {
   initial: { opacity: 0, y: 20 },
@@ -44,16 +44,37 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const { logout, updateUser, login, user } = useAuth();
   const [imageEntry, setImageEntry] = useState<ImageEntry>({ type: "none" });
-  const [isUploading, setIsUploading] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: queryKeys.me(),
     queryFn: () => apiClient.get<UserProfile>(ApiRoutes.USERS_ME),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   const { mutate: updateMe, isPending } = useMutation({
-    mutationFn: (payload: UpdateMePayload) =>
-      apiClient.patch<UserProfile & { token?: string }>(ApiRoutes.USERS_ME, payload),
+    mutationFn: async ({
+      imageEntry: img,
+      ...values
+    }: UpdateMePayload & { imageEntry: ImageEntry }) => {
+      const imageUrl = await resolveImageEntry(img, ApiRoutes.UPLOAD_PRESIGNED);
+      return apiClient.patch<UserProfile & { token?: string }>(ApiRoutes.USERS_ME, {
+        ...values,
+        imageUrl,
+      });
+    },
+    onSuccess: ({ token, ...updated }) => {
+      if (token) {
+        login(token);
+      } else {
+        updateUser({
+          name: updated.name,
+          imageUrl: updated.imageUrl,
+          profileCompleted: updated.profileCompleted,
+        });
+      }
+      queryClient.setQueryData(queryKeys.me(), updated);
+    },
   });
 
   const form = useForm<UpdateMePayload>({
@@ -74,42 +95,8 @@ export function ProfilePage() {
     });
   }, [profile, form]);
 
-  async function handleSubmit(values: UpdateMePayload) {
-    const payload: UpdateMePayload = {
-      name: values.name,
-      phone: values.phone,
-      index: values.index,
-      yearOfStudies: values.yearOfStudies,
-      university: values.university,
-    };
-
-    if (imageEntry.type === "new") {
-      setIsUploading(true);
-      try {
-        payload.imageUrl = await uploadImageToS3(imageEntry.file, ApiRoutes.UPLOAD_PRESIGNED);
-      } catch {
-        setIsUploading(false);
-        return;
-      }
-      setIsUploading(false);
-    } else {
-      payload.imageUrl = imageEntry.type === "existing" ? imageEntry.url : null;
-    }
-
-    updateMe(payload, {
-      onSuccess: ({ token, ...updated }) => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.me() });
-        if (token) {
-          login(token);
-        } else {
-          updateUser({
-            name: updated.name,
-            imageUrl: updated.imageUrl,
-            profileCompleted: updated.profileCompleted,
-          });
-        }
-      },
-    });
+  function handleSubmit(values: UpdateMePayload) {
+    updateMe({ ...values, imageEntry });
   }
 
   if (isLoading) {
@@ -320,7 +307,7 @@ export function ProfilePage() {
                     )}
                   />
                   <div className="flex justify-end pt-1">
-                    <Button type="submit" disabled={isPending || isUploading}>
+                    <Button type="submit" disabled={isPending}>
                       {isPending ? "Saving..." : "Save changes"}
                     </Button>
                   </div>
