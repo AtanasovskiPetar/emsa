@@ -119,6 +119,43 @@ export function escapeHtml(str: string) {
     .replace(/>/g, "&gt;");
 }
 
+export async function cropImage(
+  src: string,
+  pixelCrop: { x: number; y: number; width: number; height: number },
+  mimeType: string
+): Promise<File> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+  return new Promise<File>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Canvas is empty"));
+        return;
+      }
+      resolve(new File([blob], "cropped", { type: mimeType }));
+    }, mimeType);
+  });
+}
+
 export function getPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
   if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
