@@ -37,10 +37,10 @@ import {
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
-import { type AdminUser, type Pillar } from "@/constants/types";
+import { type AdminUser, type ImageEntry, type Pillar } from "@/constants/types";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
-import { formatDate } from "@/lib/utils";
+import { formatDate, resolveImageEntry } from "@/lib/utils";
 
 function useColumns(
   onEdit: (pillar: Pillar) => void,
@@ -101,7 +101,16 @@ export function PillarsPage() {
   });
 
   const { mutate: createPillar, isPending: isCreating } = useMutation({
-    mutationFn: (body: PillarFormValues) => apiClient.post<Pillar>(ApiRoutes.ADMIN_PILLARS, body),
+    mutationFn: async ({
+      values,
+      imageEntry,
+    }: {
+      values: PillarFormValues;
+      imageEntry: ImageEntry;
+    }) => {
+      const imageUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_PILLARS_UPLOAD);
+      return apiClient.post<Pillar>(ApiRoutes.ADMIN_PILLARS, { ...values, imageUrl });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.pillars() });
       dialog.close();
@@ -109,8 +118,18 @@ export function PillarsPage() {
   });
 
   const { mutate: updatePillar, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: PillarFormValues }) =>
-      apiClient.patch<Pillar>(`${ApiRoutes.ADMIN_PILLARS}/${id}`, body),
+    mutationFn: async ({
+      id,
+      values,
+      imageEntry,
+    }: {
+      id: string;
+      values: PillarFormValues;
+      imageEntry: ImageEntry;
+    }) => {
+      const imageUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_PILLARS_UPLOAD);
+      return apiClient.patch<Pillar>(`${ApiRoutes.ADMIN_PILLARS}/${id}`, { ...values, imageUrl });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.pillars() });
       dialog.close();
@@ -125,11 +144,11 @@ export function PillarsPage() {
     },
   });
 
-  function handleSubmit(values: PillarFormValues) {
+  function handleSubmit(values: PillarFormValues, imageEntry: ImageEntry) {
     if (dialog.item) {
-      updatePillar({ id: dialog.item.id, body: values });
+      updatePillar({ id: dialog.item.id, values, imageEntry });
     } else {
-      createPillar(values);
+      createPillar({ values, imageEntry });
     }
   }
 

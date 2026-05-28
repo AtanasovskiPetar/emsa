@@ -152,14 +152,14 @@ const updateMe = withRole(
 
 const getPresignedUrl = withRole(
   Role.USER,
-  async (req, user) => {
+  async (req) => {
     const contentType = new URL(req.url).searchParams.get("contentType") ?? "image/jpeg";
     const ext = validateImageContentType(contentType);
     const { uploadUrl, fileUrl } = await getPresignedUploadUrl(
-      `avatars/${user.sub}.${ext}`,
+      `avatars/${crypto.randomUUID()}.${ext}`,
       contentType
     );
-    return Response.json({ uploadUrl, fileUrl: `${fileUrl}?v=${Date.now()}` });
+    return Response.json({ uploadUrl, fileUrl });
   },
   { allowIncomplete: true }
 );

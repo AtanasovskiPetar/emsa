@@ -29,17 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues, pillarSchema } from "@/constants/schemas";
 import { type AdminUser, type ImageEntry, type Pillar } from "@/constants/types";
-import { uploadImageToS3 } from "@/lib/utils";
 
 interface PillarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pillar?: Pillar;
   users: AdminUser[];
-  onSubmit: (values: PillarFormValues) => void;
+  onSubmit: (values: PillarFormValues, imageEntry: ImageEntry) => void;
   isPending: boolean;
 }
 
@@ -52,7 +50,6 @@ export function PillarDialog({
   isPending,
 }: PillarDialogProps) {
   const [imageEntry, setImageEntry] = useState<ImageEntry>({ type: "none" });
-  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<PillarFormValues>({
     resolver: zodResolver(pillarSchema),
@@ -65,19 +62,8 @@ export function PillarDialog({
     setImageEntry(pillar?.imageUrl ? { type: "existing", url: pillar.imageUrl } : { type: "none" });
   }, [pillar]);
 
-  async function handleSubmit(values: PillarFormValues) {
-    try {
-      setIsUploading(true);
-      const imageUrl =
-        imageEntry.type === "new"
-          ? await uploadImageToS3(imageEntry.file, ApiRoutes.ADMIN_PILLARS_UPLOAD)
-          : imageEntry.type === "existing"
-            ? imageEntry.url
-            : null;
-      onSubmit({ ...values, imageUrl });
-    } finally {
-      setIsUploading(false);
-    }
+  function handleSubmit(values: PillarFormValues) {
+    onSubmit(values, imageEntry);
   }
 
   return (
@@ -146,7 +132,7 @@ export function PillarDialog({
               )}
             />
             <DialogFooter>
-              <Button type="submit" disabled={isPending || isUploading}>
+              <Button type="submit" disabled={isPending}>
                 {pillar ? "Save changes" : "Create"}
               </Button>
             </DialogFooter>
