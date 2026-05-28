@@ -201,6 +201,7 @@ export function ProfilePage() {
                 variant="avatar"
                 name={profile.name}
                 maxSizeBytes={5 * 1024 * 1024}
+                crop
               />
             </CardContent>
           </Card>
