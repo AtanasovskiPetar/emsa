@@ -11,10 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
-import { type UpdateOrganizationPayload } from "@/constants/schemas";
 import { type ImageEntry, type Organization } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
-import { uploadImageToS3 } from "@/lib/utils";
+import { resolveImageEntry } from "@/lib/utils";
 
 type FormValues = {
   name: string;
@@ -63,28 +62,10 @@ export function OrganizationPage() {
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
-  const { mutateAsync: uploadLogo, isPending: isUploading } = useMutation({
-    mutationFn: (file: File) => uploadImageToS3(file, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD),
-  });
-
   const { mutate: save, isPending } = useMutation({
-    mutationFn: (payload: UpdateOrganizationPayload) =>
-      apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "organization"] });
-    },
-  });
-
-  async function onSubmit(values: FormValues) {
-    try {
-      const logoUrl =
-        logo.type === "new"
-          ? await uploadLogo(logo.file)
-          : logo.type === "existing"
-            ? logo.url
-            : null;
-
-      save({
+    mutationFn: async ({ logo: imageEntry, ...values }: FormValues & { logo: ImageEntry }) => {
+      const logoUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD);
+      return apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, {
         name: values.name,
         description: values.description,
         aboutUs: values.aboutUs,
@@ -95,16 +76,19 @@ export function OrganizationPage() {
         email: values.email.trim() || null,
         phone: values.phone.trim() || null,
       });
-    } catch {
-      // upload failed, don't proceed
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.organization() });
+    },
+  });
+
+  function onSubmit(values: FormValues) {
+    save({ ...values, logo });
   }
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading...</div>;
   }
-
-  const isSubmitting = isUploading || isPending;
 
   return (
     <div className="flex flex-col gap-8">
@@ -195,8 +179,8 @@ export function OrganizationPage() {
         </div>
 
         <div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isUploading ? "Uploading..." : isPending ? "Saving..." : "Save changes"}
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </form>

@@ -5,6 +5,8 @@ export type ImageEntry =
   | { type: "existing"; url: string }
   | { type: "new"; file: File; previewUrl: string };
 
+export type ActiveImageEntry = Exclude<ImageEntry, { type: "none" }>;
+
 export interface UserActivation {
   id: string;
   userId: string;
