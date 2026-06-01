@@ -471,7 +471,7 @@ export function ProjectDialog({
                             type="number"
                             min={1}
                             placeholder="∞"
-                            value={hasPackages ? "" : (field.value?.toString() ?? "")}
+                            value={hasPackages ? "" : (field.value ?? "")}
                             onChange={(e) => {
                               const val = e.target.value;
                               field.onChange(val === "" ? null : parseInt(val, 10));
