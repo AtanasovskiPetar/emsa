@@ -6,7 +6,9 @@ import { ApiRoutes } from "@/constants/routes";
 import { projectSchema, updateProjectSchema } from "@/constants/schemas";
 import {
   pillars,
+  projectCapacityPools,
   projectImages,
+  projectPackages,
   projectRegistrations,
   projects,
   registrationCertificates,
@@ -22,6 +24,103 @@ import {
   validateCertificateContentType,
   validateImageContentType,
 } from "@/lib/s3";
+
+// Helper: compute per-package availableSpots given registration counts
+async function buildPackagesWithAvailability(projectIds: string[]) {
+  if (projectIds.length === 0) return {};
+
+  const allPackages = await db
+    .select({
+      id: projectPackages.id,
+      projectId: projectPackages.projectId,
+      capacityPoolId: projectPackages.capacityPoolId,
+      capacityPoolName: projectCapacityPools.name,
+      capacityPoolMax: projectCapacityPools.maxParticipants,
+      name: projectPackages.name,
+      description: projectPackages.description,
+      maxParticipants: projectPackages.maxParticipants,
+      order: projectPackages.order,
+      createdAt: projectPackages.createdAt,
+    })
+    .from(projectPackages)
+    .leftJoin(projectCapacityPools, eq(projectPackages.capacityPoolId, projectCapacityPools.id))
+    .where(inArray(projectPackages.projectId, projectIds))
+    .orderBy(projectPackages.order);
+
+  if (allPackages.length === 0) return {};
+
+  // Count registrations per package
+  const packageIds = allPackages.map((p) => p.id);
+  const regCounts = await db
+    .select({ packageId: projectRegistrations.packageId, count: count() })
+    .from(projectRegistrations)
+    .where(inArray(projectRegistrations.packageId, packageIds))
+    .groupBy(projectRegistrations.packageId);
+
+  const countByPackage: Record<string, number> = {};
+  for (const r of regCounts) {
+    if (r.packageId) countByPackage[r.packageId] = r.count;
+  }
+
+  // Count registrations per pool (sum across all packages in the pool)
+  const countByPool: Record<string, number> = {};
+  for (const pkg of allPackages) {
+    if (pkg.capacityPoolId) {
+      countByPool[pkg.capacityPoolId] =
+        (countByPool[pkg.capacityPoolId] ?? 0) + (countByPackage[pkg.id] ?? 0);
+    }
+  }
+
+  const byProject: Record<string, (typeof allPackages)[number][]> = {};
+  for (const pkg of allPackages) {
+    (byProject[pkg.projectId] ??= []).push(pkg);
+  }
+
+  const result: Record<
+    string,
+    {
+      id: string;
+      projectId: string;
+      capacityPoolId: string | null;
+      capacityPoolName: string | null;
+      capacityPoolMax: number | null;
+      name: string;
+      description: string;
+      maxParticipants: number | null;
+      availableSpots: number | null;
+      order: number;
+      createdAt: Date;
+    }[]
+  > = {};
+
+  for (const [projectId, pkgs] of Object.entries(byProject)) {
+    result[projectId] = pkgs.map((pkg) => {
+      let availableSpots: number | null = null;
+      if (pkg.capacityPoolId !== null) {
+        const used = countByPool[pkg.capacityPoolId] ?? 0;
+        availableSpots = Math.max(0, (pkg.capacityPoolMax ?? 0) - used);
+      } else if (pkg.maxParticipants !== null) {
+        const used = countByPackage[pkg.id] ?? 0;
+        availableSpots = Math.max(0, pkg.maxParticipants - used);
+      }
+      return {
+        id: pkg.id,
+        projectId: pkg.projectId,
+        capacityPoolId: pkg.capacityPoolId,
+        capacityPoolName: pkg.capacityPoolName ?? null,
+        capacityPoolMax: pkg.capacityPoolMax ?? null,
+        name: pkg.name,
+        description: pkg.description,
+        maxParticipants: pkg.maxParticipants,
+        availableSpots,
+        order: pkg.order,
+        createdAt: pkg.createdAt,
+      };
+    });
+  }
+
+  return result;
+}
 
 // Public
 const getProjects = async () => {
@@ -69,11 +168,14 @@ const getProjects = async () => {
     }
   }
 
+  const packagesByProject = await buildPackagesWithAvailability(projectIds);
+
   return Response.json(
     rows.map((p) => ({
       ...p,
       images: imagesByProject[p.id] ?? [],
       participantCount: countByProject[p.id] ?? 0,
+      packages: packagesByProject[p.id] ?? [],
     }))
   );
 };
@@ -102,7 +204,7 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
 
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
 
-  const [images, [participantRow]] = await Promise.all([
+  const [images, [participantRow], packagesByProject] = await Promise.all([
     db
       .select({ url: projectImages.url })
       .from(projectImages)
@@ -112,12 +214,14 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
       .select({ count: count() })
       .from(projectRegistrations)
       .where(eq(projectRegistrations.projectId, id)),
+    buildPackagesWithAvailability([id]),
   ]);
 
   return Response.json({
     ...row,
     images: images.map((i) => i.url),
     participantCount: participantRow?.count ?? 0,
+    packages: packagesByProject[id] ?? [],
   });
 };
 
@@ -127,11 +231,14 @@ const getMyRegistration = withRole<{ id: string }>(Role.USER, async (req, user) 
   const [reg] = await db
     .select({
       id: projectRegistrations.id,
+      packageId: projectRegistrations.packageId,
+      packageName: projectPackages.name,
       createdAt: projectRegistrations.createdAt,
       certificateUrl: registrationCertificates.url,
       certificateFilename: registrationCertificates.filename,
     })
     .from(projectRegistrations)
+    .leftJoin(projectPackages, eq(projectRegistrations.packageId, projectPackages.id))
     .leftJoin(
       registrationCertificates,
       eq(registrationCertificates.registrationId, projectRegistrations.id)
@@ -144,6 +251,8 @@ const getMyRegistration = withRole<{ id: string }>(Role.USER, async (req, user) 
       ? {
           registered: true,
           id: reg.id,
+          packageId: reg.packageId ?? null,
+          packageName: reg.packageName ?? null,
           createdAt: reg.createdAt,
           certificateUrl: reg.certificateUrl ?? null,
           certificateFilename: reg.certificateFilename ?? null,
@@ -180,6 +289,8 @@ const unregisterFromProject = withRole<{ id: string }>(Role.USER, async (req, us
 
 const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user) => {
   const { id } = req.params;
+  const body = await parseBody(req, z.object({ packageId: z.uuid().nullable().optional() }));
+  const packageId = body.packageId ?? null;
 
   const [project] = await db
     .select({
@@ -226,10 +337,95 @@ const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user)
     }
   }
 
+  // Validate package belongs to this project (if provided)
+  let selectedPackage: {
+    id: string;
+    maxParticipants: number | null;
+    capacityPoolId: string | null;
+    capacityPoolMax: number | null;
+  } | null = null;
+
+  if (packageId !== null) {
+    const [pkg] = await db
+      .select({
+        id: projectPackages.id,
+        maxParticipants: projectPackages.maxParticipants,
+        capacityPoolId: projectPackages.capacityPoolId,
+        capacityPoolMax: projectCapacityPools.maxParticipants,
+      })
+      .from(projectPackages)
+      .leftJoin(projectCapacityPools, eq(projectPackages.capacityPoolId, projectCapacityPools.id))
+      .where(and(eq(projectPackages.id, packageId), eq(projectPackages.projectId, id)))
+      .limit(1);
+
+    if (!pkg) return Response.json({ error: "Package not found" }, { status: 404 });
+    selectedPackage = pkg;
+  } else {
+    // If the project has packages, a packageId is required
+    const [pkgExists] = await db
+      .select({ id: projectPackages.id })
+      .from(projectPackages)
+      .where(eq(projectPackages.projectId, id))
+      .limit(1);
+
+    if (pkgExists) {
+      return Response.json({ error: "A registration package must be selected" }, { status: 422 });
+    }
+  }
+
   try {
     const [registration] = await db.transaction(async (tx) => {
-      if (project.maxParticipants !== null) {
-        // Lock the project row to serialize concurrent capacity checks
+      if (selectedPackage !== null) {
+        if (selectedPackage.capacityPoolId !== null) {
+          // Shared pool capacity: lock project row, count across all packages in pool
+          await tx
+            .select({ id: projects.id })
+            .from(projects)
+            .where(eq(projects.id, id))
+            .for("update")
+            .limit(1);
+
+          const poolPackages = await tx
+            .select({ id: projectPackages.id })
+            .from(projectPackages)
+            .where(eq(projectPackages.capacityPoolId, selectedPackage.capacityPoolId));
+
+          const [countRow] = await tx
+            .select({ count: count() })
+            .from(projectRegistrations)
+            .where(
+              inArray(
+                projectRegistrations.packageId,
+                poolPackages.map((p) => p.id)
+              )
+            );
+
+          if (selectedPackage.capacityPoolMax === null) {
+            throw new HttpError(500, "Capacity pool data unavailable");
+          }
+          if ((countRow?.count ?? 0) >= selectedPackage.capacityPoolMax) {
+            throw new HttpError(422, "No spots remaining");
+          }
+        } else if (selectedPackage.maxParticipants !== null) {
+          // Per-package capacity: lock project row, count for this package
+          await tx
+            .select({ id: projects.id })
+            .from(projects)
+            .where(eq(projects.id, id))
+            .for("update")
+            .limit(1);
+
+          const [countRow] = await tx
+            .select({ count: count() })
+            .from(projectRegistrations)
+            .where(eq(projectRegistrations.packageId, selectedPackage.id));
+
+          if ((countRow?.count ?? 0) >= selectedPackage.maxParticipants) {
+            throw new HttpError(422, "No spots remaining");
+          }
+        }
+      } else if (project.maxParticipants !== null) {
+        // Legacy project-level capacity
         await tx
           .select({ id: projects.id })
           .from(projects)
@@ -249,7 +445,7 @@ const registerForProject = withRole<{ id: string }>(Role.USER, async (req, user)
 
       return tx
         .insert(projectRegistrations)
-        .values({ projectId: id, userId: user.sub })
+        .values({ projectId: id, userId: user.sub, packageId })
         .returning();
     });
 
@@ -301,7 +497,15 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
     }
   }
 
-  return Response.json(rows.map((p) => ({ ...p, images: adminImagesByProject[p.id] ?? [] })));
+  const packagesByProject = await buildPackagesWithAvailability(adminProjectIds);
+
+  return Response.json(
+    rows.map((p) => ({
+      ...p,
+      images: adminImagesByProject[p.id] ?? [],
+      packages: packagesByProject[p.id] ?? [],
+    }))
+  );
 });
 
 const createProject = withRole(Role.ADMIN, async (req) => {
@@ -448,6 +652,10 @@ const getProjectUploadUrl = withRole(Role.ADMIN, async (req) => {
 
 const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   const { id } = req.params;
+  const packageIdFilter = new URL(req.url).searchParams.get("packageId");
+
+  const conditions = [eq(projectRegistrations.projectId, id)];
+  if (packageIdFilter) conditions.push(eq(projectRegistrations.packageId, packageIdFilter));
 
   const rows = await db
     .select({
@@ -456,6 +664,8 @@ const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req)
       userName: users.name,
       userEmail: users.email,
       userIndex: users.index,
+      packageId: projectRegistrations.packageId,
+      packageName: projectPackages.name,
       attended: projectRegistrations.attended,
       certificateUrl: registrationCertificates.url,
       certificateFilename: registrationCertificates.filename,
@@ -463,16 +673,19 @@ const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req)
     })
     .from(projectRegistrations)
     .innerJoin(users, eq(projectRegistrations.userId, users.id))
+    .leftJoin(projectPackages, eq(projectRegistrations.packageId, projectPackages.id))
     .leftJoin(
       registrationCertificates,
       eq(registrationCertificates.registrationId, projectRegistrations.id)
     )
-    .where(eq(projectRegistrations.projectId, id))
+    .where(and(...conditions))
     .orderBy(projectRegistrations.createdAt);
 
   return Response.json(
     rows.map((r) => ({
       ...r,
+      packageId: r.packageId ?? null,
+      packageName: r.packageName ?? null,
       certificateUrl: r.certificateUrl ?? null,
       certificateFilename: r.certificateFilename ?? null,
     }))
@@ -496,7 +709,10 @@ const updateRegistrationAttended = withRole<{ id: string }>(Role.ADMIN, async (r
 
 const addProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
-  const body = await parseBody(req, z.object({ userId: z.uuid() }));
+  const body = await parseBody(
+    req,
+    z.object({ userId: z.uuid(), packageId: z.uuid().nullable().optional() })
+  );
 
   const [existing] = await db
     .select({ id: projectRegistrations.id })
@@ -508,9 +724,18 @@ const addProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, async 
 
   if (existing) return Response.json({ error: "User already registered" }, { status: 409 });
 
+  if (body.packageId) {
+    const [pkg] = await db
+      .select({ id: projectPackages.id })
+      .from(projectPackages)
+      .where(and(eq(projectPackages.id, body.packageId), eq(projectPackages.projectId, id)))
+      .limit(1);
+    if (!pkg) return Response.json({ error: "Package not found" }, { status: 404 });
+  }
+
   const [registration] = await db
     .insert(projectRegistrations)
-    .values({ projectId: id, userId: body.userId })
+    .values({ projectId: id, userId: body.userId, packageId: body.packageId ?? null })
     .returning();
 
   return Response.json(registration, { status: 201 });
@@ -600,6 +825,207 @@ const deleteCertificate = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   return Response.json({ success: true });
 });
 
+// Package CRUD
+const getProjectPackages = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+  const packagesByProject = await buildPackagesWithAvailability([id]);
+  return Response.json(packagesByProject[id] ?? []);
+});
+
+const createProjectPackage = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+  const body = await parseBody(
+    req,
+    z.object({
+      name: z.string().min(1),
+      description: z.string().default(""),
+      maxParticipants: z.number().int().min(1).nullable().optional(),
+      capacityPoolId: z.uuid().nullable().optional(),
+      order: z.number().int().min(0).default(0),
+    })
+  );
+
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+  if (body.capacityPoolId) {
+    const [pool] = await db
+      .select({ id: projectCapacityPools.id })
+      .from(projectCapacityPools)
+      .where(
+        and(
+          eq(projectCapacityPools.id, body.capacityPoolId),
+          eq(projectCapacityPools.projectId, id)
+        )
+      )
+      .limit(1);
+    if (!pool) return Response.json({ error: "Capacity pool not found" }, { status: 404 });
+  }
+
+  const [pkg] = await db
+    .insert(projectPackages)
+    .values({
+      projectId: id,
+      name: body.name,
+      description: body.description,
+      maxParticipants: body.capacityPoolId ? null : (body.maxParticipants ?? null),
+      capacityPoolId: body.capacityPoolId ?? null,
+      order: body.order,
+    })
+    .returning();
+
+  return Response.json(pkg, { status: 201 });
+});
+
+const updateProjectPackage = withRole<{ id: string; packageId: string }>(
+  Role.ADMIN,
+  async (req) => {
+    const { packageId, id } = req.params;
+    const body = await parseBody(
+      req,
+      z.object({
+        name: z.string().min(1).optional(),
+        description: z.string().optional(),
+        maxParticipants: z.number().int().min(1).nullable().optional(),
+        capacityPoolId: z.uuid().nullable().optional(),
+        order: z.number().int().min(0).optional(),
+      })
+    );
+
+    if (body.capacityPoolId) {
+      const [pool] = await db
+        .select({ id: projectCapacityPools.id })
+        .from(projectCapacityPools)
+        .where(
+          and(
+            eq(projectCapacityPools.id, body.capacityPoolId),
+            eq(projectCapacityPools.projectId, id)
+          )
+        )
+        .limit(1);
+      if (!pool) return Response.json({ error: "Capacity pool not found" }, { status: 404 });
+    }
+
+    const clearIndividualMax = body.capacityPoolId !== null && body.capacityPoolId !== undefined;
+
+    const [updated] = await db
+      .update(projectPackages)
+      .set({
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.description !== undefined && { description: body.description }),
+        ...(body.order !== undefined && { order: body.order }),
+        ...(body.capacityPoolId !== undefined && { capacityPoolId: body.capacityPoolId }),
+        ...(clearIndividualMax
+          ? { maxParticipants: null }
+          : body.maxParticipants !== undefined && { maxParticipants: body.maxParticipants }),
+      })
+      .where(and(eq(projectPackages.id, packageId), eq(projectPackages.projectId, id)))
+      .returning();
+
+    if (!updated) return Response.json({ error: "Package not found" }, { status: 404 });
+    return Response.json(updated);
+  }
+);
+
+const deleteProjectPackage = withRole<{ id: string; packageId: string }>(
+  Role.ADMIN,
+  async (req) => {
+    const { packageId, id } = req.params;
+
+    const [deleted] = await db
+      .delete(projectPackages)
+      .where(and(eq(projectPackages.id, packageId), eq(projectPackages.projectId, id)))
+      .returning({ id: projectPackages.id });
+
+    if (!deleted) return Response.json({ error: "Package not found" }, { status: 404 });
+    return Response.json({ success: true });
+  }
+);
+
+// Capacity pool CRUD
+const getProjectCapacityPools = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+
+  const pools = await db
+    .select()
+    .from(projectCapacityPools)
+    .where(eq(projectCapacityPools.projectId, id))
+    .orderBy(projectCapacityPools.createdAt);
+
+  return Response.json(pools);
+});
+
+const createProjectCapacityPool = withRole<{ id: string }>(Role.ADMIN, async (req) => {
+  const { id } = req.params;
+  const body = await parseBody(
+    req,
+    z.object({ name: z.string().min(1), maxParticipants: z.number().int().min(1) })
+  );
+
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+  const [pool] = await db
+    .insert(projectCapacityPools)
+    .values({ projectId: id, name: body.name, maxParticipants: body.maxParticipants })
+    .returning();
+
+  return Response.json(pool, { status: 201 });
+});
+
+const updateProjectCapacityPool = withRole<{ id: string; poolId: string }>(
+  Role.ADMIN,
+  async (req) => {
+    const { poolId, id } = req.params;
+    const body = await parseBody(
+      req,
+      z
+        .object({
+          name: z.string().min(1).optional(),
+          maxParticipants: z.number().int().min(1).optional(),
+        })
+        .refine((d) => d.name !== undefined || d.maxParticipants !== undefined, {
+          message: "At least one field must be provided",
+        })
+    );
+
+    const [updated] = await db
+      .update(projectCapacityPools)
+      .set({
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.maxParticipants !== undefined && { maxParticipants: body.maxParticipants }),
+      })
+      .where(and(eq(projectCapacityPools.id, poolId), eq(projectCapacityPools.projectId, id)))
+      .returning();
+
+    if (!updated) return Response.json({ error: "Capacity pool not found" }, { status: 404 });
+    return Response.json(updated);
+  }
+);
+
+const deleteProjectCapacityPool = withRole<{ id: string; poolId: string }>(
+  Role.ADMIN,
+  async (req) => {
+    const { poolId, id } = req.params;
+
+    const [deleted] = await db
+      .delete(projectCapacityPools)
+      .where(and(eq(projectCapacityPools.id, poolId), eq(projectCapacityPools.projectId, id)))
+      .returning({ id: projectCapacityPools.id });
+
+    if (!deleted) return Response.json({ error: "Capacity pool not found" }, { status: 404 });
+    return Response.json({ success: true });
+  }
+);
+
 export const projectRoutes = {
   [ApiRoutes.PROJECTS]: { GET: getProjects },
   [ApiRoutes.PROJECT_BY_ID]: { GET: getProjectById },
@@ -620,5 +1046,21 @@ export const projectRoutes = {
   [ApiRoutes.ADMIN_REGISTRATION_CERTIFICATE]: {
     POST: saveCertificate,
     DELETE: deleteCertificate,
+  },
+  [ApiRoutes.ADMIN_PROJECT_PACKAGES]: {
+    GET: getProjectPackages,
+    POST: createProjectPackage,
+  },
+  [ApiRoutes.ADMIN_PROJECT_PACKAGE_BY_ID]: {
+    PATCH: updateProjectPackage,
+    DELETE: deleteProjectPackage,
+  },
+  [ApiRoutes.ADMIN_PROJECT_CAPACITY_POOLS]: {
+    GET: getProjectCapacityPools,
+    POST: createProjectCapacityPool,
+  },
+  [ApiRoutes.ADMIN_PROJECT_CAPACITY_POOL_BY_ID]: {
+    PATCH: updateProjectCapacityPool,
+    DELETE: deleteProjectCapacityPool,
   },
 };

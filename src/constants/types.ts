@@ -61,8 +61,31 @@ export interface Project {
   registrationClosesAt: string | null;
   maxParticipants: number | null;
   activeMembersOnly: boolean;
+  packages: ProjectPackage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectCapacityPool {
+  id: string;
+  projectId: string;
+  name: string;
+  maxParticipants: number;
+  createdAt: string;
+}
+
+export interface ProjectPackage {
+  id: string;
+  projectId: string;
+  capacityPoolId: string | null;
+  capacityPoolName: string | null;
+  capacityPoolMax: number | null;
+  name: string;
+  description: string;
+  maxParticipants: number | null;
+  availableSpots: number | null;
+  order: number;
+  createdAt: string;
 }
 
 export interface ProjectRegistration {
@@ -71,6 +94,8 @@ export interface ProjectRegistration {
   userName: string;
   userEmail: string;
   userIndex: string | null;
+  packageId: string | null;
+  packageName: string | null;
   attended: boolean;
   certificateUrl: string | null;
   certificateFilename: string | null;
@@ -103,11 +128,14 @@ export interface PublicProject {
   maxParticipants: number | null;
   activeMembersOnly: boolean;
   participantCount: number;
+  packages: ProjectPackage[];
 }
 
 export interface MyRegistration {
   registered: boolean;
   id?: string;
+  packageId?: string | null;
+  packageName?: string | null;
   createdAt?: string;
   certificateUrl?: string | null;
   certificateFilename?: string | null;
