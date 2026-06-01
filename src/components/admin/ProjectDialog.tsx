@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PackagesSection } from "@/components/admin/PackagesSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -45,9 +46,18 @@ import { Switch } from "@/components/ui/switch";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type ProjectFormValues } from "@/constants/schemas";
-import { type ActiveImageEntry, type Pillar, type Project } from "@/constants/types";
+import {
+  type ActiveImageEntry,
+  type Pillar,
+  type Project,
+  type ProjectPackage,
+} from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 import { getImageId, getImageSrc, toDatetimeLocalValue } from "@/lib/utils";
+
+export type { DraftCapacityPool, DraftPackage } from "@/components/admin/PackagesSection";
+
+// ── Form schema ───────────────────────────────────────────────────────────────
 
 const formSchema = z
   .object({
@@ -80,6 +90,8 @@ const formSchema = z
   });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// ── Sortable image ────────────────────────────────────────────────────────────
 
 interface SortableImageProps {
   img: ActiveImageEntry;
@@ -127,11 +139,20 @@ function SortableImage({ img, onRemove }: SortableImageProps) {
   );
 }
 
+// ── Main dialog ───────────────────────────────────────────────────────────────
+
+import type { DraftCapacityPool, DraftPackage } from "@/components/admin/PackagesSection";
+
 interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Project;
-  onSubmit: (payload: Omit<ProjectFormValues, "imageUrls">, images: ActiveImageEntry[]) => void;
+  onSubmit: (
+    payload: Omit<ProjectFormValues, "imageUrls">,
+    images: ActiveImageEntry[],
+    draftPackages: DraftPackage[],
+    draftPools: DraftCapacityPool[]
+  ) => void;
   isPending: boolean;
 }
 
@@ -146,7 +167,20 @@ export function ProjectDialog({
     queryKey: queryKeys.admin.pillars(),
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
   });
+
+  // Shares cache with PackagesSection — placeholderData seeds from the project list so hasPackages
+  // is correct immediately on open, and updates reactively as packages are added/removed.
+  const { data: livePackages } = useQuery<ProjectPackage[]>({
+    queryKey: queryKeys.admin.projectPackages(project?.id ?? ""),
+    queryFn: () =>
+      apiClient.get<ProjectPackage[]>(ApiRoutes.ADMIN_PROJECT_PACKAGES.replace(":id", project!.id)),
+    enabled: !!project?.id,
+    placeholderData: project?.packages,
+  });
+
   const [images, setImages] = useState<ActiveImageEntry[]>([]);
+  const [draftPackages, setDraftPackages] = useState<DraftPackage[]>([]);
+  const [draftPools, setDraftPools] = useState<DraftCapacityPool[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -182,9 +216,15 @@ export function ProjectDialog({
         },
   });
 
+  const hasPackages = project ? (livePackages?.length ?? 0) > 0 : draftPackages.length > 0;
+
   useEffect(() => {
     if (open) {
       setImages(project?.images.map((url) => ({ type: "existing", url })) ?? []);
+      if (!project) {
+        setDraftPackages([]);
+        setDraftPools([]);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -243,12 +283,15 @@ export function ProjectDialog({
         registrationClosesAt: values.registrationClosesAt
           ? new Date(values.registrationClosesAt).toISOString()
           : null,
-        maxParticipants: values.maxParticipants ?? null,
+        maxParticipants: hasPackages ? null : (values.maxParticipants ?? null),
         activeMembersOnly: values.activeMembersOnly,
       },
-      images
+      images,
+      draftPackages,
+      draftPools
     );
   }
+
   const imageIds = images.map(getImageId);
 
   return (
@@ -424,16 +467,29 @@ export function ProjectDialog({
                       <FormItem className="col-span-1">
                         <FormLabel>Max</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min={1}
-                            placeholder="∞"
-                            value={field.value ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              field.onChange(val === "" ? undefined : parseInt(val, 10));
-                            }}
-                          />
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="∞"
+                              disabled={hasPackages}
+                              value={hasPackages ? "" : (field.value ?? "")}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                field.onChange(val === "" ? undefined : parseInt(val, 10));
+                              }}
+                              className={field.value !== undefined && !hasPackages ? "pr-7" : ""}
+                            />
+                            {field.value !== undefined && !hasPackages && (
+                              <button
+                                type="button"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                onClick={() => field.onChange(undefined)}
+                              >
+                                <X className="size-3" />
+                              </button>
+                            )}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -441,6 +497,14 @@ export function ProjectDialog({
                   />
                 </div>
               </div>
+
+              <PackagesSection
+                projectId={project?.id}
+                draftPackages={draftPackages}
+                draftPools={draftPools}
+                onDraftPackagesChange={setDraftPackages}
+                onDraftPoolsChange={setDraftPools}
+              />
 
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium">Images</span>
