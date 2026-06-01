@@ -68,7 +68,7 @@ const formSchema = z
     pillarId: z.string(),
     registrationOpensAt: z.string().optional(),
     registrationClosesAt: z.string().optional(),
-    maxParticipants: z.number().int().min(1, "Must be at least 1").optional(),
+    maxParticipants: z.number().int().min(1, "Must be at least 1").nullable().optional(),
     activeMembersOnly: z.boolean(),
   })
   .refine(
@@ -467,29 +467,16 @@ export function ProjectDialog({
                       <FormItem className="col-span-1">
                         <FormLabel>Max</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="∞"
-                              disabled={hasPackages}
-                              value={hasPackages ? "" : (field.value ?? "")}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                field.onChange(val === "" ? undefined : parseInt(val, 10));
-                              }}
-                              className={field.value !== undefined && !hasPackages ? "pr-7" : ""}
-                            />
-                            {field.value !== undefined && !hasPackages && (
-                              <button
-                                type="button"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                onClick={() => field.onChange(undefined)}
-                              >
-                                <X className="size-3" />
-                              </button>
-                            )}
-                          </div>
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="∞"
+                            value={hasPackages ? "" : (field.value?.toString() ?? "")}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? null : parseInt(val, 10));
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
