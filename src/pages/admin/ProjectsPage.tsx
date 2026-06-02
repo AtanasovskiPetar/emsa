@@ -12,7 +12,11 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
-import { ProjectDialog } from "@/components/admin/ProjectDialog";
+import {
+  type DraftCapacityPool,
+  type DraftPackage,
+  ProjectDialog,
+} from "@/components/admin/ProjectDialog";
 import { RowActions } from "@/components/admin/RowActions";
 import {
   AlertDialog,
@@ -58,6 +62,7 @@ import {
   type ActiveImageEntry,
   type AdminUser,
   type Project,
+  type ProjectPackage,
   type ProjectRegistration,
 } from "@/constants/types";
 import { useAuth } from "@/context/auth";
@@ -262,16 +267,19 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
   const isAdmin = hasAccess(user?.role ?? Role.USER, Role.ADMIN);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedPackageId, setSelectedPackageId] = useState("");
   const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [packageFilter, setPackageFilter] = useState<string>("all");
 
   const registrationsQueryKey = queryKeys.admin.projectRegistrations(project?.id ?? "");
 
   const { data: registrations = [], isLoading } = useQuery({
-    queryKey: registrationsQueryKey,
-    queryFn: () =>
-      apiClient.get<ProjectRegistration[]>(
-        ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id)
-      ),
+    queryKey: [...registrationsQueryKey, packageFilter],
+    queryFn: () => {
+      const base = ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id);
+      const url = packageFilter !== "all" ? `${base}?packageId=${packageFilter}` : base;
+      return apiClient.get<ProjectRegistration[]>(url);
+    },
     enabled: !!project,
   });
 
@@ -279,6 +287,13 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
     queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
     enabled: isSuperAdmin && !!project,
+  });
+
+  const { data: packages = [] } = useQuery<ProjectPackage[]>({
+    queryKey: queryKeys.admin.projectPackages(project?.id ?? ""),
+    queryFn: () =>
+      apiClient.get<ProjectPackage[]>(ApiRoutes.ADMIN_PROJECT_PACKAGES.replace(":id", project!.id)),
+    enabled: !!project,
   });
 
   const { mutate: toggleAttended } = useMutation({
@@ -289,10 +304,14 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   });
 
   const { mutate: addRegistration, isPending: isAdding } = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient.post(ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id), { userId }),
+    mutationFn: ({ userId, packageId }: { userId: string; packageId: string | null }) =>
+      apiClient.post(ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id), {
+        userId,
+        ...(packageId && { packageId }),
+      }),
     onSuccess: () => {
       setSelectedUserId("");
+      setSelectedPackageId("");
       setDrawerError(null);
       queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
     },
@@ -309,9 +328,13 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   const registeredUserIds = new Set(registrations.map((r) => r.userId));
   const availableUsers = allUsers.filter((u) => !registeredUserIds.has(u.id));
 
+  const hasPackages = packages.length > 0;
+
   useEffect(() => {
     setDrawerError(null);
     setSelectedUserId("");
+    setSelectedPackageId("");
+    setPackageFilter("all");
   }, [project?.id]);
 
   return (
@@ -326,32 +349,69 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
         </SheetHeader>
 
         {isSuperAdmin && (
-          <div className="flex gap-2 border-b p-4">
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Add participant..." />
+          <div className="flex flex-col gap-2 border-b p-4">
+            <div className="flex gap-2">
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Add participant..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers.length === 0 ? (
+                    <SelectItem value="__none__" disabled>
+                      No users to add
+                    </SelectItem>
+                  ) : (
+                    availableUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} — {u.email}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <Button
+                size="icon"
+                disabled={!selectedUserId || (hasPackages && !selectedPackageId) || isAdding}
+                onClick={() =>
+                  selectedUserId &&
+                  addRegistration({ userId: selectedUserId, packageId: selectedPackageId || null })
+                }
+              >
+                <UserPlus className="size-4" />
+              </Button>
+            </div>
+            {hasPackages && (
+              <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select package..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {packages.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+
+        {hasPackages && (
+          <div className="border-b px-4 py-2">
+            <Select value={packageFilter} onValueChange={setPackageFilter}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="All packages" />
               </SelectTrigger>
               <SelectContent>
-                {availableUsers.length === 0 ? (
-                  <SelectItem value="__none__" disabled>
-                    No users to add
+                <SelectItem value="all">All packages</SelectItem>
+                {packages.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
                   </SelectItem>
-                ) : (
-                  availableUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name} — {u.email}
-                    </SelectItem>
-                  ))
-                )}
+                ))}
               </SelectContent>
             </Select>
-            <Button
-              size="icon"
-              disabled={!selectedUserId || isAdding}
-              onClick={() => selectedUserId && addRegistration(selectedUserId)}
-            >
-              <UserPlus className="size-4" />
-            </Button>
           </div>
         )}
 
@@ -374,6 +434,9 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
                     <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
                     {reg.userIndex && (
                       <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
+                    )}
+                    {reg.packageName && (
+                      <p className="text-xs font-medium text-primary">{reg.packageName}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -436,16 +499,47 @@ export function ProjectsPage() {
     mutationFn: async ({
       payload,
       images,
+      draftPackages,
+      draftPools,
     }: {
       payload: Omit<ProjectFormValues, "imageUrls">;
       images: ActiveImageEntry[];
+      draftPackages: DraftPackage[];
+      draftPools: DraftCapacityPool[];
     }) => {
       const imageUrls: string[] = [];
       for (const img of images) {
         const url = await resolveImageEntry(img, ApiRoutes.ADMIN_PROJECTS_UPLOAD);
         if (url) imageUrls.push(url);
       }
-      return apiClient.post<Project>(ApiRoutes.ADMIN_PROJECTS, { ...payload, imageUrls });
+      const project = await apiClient.post<Project>(ApiRoutes.ADMIN_PROJECTS, {
+        ...payload,
+        imageUrls,
+      });
+
+      // Create pools first, then packages
+      const poolIdMap: Record<string, string> = {};
+      for (const pool of draftPools) {
+        const created = await apiClient.post<{ id: string }>(
+          ApiRoutes.ADMIN_PROJECT_CAPACITY_POOLS.replace(":id", project.id),
+          { name: pool.name, maxParticipants: pool.maxParticipants }
+        );
+        poolIdMap[pool._draftId] = created.id;
+      }
+      for (const [i, pkg] of draftPackages.entries()) {
+        const capacityPoolId = pkg.capacityPoolDraftId
+          ? (poolIdMap[pkg.capacityPoolDraftId] ?? null)
+          : null;
+        await apiClient.post(ApiRoutes.ADMIN_PROJECT_PACKAGES.replace(":id", project.id), {
+          name: pkg.name,
+          description: pkg.description,
+          maxParticipants: capacityPoolId ? null : pkg.maxParticipants,
+          capacityPoolId,
+          order: i,
+        });
+      }
+
+      return project;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.projects() });
@@ -487,11 +581,16 @@ export function ProjectsPage() {
     },
   });
 
-  function handleSubmit(payload: Omit<ProjectFormValues, "imageUrls">, images: ActiveImageEntry[]) {
+  function handleSubmit(
+    payload: Omit<ProjectFormValues, "imageUrls">,
+    images: ActiveImageEntry[],
+    draftPackages: DraftPackage[],
+    draftPools: DraftCapacityPool[]
+  ) {
     if (dialog.item) {
       updateProject({ id: dialog.item.id, payload, images });
     } else {
-      createProject({ payload, images });
+      createProject({ payload, images, draftPackages, draftPools });
     }
   }
 

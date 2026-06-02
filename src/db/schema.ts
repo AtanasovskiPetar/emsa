@@ -76,6 +76,31 @@ export const projectImages = pgTable("project_images", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const projectCapacityPools = pgTable("project_capacity_pools", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  maxParticipants: integer("max_participants").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const projectPackages = pgTable("project_packages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  capacityPoolId: uuid("capacity_pool_id").references(() => projectCapacityPools.id, {
+    onDelete: "set null",
+  }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull().default(""),
+  maxParticipants: integer("max_participants"),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const projectRegistrations = pgTable(
   "project_registrations",
   {
@@ -86,6 +111,7 @@ export const projectRegistrations = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    packageId: uuid("package_id").references(() => projectPackages.id, { onDelete: "set null" }),
     attended: boolean("attended").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -98,6 +124,22 @@ export const projectRegistrations = pgTable(
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   pillar: one(pillars, { fields: [projects.pillarId], references: [pillars.id] }),
   images: many(projectImages),
+  registrations: many(projectRegistrations),
+  capacityPools: many(projectCapacityPools),
+  packages: many(projectPackages),
+}));
+
+export const projectCapacityPoolsRelations = relations(projectCapacityPools, ({ one, many }) => ({
+  project: one(projects, { fields: [projectCapacityPools.projectId], references: [projects.id] }),
+  packages: many(projectPackages),
+}));
+
+export const projectPackagesRelations = relations(projectPackages, ({ one, many }) => ({
+  project: one(projects, { fields: [projectPackages.projectId], references: [projects.id] }),
+  capacityPool: one(projectCapacityPools, {
+    fields: [projectPackages.capacityPoolId],
+    references: [projectCapacityPools.id],
+  }),
   registrations: many(projectRegistrations),
 }));
 
@@ -115,6 +157,10 @@ export const registrationCertificates = pgTable("registration_certificates", {
 export const projectRegistrationsRelations = relations(projectRegistrations, ({ one }) => ({
   project: one(projects, { fields: [projectRegistrations.projectId], references: [projects.id] }),
   user: one(users, { fields: [projectRegistrations.userId], references: [users.id] }),
+  package: one(projectPackages, {
+    fields: [projectRegistrations.packageId],
+    references: [projectPackages.id],
+  }),
   certificate: one(registrationCertificates, {
     fields: [projectRegistrations.id],
     references: [registrationCertificates.registrationId],

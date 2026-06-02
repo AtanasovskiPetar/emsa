@@ -8,6 +8,7 @@ import {
   Download,
   Images,
   Layers,
+  Package,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -20,7 +21,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
-import { type MyRegistration, type PublicProject } from "@/constants/types";
+import {
+  type MyRegistration,
+  type PublicProject,
+  type PublicProjectPackage,
+} from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
 import { cn, getRegistrationStatus } from "@/lib/utils";
@@ -33,8 +38,43 @@ interface RegistrationSectionProps {
   isRegistering: boolean;
   isUnregistering: boolean;
   registerError: Error | null;
+  selectedPackageId: string | null;
+  onSelectPackage: (id: string | null) => void;
   onRegister: () => void;
   onUnregister: () => void;
+}
+
+function PackageCard({
+  pkg,
+  selected,
+  onSelect,
+}: {
+  pkg: PublicProjectPackage;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const isFull = !pkg.canRegister;
+  return (
+    <button
+      type="button"
+      disabled={isFull}
+      onClick={onSelect}
+      className={cn(
+        "flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
+        selected
+          ? "border-primary bg-primary/5"
+          : isFull
+            ? "cursor-not-allowed border-muted bg-muted/30 opacity-60"
+            : "hover:border-primary/50 hover:bg-muted/30"
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{pkg.name}</span>
+        {isFull && <span className="shrink-0 text-xs text-muted-foreground">Full</span>}
+      </div>
+      {pkg.description && <p className="text-xs text-muted-foreground">{pkg.description}</p>}
+    </button>
+  );
 }
 
 function RegistrationSection({
@@ -45,20 +85,29 @@ function RegistrationSection({
   isRegistering,
   isUnregistering,
   registerError,
+  selectedPackageId,
+  onSelectPackage,
   onRegister,
   onUnregister,
 }: RegistrationSectionProps) {
   const canUnregister =
     !project.registrationClosesAt || new Date(project.registrationClosesAt) > new Date();
+  const hasPackages = project.packages.length > 0;
 
   if (myRegistration?.registered) {
     return (
-      <div className="flex flex-wrap justify-between items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-sm text-green-600">
             <CheckCircle2 className="size-4" />
             <span>You&apos;re registered</span>
           </div>
+          {myRegistration.packageName && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Package className="size-3.5" />
+              {myRegistration.packageName}
+            </div>
+          )}
           {canUnregister && (
             <Button variant="outline" size="sm" onClick={onUnregister} disabled={isUnregistering}>
               {isUnregistering ? "Cancelling..." : "Cancel registration"}
@@ -118,15 +167,40 @@ function RegistrationSection({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <Button size="sm" className="w-fit" onClick={onRegister} disabled={isRegistering}>
-        {isRegistering ? "Registering..." : "Register"}
-      </Button>
-      {registerError && (
-        <p className="text-xs text-destructive">
-          {registerError instanceof Error ? registerError.message : "Failed to register."}
-        </p>
+    <div className="flex flex-col gap-3">
+      {hasPackages && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Select a package</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {project.packages.map((pkg) => (
+              <PackageCard
+                key={pkg.id}
+                pkg={pkg}
+                selected={selectedPackageId === pkg.id}
+                onSelect={() => onSelectPackage(pkg.id === selectedPackageId ? null : pkg.id)}
+              />
+            ))}
+          </div>
+        </div>
       )}
+      <div className="flex flex-col gap-1.5">
+        <Button
+          size="sm"
+          className="w-fit"
+          onClick={onRegister}
+          disabled={isRegistering || (hasPackages && !selectedPackageId)}
+        >
+          {isRegistering ? "Registering..." : "Register"}
+        </Button>
+        {hasPackages && !selectedPackageId && (
+          <p className="text-xs text-muted-foreground">Please select a package to continue.</p>
+        )}
+        {registerError && (
+          <p className="text-xs text-destructive">
+            {registerError instanceof Error ? registerError.message : "Failed to register."}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -134,6 +208,7 @@ function RegistrationSection({
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -160,8 +235,14 @@ export function ProjectDetailPage() {
     isPending: isRegistering,
     error: registerError,
   } = useMutation({
-    mutationFn: () => apiClient.post(ApiRoutes.PROJECT_REGISTER.replace(":id", id!), {}),
-    onSuccess: invalidateRegistration,
+    mutationFn: () =>
+      apiClient.post(ApiRoutes.PROJECT_REGISTER.replace(":id", id!), {
+        packageId: selectedPackageId,
+      }),
+    onSuccess: () => {
+      setSelectedPackageId(null);
+      invalidateRegistration();
+    },
   });
 
   const { mutate: unregister, isPending: isUnregistering } = useMutation({
@@ -285,6 +366,8 @@ export function ProjectDetailPage() {
                   isRegistering={isRegistering}
                   isUnregistering={isUnregistering}
                   registerError={registerError}
+                  selectedPackageId={selectedPackageId}
+                  onSelectPackage={setSelectedPackageId}
                   onRegister={() => register()}
                   onUnregister={() => unregister()}
                 />

@@ -94,12 +94,9 @@ export async function resolveImageEntry(
 export function getRegistrationStatus(project: PublicProject): RegistrationStatus {
   if (!project.registrationOpensAt) return "none";
   const now = new Date();
-  const opensAt = new Date(project.registrationOpensAt);
-  if (opensAt > now) return "not_open";
+  if (new Date(project.registrationOpensAt) > now) return "not_open";
   if (project.registrationClosesAt && new Date(project.registrationClosesAt) < now) return "closed";
-  if (project.maxParticipants !== null && project.participantCount >= project.maxParticipants)
-    return "full";
-  return "open";
+  return project.canRegister ? "open" : "full";
 }
 
 export function formatDate(dateStr: string): string {

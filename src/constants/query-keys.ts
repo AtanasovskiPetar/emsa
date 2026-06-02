@@ -17,5 +17,8 @@ export const queryKeys = {
     dashboard: () => ["admin", "dashboard"] as const,
     projectRegistrations: (projectId: string) =>
       ["admin", "projects", projectId, "registrations"] as const,
+    projectPackages: (projectId: string) => ["admin", "projects", projectId, "packages"] as const,
+    projectCapacityPools: (projectId: string) =>
+      ["admin", "projects", projectId, "capacity-pools"] as const,
   },
 };
