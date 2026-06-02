@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
-import { ArrowRight, Mail, MapPin, Phone, Pin } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { PillarCard } from "@/components/PillarCard";
+import { PinnedProjectSpotlight } from "@/components/PinnedProjectSpotlight";
 import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
@@ -189,22 +190,7 @@ export function HomePage() {
       </section>
 
       {/* Pinned project spotlight */}
-      {pinnedProject && (
-        <section className="border-t py-20">
-          <div className="mx-auto max-w-6xl px-4">
-            <div className="mb-8">
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                <Pin className="size-3.5" />
-                Featured Project
-              </div>
-              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
-                Spotlight
-              </h2>
-            </div>
-            <ProjectCard project={pinnedProject} index={0} featured />
-          </div>
-        </section>
-      )}
+      {pinnedProject && <PinnedProjectSpotlight project={pinnedProject} />}
 
       {/* Projects preview */}
       <section className="border-t py-20">
