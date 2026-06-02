@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { PillarCard } from "@/components/PillarCard";
+import { PinnedProjectSpotlight } from "@/components/PinnedProjectSpotlight";
 import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,21 @@ const fadeUp = {
 };
 
 function getPreviewProjects(projects: PublicProject[]): PublicProject[] {
-  const now = new Date();
-  const upcoming = projects.filter((p) => new Date(p.startingAt) >= now);
-  const past = projects.filter((p) => new Date(p.startingAt) < now);
-  return [
-    ...upcoming.slice(0, 3),
-    ...[...past].reverse().slice(0, Math.max(0, 3 - upcoming.length)),
-  ];
+  const now = new Date().getTime();
+  const upcoming = projects.filter((p) => new Date(p.startingAt).getTime() >= now);
+  // Array is DESC so the soonest upcoming is the last element
+  const soonest = upcoming.at(-1) ?? null;
+
+  const rest = soonest ? projects.filter((p) => p.id !== soonest.id) : projects;
+  const fillers = [...rest]
+    .sort(
+      (a, b) =>
+        Math.abs(new Date(a.startingAt).getTime() - now) -
+        Math.abs(new Date(b.startingAt).getTime() - now)
+    )
+    .slice(0, soonest ? 2 : 3);
+
+  return soonest ? [soonest, ...fillers] : fillers;
 }
 
 export function HomePage() {
@@ -57,7 +66,9 @@ export function HomePage() {
     queryFn: () => apiClient.get<PublicPosition[]>(ApiRoutes.POSITIONS),
   });
 
-  const previewProjects = projects ? getPreviewProjects(projects) : [];
+  const pinnedProject = projects?.find((p) => p.isPinned) ?? null;
+  const nonPinned = projects ? projects.filter((p) => !p.isPinned) : [];
+  const previewProjects = getPreviewProjects(nonPinned);
 
   return (
     <div className="flex flex-col">
@@ -177,6 +188,9 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Pinned project spotlight */}
+      {pinnedProject && <PinnedProjectSpotlight project={pinnedProject} />}
 
       {/* Projects preview */}
       <section className="border-t py-20">
