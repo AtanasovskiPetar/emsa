@@ -88,6 +88,14 @@ export interface ProjectPackage {
   createdAt: string;
 }
 
+export interface PublicProjectPackage {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  canRegister: boolean;
+}
+
 export interface ProjectRegistration {
   id: string;
   userId: string;
@@ -125,10 +133,9 @@ export interface PublicProject {
   images: string[];
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
-  maxParticipants: number | null;
   activeMembersOnly: boolean;
-  participantCount: number;
-  packages: ProjectPackage[];
+  canRegister: boolean;
+  packages: PublicProjectPackage[];
 }
 
 export interface MyRegistration {

@@ -94,19 +94,9 @@ export async function resolveImageEntry(
 export function getRegistrationStatus(project: PublicProject): RegistrationStatus {
   if (!project.registrationOpensAt) return "none";
   const now = new Date();
-  const opensAt = new Date(project.registrationOpensAt);
-  if (opensAt > now) return "not_open";
+  if (new Date(project.registrationOpensAt) > now) return "not_open";
   if (project.registrationClosesAt && new Date(project.registrationClosesAt) < now) return "closed";
-  if ((project.packages ?? []).length > 0) {
-    // Full only when every package is explicitly capped and every cap is exhausted
-    const allFull = project.packages.every(
-      (p) => p.availableSpots !== null && p.availableSpots === 0
-    );
-    return allFull ? "full" : "open";
-  }
-  if (project.maxParticipants !== null && project.participantCount >= project.maxParticipants)
-    return "full";
-  return "open";
+  return project.canRegister ? "open" : "full";
 }
 
 export function formatDate(dateStr: string): string {

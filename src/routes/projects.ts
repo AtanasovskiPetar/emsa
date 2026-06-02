@@ -122,6 +122,22 @@ async function buildPackagesWithAvailability(projectIds: string[]) {
   return result;
 }
 
+function toPublicPackage(pkg: {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  availableSpots: number | null;
+}) {
+  return {
+    id: pkg.id,
+    name: pkg.name,
+    description: pkg.description,
+    order: pkg.order,
+    canRegister: pkg.availableSpots === null || pkg.availableSpots > 0,
+  };
+}
+
 // Public
 const getProjects = async () => {
   const rows = await db
@@ -169,14 +185,38 @@ const getProjects = async () => {
   }
 
   const packagesByProject = await buildPackagesWithAvailability(projectIds);
+  const now = new Date();
 
   return Response.json(
-    rows.map((p) => ({
-      ...p,
-      images: imagesByProject[p.id] ?? [],
-      participantCount: countByProject[p.id] ?? 0,
-      packages: packagesByProject[p.id] ?? [],
-    }))
+    rows.map((p) => {
+      const pkgs = packagesByProject[p.id] ?? [];
+      const publicPackages = pkgs.map(toPublicPackage);
+      const participantCount = countByProject[p.id] ?? 0;
+      const registrationOpen =
+        p.registrationOpensAt !== null &&
+        new Date(p.registrationOpensAt) <= now &&
+        (p.registrationClosesAt === null || new Date(p.registrationClosesAt) > now);
+      const canRegister =
+        registrationOpen &&
+        (pkgs.length > 0
+          ? publicPackages.some((pkg) => pkg.canRegister)
+          : p.maxParticipants === null || participantCount < p.maxParticipants);
+      return {
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        startingAt: p.startingAt,
+        endingAt: p.endingAt,
+        pillarId: p.pillarId,
+        pillarName: p.pillarName,
+        registrationOpensAt: p.registrationOpensAt,
+        registrationClosesAt: p.registrationClosesAt,
+        activeMembersOnly: p.activeMembersOnly,
+        images: imagesByProject[p.id] ?? [],
+        canRegister,
+        packages: publicPackages,
+      };
+    })
   );
 };
 
@@ -217,11 +257,34 @@ const getProjectById = async (req: BunRequest<{ id: string }>) => {
     buildPackagesWithAvailability([id]),
   ]);
 
+  const pkgs = packagesByProject[id] ?? [];
+  const publicPackages = pkgs.map(toPublicPackage);
+  const participantCount = participantRow?.count ?? 0;
+  const now = new Date();
+  const registrationOpen =
+    row.registrationOpensAt !== null &&
+    new Date(row.registrationOpensAt) <= now &&
+    (row.registrationClosesAt === null || new Date(row.registrationClosesAt) > now);
+  const canRegister =
+    registrationOpen &&
+    (pkgs.length > 0
+      ? publicPackages.some((pkg) => pkg.canRegister)
+      : row.maxParticipants === null || participantCount < row.maxParticipants);
+
   return Response.json({
-    ...row,
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    startingAt: row.startingAt,
+    endingAt: row.endingAt,
+    pillarId: row.pillarId,
+    pillarName: row.pillarName,
+    registrationOpensAt: row.registrationOpensAt,
+    registrationClosesAt: row.registrationClosesAt,
+    activeMembersOnly: row.activeMembersOnly,
     images: images.map((i) => i.url),
-    participantCount: participantRow?.count ?? 0,
-    packages: packagesByProject[id] ?? [],
+    canRegister,
+    packages: publicPackages,
   });
 };
 
