@@ -68,4 +68,8 @@ export const ApiRoutes = {
   ADMIN_USERS_BULK_IMPORT: "/api/admin/users/bulk-import",
   ADMIN_USERS_RESEND_WELCOME: "/api/admin/users/resend-welcome",
   AUTH_SETUP_PASSWORD: "/api/auth/setup-password",
+  ADMIN_PROJECT_PACKAGES: "/api/admin/projects/:id/packages",
+  ADMIN_PROJECT_PACKAGE_BY_ID: "/api/admin/projects/:id/packages/:packageId",
+  ADMIN_PROJECT_CAPACITY_POOLS: "/api/admin/projects/:id/capacity-pools",
+  ADMIN_PROJECT_CAPACITY_POOL_BY_ID: "/api/admin/projects/:id/capacity-pools/:poolId",
 } as const;
