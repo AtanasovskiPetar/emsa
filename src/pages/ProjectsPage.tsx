@@ -11,12 +11,6 @@ import { type PublicPillar, type PublicProject } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-function sortByDateDesc(projects: PublicProject[]): PublicProject[] {
-  return [...projects].sort(
-    (a, b) => new Date(b.startingAt).getTime() - new Date(a.startingAt).getTime()
-  );
-}
-
 export function ProjectsPage() {
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [onlyUpcoming, setOnlyUpcoming] = useState(false);
@@ -35,13 +29,11 @@ export function ProjectsPage() {
     const now = new Date();
     const all = projects ?? [];
     return {
-      filtered: sortByDateDesc(
-        all.filter((p) => {
-          if (selectedPillar && p.pillarId !== selectedPillar) return false;
-          if (onlyUpcoming && new Date(p.startingAt) < now) return false;
-          return true;
-        })
-      ),
+      filtered: all.filter((p) => {
+        if (selectedPillar && p.pillarId !== selectedPillar) return false;
+        if (onlyUpcoming && new Date(p.startingAt) < now) return false;
+        return true;
+      }),
       upcomingCount: all.filter((p) => new Date(p.startingAt) >= now).length,
     };
   }, [projects, selectedPillar, onlyUpcoming]);

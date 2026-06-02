@@ -1,4 +1,4 @@
-import { and, count, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 
 import { Role } from "@/constants/enums";
@@ -156,7 +156,7 @@ const getProjects = async () => {
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
-    .orderBy(projects.startingAt);
+    .orderBy(desc(projects.startingAt));
 
   const projectIds = rows.map((p) => p.id);
   const imagesByProject: Record<string, string[]> = {};
@@ -543,7 +543,7 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
-    .orderBy(projects.startingAt);
+    .orderBy(desc(projects.startingAt));
 
   const adminProjectIds = rows.map((p) => p.id);
   const adminImagesByProject: Record<string, string[]> = {};
