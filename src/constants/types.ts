@@ -61,6 +61,7 @@ export interface Project {
   registrationClosesAt: string | null;
   maxParticipants: number | null;
   activeMembersOnly: boolean;
+  isPinned: boolean;
   packages: ProjectPackage[];
   createdAt: string;
   updatedAt: string;
@@ -134,6 +135,7 @@ export interface PublicProject {
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   activeMembersOnly: boolean;
+  isPinned: boolean;
   canRegister: boolean;
   packages: PublicProjectPackage[];
 }
