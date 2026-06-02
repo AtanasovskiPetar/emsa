@@ -21,7 +21,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
-import { type MyRegistration, type ProjectPackage, type PublicProject } from "@/constants/types";
+import {
+  type MyRegistration,
+  type PublicProject,
+  type PublicProjectPackage,
+} from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
 import { cn, getRegistrationStatus } from "@/lib/utils";
@@ -45,11 +49,11 @@ function PackageCard({
   selected,
   onSelect,
 }: {
-  pkg: ProjectPackage;
+  pkg: PublicProjectPackage;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const isFull = pkg.availableSpots === 0;
+  const isFull = !pkg.canRegister;
   return (
     <button
       type="button"
@@ -66,13 +70,7 @@ function PackageCard({
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{pkg.name}</span>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {isFull
-            ? "Full"
-            : pkg.availableSpots !== null
-              ? `${pkg.availableSpots} spots left`
-              : "Available"}
-        </span>
+        {isFull && <span className="shrink-0 text-xs text-muted-foreground">Full</span>}
       </div>
       {pkg.description && <p className="text-xs text-muted-foreground">{pkg.description}</p>}
     </button>
