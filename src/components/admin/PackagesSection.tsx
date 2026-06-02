@@ -337,7 +337,9 @@ export function PackagesSection({
     onDraftPoolsChange(draftPools.filter((p) => p._draftId !== draftId));
     onDraftPackagesChange(
       draftPackages.map((p) =>
-        p.capacityPoolDraftId === draftId ? { ...p, capacityPoolDraftId: null } : p
+        p.capacityPoolDraftId === draftId
+          ? { ...p, capacityPoolDraftId: null, maxParticipants: null }
+          : p
       )
     );
   }

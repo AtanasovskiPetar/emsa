@@ -973,7 +973,7 @@ const updateProjectPackage = withRole<{ id: string; packageId: string }>(
       if (!pool) return Response.json({ error: "Capacity pool not found" }, { status: 404 });
     }
 
-    const clearIndividualMax = body.capacityPoolId !== null && body.capacityPoolId !== undefined;
+    const clearIndividualMax = body.capacityPoolId !== undefined && body.capacityPoolId !== null;
 
     const [updated] = await db
       .update(projectPackages)
