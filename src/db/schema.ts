@@ -62,6 +62,7 @@ export const projects = pgTable("projects", {
   registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
   maxParticipants: integer("max_participants"),
   activeMembersOnly: boolean("active_members_only").notNull().default(false),
+  isPinned: boolean("is_pinned").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -10,7 +10,7 @@ import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { GripVertical, ImagePlus, Users, X } from "lucide-react";
+import { GripVertical, ImagePlus, Pin, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -74,6 +74,7 @@ const formSchema = z
     registrationClosesAt: z.string().optional(),
     maxParticipants: z.number().int().min(1, "Must be at least 1").nullable().optional(),
     activeMembersOnly: z.boolean(),
+    isPinned: z.boolean(),
   })
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
@@ -149,6 +150,7 @@ interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Project;
+  pinnedProject?: Project;
   onSubmit: (
     payload: Omit<ProjectFormValues, "imageUrls">,
     images: ActiveImageEntry[],
@@ -162,6 +164,7 @@ export function ProjectDialog({
   open,
   onOpenChange,
   project,
+  pinnedProject,
   onSubmit,
   isPending,
 }: ProjectDialogProps) {
@@ -204,6 +207,7 @@ export function ProjectDialog({
             : "",
           maxParticipants: project.maxParticipants ?? undefined,
           activeMembersOnly: project.activeMembersOnly,
+          isPinned: project.isPinned,
         }
       : {
           title: "",
@@ -215,6 +219,7 @@ export function ProjectDialog({
           registrationClosesAt: "",
           maxParticipants: undefined,
           activeMembersOnly: false,
+          isPinned: false,
         },
   });
 
@@ -287,6 +292,7 @@ export function ProjectDialog({
           : null,
         maxParticipants: hasPackages ? null : (values.maxParticipants ?? null),
         activeMembersOnly: values.activeMembersOnly,
+        isPinned: values.isPinned,
       },
       images,
       draftPackages,
@@ -494,6 +500,34 @@ export function ProjectDialog({
                 onDraftPackagesChange={setDraftPackages}
                 onDraftPoolsChange={setDraftPools}
               />
+
+              {!!project && (
+                <FormField
+                  control={form.control}
+                  name="isPinned"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <div className="flex items-center justify-between rounded-md border p-3">
+                        <div className="flex items-center gap-2">
+                          <Pin className="size-3.5 text-muted-foreground" />
+                          <FormLabel className="cursor-pointer text-sm font-medium">
+                            Pin this project
+                          </FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </div>
+                      {field.value && pinnedProject && pinnedProject.id !== project?.id && (
+                        <p className="rounded-b-md border border-t-0 border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                          &ldquo;{pinnedProject.title}&rdquo; is currently pinned and will be
+                          unpinned.
+                        </p>
+                      )}
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium">Images</span>

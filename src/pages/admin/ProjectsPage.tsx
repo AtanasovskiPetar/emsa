@@ -7,7 +7,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Award, Plus, Search, Trash2, Upload, UserPlus, Users, X } from "lucide-react";
+import { Award, Pin, Plus, Search, Trash2, Upload, UserPlus, Users, X } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
@@ -88,6 +88,18 @@ function useColumns(
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{row.getValue("title")}</span>
+          {row.original.isPinned && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Pin className="size-3.5 text-primary" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Pinned project</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {row.original.activeMembersOnly && (
             <TooltipProvider>
               <Tooltip>
@@ -495,6 +507,8 @@ export function ProjectsPage() {
     queryFn: () => apiClient.get<Project[]>(ApiRoutes.ADMIN_PROJECTS),
   });
 
+  const pinnedProject = projects.find((p) => p.isPinned);
+
   const { mutate: createProject, isPending: isCreating } = useMutation({
     mutationFn: async ({
       payload,
@@ -680,6 +694,7 @@ export function ProjectsPage() {
         open={dialog.isOpen}
         onOpenChange={(open) => !open && dialog.close()}
         project={dialog.item}
+        pinnedProject={pinnedProject}
         onSubmit={handleSubmit}
         isPending={isCreating || isUpdating}
       />
