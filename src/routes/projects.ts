@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import { Role } from "@/constants/enums";
@@ -153,6 +153,7 @@ const getProjects = async () => {
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
       activeMembersOnly: projects.activeMembersOnly,
+      isPinned: projects.isPinned,
     })
     .from(projects)
     .leftJoin(pillars, eq(projects.pillarId, pillars.id))
@@ -212,6 +213,7 @@ const getProjects = async () => {
         registrationOpensAt: p.registrationOpensAt,
         registrationClosesAt: p.registrationClosesAt,
         activeMembersOnly: p.activeMembersOnly,
+        isPinned: p.isPinned,
         images: imagesByProject[p.id] ?? [],
         canRegister,
         packages: publicPackages,
@@ -538,6 +540,7 @@ const getProjectsAdmin = withRole(Role.ADMIN, async () => {
       registrationClosesAt: projects.registrationClosesAt,
       maxParticipants: projects.maxParticipants,
       activeMembersOnly: projects.activeMembersOnly,
+      isPinned: projects.isPinned,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
     })
@@ -580,6 +583,7 @@ const createProject = withRole(Role.ADMIN, async (req) => {
       .insert(projects)
       .values({
         ...rest,
+        isPinned: false,
         startingAt: new Date(startingAt),
         endingAt: endingAt ? new Date(endingAt) : null,
         registrationOpensAt: registrationOpensAt ? new Date(registrationOpensAt) : null,
@@ -609,6 +613,13 @@ const updateProject = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   let imagesToDelete: { url: string }[] = [];
 
   const updated = await db.transaction(async (tx) => {
+    if (rest.isPinned === true) {
+      await tx
+        .update(projects)
+        .set({ isPinned: false })
+        .where(and(eq(projects.isPinned, true), ne(projects.id, id)));
+    }
+
     const [project] = await tx
       .update(projects)
       .set({

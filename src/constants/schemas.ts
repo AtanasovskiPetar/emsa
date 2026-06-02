@@ -127,6 +127,7 @@ export const projectSchema = z
     registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
     activeMembersOnly: z.boolean().default(false),
+    isPinned: z.boolean().default(false),
   })
   .refine(
     (data) => !(!data.registrationOpensAt && (data.registrationClosesAt || data.maxParticipants)),
@@ -158,6 +159,7 @@ export const updateProjectSchema = z
     registrationClosesAt: z.iso.datetime().nullable().optional(),
     maxParticipants: z.number().int().min(1).nullable().optional(),
     activeMembersOnly: z.boolean().optional(),
+    isPinned: z.boolean().optional(),
   })
   .refine(
     (data) =>
@@ -170,7 +172,8 @@ export const updateProjectSchema = z
       data.registrationOpensAt !== undefined ||
       data.registrationClosesAt !== undefined ||
       data.maxParticipants !== undefined ||
-      data.activeMembersOnly !== undefined,
+      data.activeMembersOnly !== undefined ||
+      data.isPinned !== undefined,
     { message: "At least one field must be provided" }
   )
   .refine(
