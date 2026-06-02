@@ -267,6 +267,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
   const isAdmin = hasAccess(user?.role ?? Role.USER, Role.ADMIN);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedPackageId, setSelectedPackageId] = useState("");
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const [packageFilter, setPackageFilter] = useState<string>("all");
 
@@ -303,10 +304,14 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   });
 
   const { mutate: addRegistration, isPending: isAdding } = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient.post(ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id), { userId }),
+    mutationFn: ({ userId, packageId }: { userId: string; packageId: string | null }) =>
+      apiClient.post(ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", project!.id), {
+        userId,
+        ...(packageId && { packageId }),
+      }),
     onSuccess: () => {
       setSelectedUserId("");
+      setSelectedPackageId("");
       setDrawerError(null);
       queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
     },
@@ -328,6 +333,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
   useEffect(() => {
     setDrawerError(null);
     setSelectedUserId("");
+    setSelectedPackageId("");
     setPackageFilter("all");
   }, [project?.id]);
 
@@ -343,32 +349,51 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
         </SheetHeader>
 
         {isSuperAdmin && (
-          <div className="flex gap-2 border-b p-4">
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Add participant..." />
-              </SelectTrigger>
-              <SelectContent>
-                {availableUsers.length === 0 ? (
-                  <SelectItem value="__none__" disabled>
-                    No users to add
-                  </SelectItem>
-                ) : (
-                  availableUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name} — {u.email}
+          <div className="flex flex-col gap-2 border-b p-4">
+            <div className="flex gap-2">
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Add participant..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers.length === 0 ? (
+                    <SelectItem value="__none__" disabled>
+                      No users to add
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <Button
-              size="icon"
-              disabled={!selectedUserId || isAdding}
-              onClick={() => selectedUserId && addRegistration(selectedUserId)}
-            >
-              <UserPlus className="size-4" />
-            </Button>
+                  ) : (
+                    availableUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} — {u.email}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <Button
+                size="icon"
+                disabled={!selectedUserId || (hasPackages && !selectedPackageId) || isAdding}
+                onClick={() =>
+                  selectedUserId &&
+                  addRegistration({ userId: selectedUserId, packageId: selectedPackageId || null })
+                }
+              >
+                <UserPlus className="size-4" />
+              </Button>
+            </div>
+            {hasPackages && (
+              <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select package..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {packages.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 

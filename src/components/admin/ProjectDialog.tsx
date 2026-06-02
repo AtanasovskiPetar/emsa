@@ -15,7 +15,11 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { PackagesSection } from "@/components/admin/PackagesSection";
+import {
+  type DraftCapacityPool,
+  type DraftPackage,
+  PackagesSection,
+} from "@/components/admin/PackagesSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -140,8 +144,6 @@ function SortableImage({ img, onRemove }: SortableImageProps) {
 }
 
 // ── Main dialog ───────────────────────────────────────────────────────────────
-
-import type { DraftCapacityPool, DraftPackage } from "@/components/admin/PackagesSection";
 
 interface ProjectDialogProps {
   open: boolean;
