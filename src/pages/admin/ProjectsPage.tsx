@@ -69,6 +69,7 @@ import { useAuth } from "@/context/auth";
 import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
 import {
+  cn,
   formatDate,
   getInitials,
   hasAccess,
@@ -273,6 +274,180 @@ function CertificateCell({ reg, onRefresh }: { reg: ProjectRegistration; onRefre
   );
 }
 
+function CapacitySummary({
+  project,
+  packages,
+  registrationCount,
+}: {
+  project: Project;
+  packages: ProjectPackage[];
+  registrationCount: number;
+}) {
+  if (packages.length === 0) {
+    const max = project.maxParticipants;
+    if (max === null) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{registrationCount}</span> registered ·
+          Unlimited capacity
+        </p>
+      );
+    }
+    const available = Math.max(0, max - registrationCount);
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            <span className="font-medium text-foreground">{registrationCount}</span> / {max}{" "}
+            registered
+          </span>
+          <span
+            className={cn(
+              "font-medium",
+              available === 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+            )}
+          >
+            {available === 0 ? "Full" : `${available} left`}
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              available === 0 ? "bg-destructive" : "bg-primary"
+            )}
+            style={{ width: `${Math.min(100, (registrationCount / max) * 100)}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  type CapacityRow =
+    | { kind: "package"; pkg: ProjectPackage }
+    | {
+        kind: "pool";
+        poolId: string;
+        poolName: string | null;
+        poolMax: number;
+        availableSpots: number | null;
+        pkgs: ProjectPackage[];
+      };
+
+  const seenPools = new Set<string>();
+  const rows: CapacityRow[] = [];
+
+  for (const pkg of packages) {
+    if (pkg.capacityPoolId) {
+      if (!seenPools.has(pkg.capacityPoolId)) {
+        seenPools.add(pkg.capacityPoolId);
+        rows.push({
+          kind: "pool",
+          poolId: pkg.capacityPoolId,
+          poolName: pkg.capacityPoolName,
+          poolMax: pkg.capacityPoolMax ?? 0,
+          availableSpots: pkg.availableSpots,
+          pkgs: packages.filter((p) => p.capacityPoolId === pkg.capacityPoolId),
+        });
+      }
+    } else {
+      rows.push({ kind: "package", pkg });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => {
+        if (row.kind === "pool") {
+          const registered = row.availableSpots !== null ? row.poolMax - row.availableSpots : null;
+          const full = row.availableSpots === 0;
+          const pct =
+            registered !== null && row.poolMax > 0
+              ? Math.min(100, (registered / row.poolMax) * 100)
+              : 0;
+          return (
+            <div key={row.poolId} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium">{row.poolName ?? "Shared pool"}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {registered !== null ? `${registered} / ${row.poolMax}` : `— / ${row.poolMax}`}
+                  {" · "}
+                  <span
+                    className={cn(
+                      "font-medium",
+                      full ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+                    )}
+                  >
+                    {full
+                      ? "Full"
+                      : row.availableSpots !== null
+                        ? `${row.availableSpots} left`
+                        : "Unlimited"}
+                  </span>
+                </span>
+              </div>
+              <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    full ? "bg-destructive" : "bg-primary"
+                  )}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {row.pkgs.map((p) => p.name).join(", ")}
+              </p>
+            </div>
+          );
+        }
+
+        const { pkg } = row;
+        if (pkg.availableSpots === null) {
+          return (
+            <div key={pkg.id} className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{pkg.name}</span>
+              <span className="text-muted-foreground">Unlimited</span>
+            </div>
+          );
+        }
+        const max = pkg.maxParticipants ?? 0;
+        const registered = max - pkg.availableSpots;
+        const full = pkg.availableSpots === 0;
+        const pct = max > 0 ? Math.min(100, (registered / max) * 100) : 0;
+        return (
+          <div key={pkg.id} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{pkg.name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {registered} / {max}
+                {" · "}
+                <span
+                  className={cn(
+                    "font-medium",
+                    full ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+                  )}
+                >
+                  {full ? "Full" : `${pkg.availableSpots} left`}
+                </span>
+              </span>
+            </div>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  full ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDrawerProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -301,7 +476,7 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
     enabled: isSuperAdmin && !!project,
   });
 
-  const { data: packages = [] } = useQuery<ProjectPackage[]>({
+  const { data: packages = [], isLoading: isPackagesLoading } = useQuery<ProjectPackage[]>({
     queryKey: queryKeys.admin.projectPackages(project?.id ?? ""),
     queryFn: () =>
       apiClient.get<ProjectPackage[]>(ApiRoutes.ADMIN_PROJECT_PACKAGES.replace(":id", project!.id)),
@@ -359,6 +534,19 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
           </SheetTitle>
           <SheetDescription>{project?.title}</SheetDescription>
         </SheetHeader>
+
+        {project && project.registrationOpensAt && !isLoading && !isPackagesLoading && (
+          <div className="border-b px-4 py-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Capacity
+            </p>
+            <CapacitySummary
+              project={project}
+              packages={packages}
+              registrationCount={registrations.length}
+            />
+          </div>
+        )}
 
         {isSuperAdmin && (
           <div className="flex flex-col gap-2 border-b p-4">
