@@ -6,6 +6,14 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
+import {
+  installDockerCmd,
+  makeDeployCmd,
+  makeEnvFileCmd,
+  makeMigrateCmd,
+  makeSetupBackupCmd,
+} from "./scripts";
+
 const config = new pulumi.Config();
 const deployType = config.require("deployType");
 const sshKeyName = config.require("sshKeyName");
@@ -59,21 +67,7 @@ if (deployType === "infra") {
 
   const installDocker = new command.remote.Command("install-docker", {
     connection,
-    create: `
-      if ! command -v docker &>/dev/null; then
-        apt-get update -y
-        apt-get install -y ca-certificates curl gnupg lsb-release
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        chmod a+r /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
-        apt-get update -y
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-        systemctl enable docker
-        systemctl start docker
-      fi
-      docker network create emsa-shared 2>/dev/null || true
-    `,
+    create: installDockerCmd,
   });
 
   const setupTraefik = new command.remote.Command(
@@ -202,32 +196,23 @@ if (deployType === "app") {
     { dependsOn: [syncCode] }
   );
 
-  const envFileCmd = pulumi.interpolate`cat > ${appDir}/.env << 'ENVEOF'
-ENV_NAME=${envName}
-DOMAIN=${domain}
-PORT=3000
-ENV=${envName === "prod" ? "production" : "development"}
-DB_HOST=postgres-${envName}
-DB_PORT=5432
-DB_HOST_PORT=${dbHostPort}
-DB_USER=emsa
-DB_PASS=${dbPassword}
-DB_NAME=emsa_${envName}
-DB_SCHEMA=public
-JWT_SECRET=${jwtSecret}
-JWT_EXPIRES_IN=7d
-GOOGLE_CLIENT_ID=${googleClientId}
-GOOGLE_CLIENT_SECRET=${googleClientSecret}
-GOOGLE_REDIRECT_URI=https://${domain}/api/auth/google/callback
-APP_URL=https://${domain}
-R2_ACCESS_KEY_ID=${r2AccessKeyId}
-R2_SECRET_ACCESS_KEY=${r2SecretAccessKey}
-R2_ACCOUNT_ID=${r2AccountId}
-R2_BUCKET=${r2Bucket}
-R2_PUBLIC_URL=${r2PublicUrl}
-RESEND_API_KEY=${resendApiKey}
-FROM_EMAIL=${fromEmail}
-ENVEOF`;
+  const envFileCmd = makeEnvFileCmd({
+    appDir,
+    envName,
+    domain,
+    dbHostPort,
+    dbPassword,
+    jwtSecret,
+    googleClientId,
+    googleClientSecret,
+    r2AccessKeyId,
+    r2SecretAccessKey,
+    r2AccountId,
+    r2Bucket,
+    r2PublicUrl,
+    resendApiKey,
+    fromEmail,
+  });
 
   const writeEnv = new command.remote.Command(
     `write-env-${envName}`,
@@ -244,11 +229,7 @@ ENVEOF`;
 
   // Triggers cause replacement, so `update` rarely fires — both branches
   // use the same command and rely on Docker's layer cache for incremental builds.
-  const deployCmd = pulumi.interpolate`
-    cd ${appDir}
-    ENV_NAME=${envName} DOMAIN=${domain} docker compose -p emsa-${envName} build
-    ENV_NAME=${envName} DOMAIN=${domain} docker compose -p emsa-${envName} up -d
-  `;
+  const deployCmd = makeDeployCmd(appDir, envName, domain);
   const deploy = new command.remote.Command(
     `deploy-${envName}`,
     {
@@ -264,22 +245,33 @@ ENVEOF`;
     `migrate-${envName}`,
     {
       connection,
-      create: pulumi.interpolate`
-        for i in $(seq 1 20); do
-          echo "Migration attempt $i/20..."
-          if docker exec app-${envName} bunx drizzle-kit migrate 2>&1; then
-            echo "Migrations applied successfully"
-            exit 0
-          fi
-          sleep 3
-        done
-        echo "Migrations failed after 20 attempts" >&2
-        exit 1
-      `,
+      create: makeMigrateCmd(envName),
       triggers: [appHash],
     },
     { dependsOn: [deploy] }
   );
+
+  if (config.getBoolean("enableBackup")) {
+    const r2BackupBucket = config.require("r2BackupBucket");
+    const setupBackupCmd = makeSetupBackupCmd({
+      envName,
+      r2AccessKeyId,
+      r2SecretAccessKey,
+      r2AccountId,
+      r2BackupBucket,
+      dbPassword,
+    });
+
+    new command.remote.Command(
+      `setup-backup-${envName}`,
+      {
+        connection,
+        create: setupBackupCmd,
+        update: setupBackupCmd,
+      },
+      { dependsOn: [deploy] }
+    );
+  }
 }
 
 function getContentHash(root: string, relPaths: string[]): string {

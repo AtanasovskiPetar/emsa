@@ -22,3 +22,5 @@ config:
     secure: AAABABGojDwl3oVtg5l1stNV0piIyo0wkOCCQErn4Z1xZM9WU3M5udUZFpgMVPFXkXRBMtpJ7/ReQIwwKZb5qA==
   emsa:r2Bucket: emsa-dev
   emsa:r2PublicUrl: https://cdn-dev.emsa.mk
+  emsa:enableBackup: "false"
+  emsa:r2BackupBucket: emsa-dev-backups
