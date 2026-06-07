@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import { navigateAfterLogin } from "@/lib/utils";
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const oauthError = searchParams.get("error") === "oauth_failed";
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -93,6 +95,9 @@ export function LoginPage() {
               />
 
               {error && <p className="text-sm text-destructive">{error.message}</p>}
+              {oauthError && (
+                <p className="text-sm text-destructive">Google sign-in failed. Please try again.</p>
+              )}
 
               <Button type="submit" disabled={isPending} className="w-full">
                 {isPending ? "Signing in..." : "Sign in"}

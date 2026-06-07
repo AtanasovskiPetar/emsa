@@ -119,6 +119,8 @@ function logout(_req: Request): Response {
   return Response.json({ success: true });
 }
 
+const SECURE_COOKIE_FLAG = env.ENV === "production" ? "; Secure" : "";
+
 // GET /api/auth/google
 function googleRedirect(_req: Request): Response {
   const state = crypto.randomUUID();
@@ -137,7 +139,7 @@ function googleRedirect(_req: Request): Response {
     status: 302,
     headers: {
       Location: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
-      "Set-Cookie": `${OAUTH_STATE_COOKIE}=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`,
+      "Set-Cookie": `${OAUTH_STATE_COOKIE}=${state}; HttpOnly${SECURE_COOKIE_FLAG}; SameSite=Lax; Path=/; Max-Age=600`,
     },
   });
 }
@@ -152,11 +154,17 @@ async function googleCallback(req: Request): Promise<Response> {
   const storedState = cookies[OAUTH_STATE_COOKIE];
 
   if (!state || !storedState || state !== storedState) {
-    return Response.json({ error: "Invalid state parameter" }, { status: 400 });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${PageRoutes.LOGIN}?error=oauth_failed` },
+    });
   }
 
   if (!code) {
-    return Response.json({ error: "Missing authorization code" }, { status: 400 });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${PageRoutes.LOGIN}?error=oauth_failed` },
+    });
   }
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -172,7 +180,10 @@ async function googleCallback(req: Request): Promise<Response> {
   });
 
   if (!tokenRes.ok) {
-    return Response.json({ error: "Failed to exchange authorization code" }, { status: 502 });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${PageRoutes.LOGIN}?error=oauth_failed` },
+    });
   }
 
   const { access_token } = (await tokenRes.json()) as { access_token: string };
@@ -182,7 +193,10 @@ async function googleCallback(req: Request): Promise<Response> {
   });
 
   if (!profileRes.ok) {
-    return Response.json({ error: "Failed to fetch Google profile" }, { status: 502 });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${PageRoutes.LOGIN}?error=oauth_failed` },
+    });
   }
 
   const profile = (await profileRes.json()) as {
@@ -222,7 +236,10 @@ async function googleCallback(req: Request): Promise<Response> {
   }
 
   if (!user) {
-    return Response.json({ error: "Failed to resolve user" }, { status: 500 });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${PageRoutes.LOGIN}?error=oauth_failed` },
+    });
   }
 
   const token = await createUserToken(user);
@@ -230,7 +247,7 @@ async function googleCallback(req: Request): Promise<Response> {
     status: 302,
     headers: {
       Location: `${PageRoutes.AUTH_CALLBACK}#token=${token}`,
-      "Set-Cookie": `${OAUTH_STATE_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+      "Set-Cookie": `${OAUTH_STATE_COOKIE}=; HttpOnly${SECURE_COOKIE_FLAG}; SameSite=Lax; Path=/; Max-Age=0`,
     },
   });
 }
