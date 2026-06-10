@@ -39,7 +39,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function decodeToken(token: string): AuthUser | null {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
+    const b64url = token.split(".")[1] ?? "";
+    const b64 = b64url
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(b64url.length / 4) * 4, "=");
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const payload = JSON.parse(new TextDecoder().decode(bytes));
     if (payload.exp && payload.exp * 1000 < Date.now()) return null;
     return {
       id: payload.sub,
