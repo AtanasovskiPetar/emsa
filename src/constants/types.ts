@@ -229,3 +229,8 @@ export interface GalleryResponse {
   total: number;
   hasMore: boolean;
 }
+
+export interface CsvColumn<T> {
+  header: string;
+  value: (row: T) => string;
+}

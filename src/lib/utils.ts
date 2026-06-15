@@ -4,7 +4,12 @@ import { twMerge } from "tailwind-merge";
 
 import { Role } from "@/constants/enums";
 import { PageRoutes } from "@/constants/routes";
-import { type ImageEntry, type PublicProject, type RegistrationStatus } from "@/constants/types";
+import {
+  type CsvColumn,
+  type ImageEntry,
+  type PublicProject,
+  type RegistrationStatus,
+} from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
 
 export function cn(...inputs: ClassValue[]) {
@@ -167,4 +172,25 @@ export function getPageNumbers(totalPages: number, currentPage: number): (number
       totalPages,
     ];
   return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
+}
+
+export function exportToCsv<T>(rows: T[], columns: CsvColumn<T>[], filename: string): void {
+  const header = columns.map((c) => c.header).join(",");
+  const body = rows
+    .map((row) =>
+      columns
+        .map((c) => {
+          const cell = c.value(row);
+          return /[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+        })
+        .join(",")
+    )
+    .join("\n");
+  const blob = new Blob([`${header}\n${body}`], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
