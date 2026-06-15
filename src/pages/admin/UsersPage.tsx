@@ -7,7 +7,17 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { AlertCircle, CheckCircle2, Info, Pencil, Search, Trash2, Upload, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileDown,
+  Info,
+  Pencil,
+  Search,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import Papa from "papaparse";
 import React, { useState } from "react";
 
@@ -49,10 +59,10 @@ import {
   type UpdateActivationPayload,
   type UpdateUserPayload,
 } from "@/constants/schemas";
-import type { AdminUser, UserActivation } from "@/constants/types";
+import type { AdminUser, CsvColumn, UserActivation } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { formatDate, hasAccess, toDateStr } from "@/lib/utils";
+import { exportToCsv, formatDate, hasAccess, toDateStr } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, string> = {
   [Role.USER]: "User",
@@ -606,6 +616,28 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
   );
 }
 
+const USER_CSV_COLUMNS: CsvColumn<AdminUser>[] = [
+  { header: "Name", value: (u) => u.name },
+  { header: "Email", value: (u) => u.email },
+  { header: "Phone", value: (u) => u.phone ?? "" },
+  { header: "Index", value: (u) => u.index ?? "" },
+  { header: "Year of Studies", value: (u) => u.yearOfStudies?.toString() ?? "" },
+  { header: "University", value: (u) => u.university ?? "" },
+  { header: "Profile", value: (u) => (u.profileCompleted ? "Complete" : "Incomplete") },
+  { header: "Role", value: (u) => ROLE_LABELS[u.role] },
+  { header: "Alumni", value: (u) => (u.isAlumni ? "Yes" : "No") },
+  { header: "Active", value: (u) => (u.isActive ? "Yes" : "No") },
+  {
+    header: "Membership Start",
+    value: (u) => (u.activations[0] ? formatDate(u.activations[0].startDate) : ""),
+  },
+  {
+    header: "Membership End",
+    value: (u) => (u.activations[0] ? formatDate(u.activations[0].endDate) : ""),
+  },
+  { header: "Joined", value: (u) => formatDate(u.createdAt) },
+];
+
 export function UsersPage() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && hasAccess(user.role, Role.SUPER_ADMIN);
@@ -780,6 +812,11 @@ export function UsersPage() {
     },
   });
 
+  function handleExport() {
+    const filtered = table.getFilteredRowModel().rows.map((r) => r.original);
+    exportToCsv(filtered, USER_CSV_COLUMNS, `users-${new Date().toISOString().slice(0, 10)}.csv`);
+  }
+
   function handleActiveOnChange(date: Date | undefined) {
     setActiveOnDate(date);
     table.getColumn("activeOnFilter")?.setFilterValue(date ? toDateStr(date) : undefined);
@@ -804,6 +841,10 @@ export function UsersPage() {
                 Import CSV
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <FileDown className="size-4" />
+              Export CSV
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} of {users.length} users

@@ -7,7 +7,18 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Award, Pin, Plus, Search, Trash2, Upload, UserPlus, Users, X } from "lucide-react";
+import {
+  Award,
+  FileDown,
+  Pin,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
@@ -61,6 +72,7 @@ import { type ProjectFormValues } from "@/constants/schemas";
 import {
   type ActiveImageEntry,
   type AdminUser,
+  type CsvColumn,
   type Project,
   type ProjectPackage,
   type ProjectRegistration,
@@ -70,6 +82,7 @@ import { useDialogState } from "@/hooks/useDialogState";
 import { apiClient } from "@/lib/api-client";
 import {
   cn,
+  exportToCsv,
   formatDate,
   getInitials,
   hasAccess,
@@ -448,6 +461,16 @@ function CapacitySummary({
   );
 }
 
+const REGISTRATION_CSV_COLUMNS: CsvColumn<ProjectRegistration>[] = [
+  { header: "Name", value: (r) => r.userName },
+  { header: "Email", value: (r) => r.userEmail },
+  { header: "Index", value: (r) => r.userIndex ?? "" },
+  { header: "Package", value: (r) => r.packageName ?? "" },
+  { header: "Attended", value: (r) => (r.attended ? "Yes" : "No") },
+  { header: "Certificate", value: (r) => r.certificateFilename ?? "" },
+  { header: "Registered", value: (r) => formatDate(r.createdAt) },
+];
+
 function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDrawerProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -524,6 +547,18 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
     setPackageFilter("all");
   }, [project?.id]);
 
+  function handleExport() {
+    const slug = project!.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    exportToCsv(
+      registrations,
+      REGISTRATION_CSV_COLUMNS,
+      `project-participants-${slug}-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+  }
+
   return (
     <Sheet open={!!project} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="flex flex-col gap-0 sm:max-w-md" side="right">
@@ -597,10 +632,10 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
           </div>
         )}
 
-        {hasPackages && (
-          <div className="border-b px-4 py-2">
+        <div className="flex items-center gap-2 border-b px-4 py-2">
+          {hasPackages ? (
             <Select value={packageFilter} onValueChange={setPackageFilter}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 flex-1 text-xs">
                 <SelectValue placeholder="All packages" />
               </SelectTrigger>
               <SelectContent>
@@ -612,8 +647,28 @@ function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDr
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        )}
+          ) : (
+            <span className="flex-1 text-xs text-muted-foreground">
+              {registrations.length} participant{registrations.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleExport}
+                  disabled={registrations.length === 0}
+                >
+                  <FileDown className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export CSV</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
         {drawerError && <p className="px-4 py-2 text-xs text-destructive">{drawerError}</p>}
 
