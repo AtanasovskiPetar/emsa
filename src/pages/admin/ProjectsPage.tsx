@@ -84,6 +84,7 @@ import {
   cn,
   exportToCsv,
   formatDate,
+  formatDateTime,
   getInitials,
   hasAccess,
   resolveImageEntry,
@@ -468,7 +469,7 @@ const REGISTRATION_CSV_COLUMNS: CsvColumn<ProjectRegistration>[] = [
   { header: "Package", value: (r) => r.packageName ?? "" },
   { header: "Attended", value: (r) => (r.attended ? "Yes" : "No") },
   { header: "Certificate", value: (r) => r.certificateFilename ?? "" },
-  { header: "Registered", value: (r) => formatDate(r.createdAt) },
+  { header: "Registered", value: (r) => formatDateTime(r.createdAt) },
 ];
 
 function ProjectRegistrationsDrawer({ project, onClose }: ProjectRegistrationsDrawerProps) {

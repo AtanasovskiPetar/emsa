@@ -108,6 +108,18 @@ export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-GB");
 }
 
+export function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("mk-MK", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
 export function toDateStr(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;

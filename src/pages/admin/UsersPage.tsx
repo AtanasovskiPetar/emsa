@@ -62,7 +62,7 @@ import {
 import type { AdminUser, CsvColumn, UserActivation } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { exportToCsv, formatDate, hasAccess, toDateStr } from "@/lib/utils";
+import { exportToCsv, formatDate, formatDateTime, hasAccess, toDateStr } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, string> = {
   [Role.USER]: "User",
@@ -635,7 +635,7 @@ const USER_CSV_COLUMNS: CsvColumn<AdminUser>[] = [
     header: "Membership End",
     value: (u) => (u.activations[0] ? formatDate(u.activations[0].endDate) : ""),
   },
-  { header: "Joined", value: (u) => formatDate(u.createdAt) },
+  { header: "Joined", value: (u) => formatDateTime(u.createdAt) },
 ];
 
 export function UsersPage() {
