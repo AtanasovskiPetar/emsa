@@ -4,9 +4,12 @@ import {
   ArrowLeft,
   Award,
   CalendarDays,
+  Check,
+  ChevronsUpDown,
   FileDown,
   Pencil,
   Plus,
+  Search,
   Trash2,
   Upload,
   UserPlus,
@@ -36,6 +39,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -388,6 +400,185 @@ const REGISTRATION_CSV_COLUMNS: CsvColumn<ProjectRegistration>[] = [
   { header: "Registered", value: (r) => formatDateTime(r.createdAt) },
 ];
 
+// ─── Add Participant Dialog ──────────────────────────────────────────────────
+
+function AddParticipantDialog({
+  availableUsers,
+  packages,
+  isPending,
+  error,
+  onAdd,
+}: {
+  availableUsers: AdminUser[];
+  packages: ProjectPackage[];
+  isPending: boolean;
+  error: string | null;
+  onAdd: (userId: string, packageId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [comboOpen, setComboOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+
+  const hasPackages = packages.length > 0;
+
+  const filteredUsers = availableUsers.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedUser = availableUsers.find((u) => u.id === selectedUserId);
+
+  function handleAdd() {
+    if (!selectedUserId) return;
+    onAdd(selectedUserId, selectedPackageId || null);
+  }
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setSelectedUserId("");
+      setSelectedPackageId("");
+      setSearch("");
+      setComboOpen(false);
+    }
+  }
+
+  const wasAddingRef = useRef(false);
+  useEffect(() => {
+    if (isPending) {
+      wasAddingRef.current = true;
+    } else if (wasAddingRef.current && !error) {
+      wasAddingRef.current = false;
+      handleOpenChange(false);
+    } else if (!isPending) {
+      wasAddingRef.current = false;
+    }
+  }, [isPending, error]);
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <UserPlus className="size-4" />
+        Add Participant
+      </Button>
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Participant</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">User</label>
+              <Popover open={comboOpen} onOpenChange={setComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={comboOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedUser ? (
+                      <span className="truncate">
+                        {selectedUser.name}
+                        <span className="ml-1.5 text-muted-foreground">{selectedUser.email}</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Search by name or email...</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="border-b p-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="h-8 pl-8 text-sm"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto">
+                    {filteredUsers.length === 0 ? (
+                      <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                        No users found.
+                      </p>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedUserId(u.id);
+                            setComboOpen(false);
+                            setSearch("");
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-accent"
+                        >
+                          <Check
+                            className={cn(
+                              "size-4 shrink-0 text-primary",
+                              selectedUserId === u.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{u.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {hasPackages && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Package</label>
+                <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packages.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAdd}
+              disabled={!selectedUserId || (hasPackages && !selectedPackageId) || isPending}
+            >
+              {isPending ? "Adding..." : "Add Participant"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // ─── Registrations Tab ──────────────────────────────────────────────────────
 
 function RegistrationsTab({ project }: { project: Project }) {
@@ -395,10 +586,9 @@ function RegistrationsTab({ project }: { project: Project }) {
   const { user } = useAuth();
   const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
   const isAdmin = hasAccess(user?.role ?? Role.USER, Role.ADMIN);
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedPackageId, setSelectedPackageId] = useState("");
-  const [tabError, setTabError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [packageFilter, setPackageFilter] = useState<string>("all");
+  const [listSearch, setListSearch] = useState("");
 
   const registrationsQueryKey = queryKeys.admin.projectRegistrations(project.id);
 
@@ -427,7 +617,6 @@ function RegistrationsTab({ project }: { project: Project }) {
     mutationFn: ({ id, attended }: { id: string; attended: boolean }) =>
       apiClient.patch(ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID.replace(":id", id), { attended }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: registrationsQueryKey }),
-    onError: (err) => setTabError(err.message),
   });
 
   const { mutate: addRegistration, isPending: isAdding } = useMutation({
@@ -437,24 +626,27 @@ function RegistrationsTab({ project }: { project: Project }) {
         ...(packageId && { packageId }),
       }),
     onSuccess: () => {
-      setSelectedUserId("");
-      setSelectedPackageId("");
-      setTabError(null);
+      setAddError(null);
       queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
     },
-    onError: (err) => setTabError(err.message),
+    onError: (err) => setAddError(err.message),
   });
 
   const { mutate: deleteRegistration } = useMutation({
     mutationFn: (id: string) =>
       apiClient.delete(ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID.replace(":id", id)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: registrationsQueryKey }),
-    onError: (err) => setTabError(err.message),
   });
 
   const registeredUserIds = new Set(registrations.map((r) => r.userId));
   const availableUsers = allUsers.filter((u) => !registeredUserIds.has(u.id));
   const hasPackages = packages.length > 0;
+
+  const filteredRegistrations = registrations.filter(
+    (r) =>
+      r.userName.toLowerCase().includes(listSearch.toLowerCase()) ||
+      r.userEmail.toLowerCase().includes(listSearch.toLowerCase())
+  );
 
   function handleExport() {
     const slug = project.title
@@ -483,44 +675,15 @@ function RegistrationsTab({ project }: { project: Project }) {
         </div>
       )}
 
-      {isSuperAdmin && (
-        <div className="flex flex-col gap-2 rounded-md border p-4">
-          <div className="flex gap-2">
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Add participant..." />
-              </SelectTrigger>
-              <SelectContent>
-                {availableUsers.length === 0 ? (
-                  <SelectItem value="__none__" disabled>
-                    No users to add
-                  </SelectItem>
-                ) : (
-                  availableUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name} — {u.email}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <Button
-              size="icon"
-              disabled={!selectedUserId || (hasPackages && !selectedPackageId) || isAdding}
-              onClick={() =>
-                selectedUserId &&
-                addRegistration({ userId: selectedUserId, packageId: selectedPackageId || null })
-              }
-            >
-              <UserPlus className="size-4" />
-            </Button>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasPackages && (
-            <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select package..." />
+            <Select value={packageFilter} onValueChange={setPackageFilter}>
+              <SelectTrigger className="h-8 w-44 text-xs">
+                <SelectValue placeholder="All packages" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All packages</SelectItem>
                 {packages.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.name}
@@ -529,107 +692,118 @@ function RegistrationsTab({ project }: { project: Project }) {
               </SelectContent>
             </Select>
           )}
+          {!hasPackages && (
+            <span className="text-sm text-muted-foreground">
+              {registrations.length} participant{registrations.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        {hasPackages ? (
-          <Select value={packageFilter} onValueChange={setPackageFilter}>
-            <SelectTrigger className="h-8 w-48 text-xs">
-              <SelectValue placeholder="All packages" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All packages</SelectItem>
-              {packages.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <span className="text-sm text-muted-foreground">
-            {registrations.length} participant{registrations.length !== 1 ? "s" : ""}
-          </span>
-        )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={handleExport}
-                disabled={registrations.length === 0}
-              >
-                <FileDown className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export CSV</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <AddParticipantDialog
+              availableUsers={availableUsers}
+              packages={packages}
+              isPending={isAdding}
+              error={addError}
+              onAdd={(userId, packageId) => addRegistration({ userId, packageId })}
+            />
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleExport}
+                  disabled={registrations.length === 0}
+                >
+                  <FileDown className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export CSV</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
-
-      {tabError && <p className="text-sm text-destructive">{tabError}</p>}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading...</p>
       ) : registrations.length === 0 ? (
         <p className="text-sm text-muted-foreground">No participants yet.</p>
       ) : (
-        <div className="rounded-md border">
-          <ul className="divide-y">
-            {registrations.map((reg) => (
-              <li key={reg.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                  {getInitials(reg.userName)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{reg.userName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
-                  {reg.userIndex && (
-                    <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
-                  )}
-                  {reg.packageName && (
-                    <p className="text-xs font-medium text-primary">{reg.packageName}</p>
-                  )}
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Switch
-                      id={`attended-${reg.id}`}
-                      checked={reg.attended}
-                      onCheckedChange={(checked) =>
-                        toggleAttended({ id: reg.id, attended: checked })
-                      }
-                    />
-                    <label htmlFor={`attended-${reg.id}`} className="text-xs text-muted-foreground">
-                      Attended
-                    </label>
-                    {isSuperAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteRegistration(reg.id)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                  {isAdmin && (
-                    <CertificateCell
-                      reg={reg}
-                      onRefresh={() =>
-                        queryClient.invalidateQueries({ queryKey: registrationsQueryKey })
-                      }
-                    />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Filter by name or email..."
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          {filteredRegistrations.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No participants match your search.</p>
+          ) : (
+            <div className="rounded-md border">
+              <ul className="divide-y">
+                {filteredRegistrations.map((reg) => (
+                  <li key={reg.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                      {getInitials(reg.userName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{reg.userName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
+                      {reg.userIndex && (
+                        <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
+                      )}
+                      {reg.packageName && (
+                        <p className="text-xs font-medium text-primary">{reg.packageName}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          id={`attended-${reg.id}`}
+                          checked={reg.attended}
+                          onCheckedChange={(checked) =>
+                            toggleAttended({ id: reg.id, attended: checked })
+                          }
+                        />
+                        <label
+                          htmlFor={`attended-${reg.id}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Attended
+                        </label>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteRegistration(reg.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <CertificateCell
+                          reg={reg}
+                          onRefresh={() =>
+                            queryClient.invalidateQueries({ queryKey: registrationsQueryKey })
+                          }
+                        />
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -648,6 +822,14 @@ function WorkshopRegistrationsSheet({
   const { user } = useAuth();
   const isSuperAdmin = hasAccess(user?.role ?? Role.USER, Role.SUPER_ADMIN);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  // Add participant dialog state
+  const [addOpen, setAddOpen] = useState(false);
+  const [addComboOpen, setAddComboOpen] = useState(false);
+  const [addSearch, setAddSearch] = useState("");
+  const [addSelectedUserId, setAddSelectedUserId] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
 
   const queryKey = queryKeys.admin.workshopRegistrations(workshop?.id ?? "");
 
@@ -658,6 +840,15 @@ function WorkshopRegistrationsSheet({
         ApiRoutes.ADMIN_WORKSHOP_REGISTRATIONS.replace(":workshopId", workshop!.id)
       ),
     enabled: !!workshop,
+  });
+
+  const { data: projectRegistrations = [] } = useQuery({
+    queryKey: queryKeys.admin.projectRegistrations(workshop?.projectId ?? ""),
+    queryFn: () =>
+      apiClient.get<ProjectRegistration[]>(
+        ApiRoutes.ADMIN_PROJECT_REGISTRATIONS.replace(":id", workshop!.projectId)
+      ),
+    enabled: !!workshop && isSuperAdmin,
   });
 
   const { mutate: toggleAttended } = useMutation({
@@ -681,85 +872,274 @@ function WorkshopRegistrationsSheet({
           userId
         )
       ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.workshops(workshop?.projectId ?? ""),
+      });
+    },
     onError: (err) => setError(err.message),
   });
 
+  function handleAddOpenChange(next: boolean) {
+    setAddOpen(next);
+    if (!next) {
+      setAddSelectedUserId("");
+      setAddSearch("");
+      setAddComboOpen(false);
+      setAddError(null);
+    }
+  }
+
+  const wasAddingRef = useRef(false);
+  const { mutate: addReg, isPending: isAdding } = useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.post(ApiRoutes.ADMIN_WORKSHOP_REGISTRATIONS.replace(":workshopId", workshop!.id), {
+        userId,
+      }),
+    onSuccess: () => {
+      setAddError(null);
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.workshops(workshop?.projectId ?? ""),
+      });
+    },
+    onError: (err) => setAddError(err.message),
+  });
+
+  useEffect(() => {
+    if (isAdding) {
+      wasAddingRef.current = true;
+    } else if (wasAddingRef.current && !addError) {
+      wasAddingRef.current = false;
+      handleAddOpenChange(false);
+    } else if (!isAdding) {
+      wasAddingRef.current = false;
+    }
+  }, [isAdding, addError]);
+
   useEffect(() => {
     setError(null);
+    setSearch("");
   }, [workshop?.id]);
 
+  const registeredUserIds = new Set(registrations.map((r) => r.userId));
+  const availableForAdd = projectRegistrations
+    .filter((r) => !registeredUserIds.has(r.userId))
+    .map((r) => ({ id: r.userId, name: r.userName, email: r.userEmail }));
+  const filteredForAdd = availableForAdd.filter(
+    (u) =>
+      u.name.toLowerCase().includes(addSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(addSearch.toLowerCase())
+  );
+  const selectedAddUser = availableForAdd.find((u) => u.id === addSelectedUserId);
+
+  const filteredRegistrations = registrations.filter(
+    (r) =>
+      r.userName.toLowerCase().includes(search.toLowerCase()) ||
+      r.userEmail.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <Sheet open={!!workshop} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="flex flex-col gap-0 sm:max-w-md" side="right">
-        <SheetHeader className="border-b pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Users className="size-4" />
-            Workshop Participants
-          </SheetTitle>
-          <SheetDescription>{workshop?.title}</SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={!!workshop} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="flex flex-col gap-0 sm:max-w-md" side="right">
+          <SheetHeader className="border-b pb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="size-4" />
+              Workshop Participants
+            </SheetTitle>
+            <SheetDescription>{workshop?.title}</SheetDescription>
+          </SheetHeader>
 
-        {workshop && (
-          <div className="border-b px-4 py-3 text-xs text-muted-foreground">
-            {registrations.length} registered
-            {workshop.maxParticipants !== null && ` / ${workshop.maxParticipants} max`}
-          </div>
-        )}
-
-        {error && <p className="px-4 py-2 text-xs text-destructive">{error}</p>}
-
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading...</p>
-          ) : registrations.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No participants yet.</p>
-          ) : (
-            <ul className="divide-y">
-              {registrations.map((reg) => (
-                <li key={reg.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                    {getInitials(reg.userName)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{reg.userName}</p>
-                    <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
-                    {reg.userIndex && (
-                      <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <Switch
-                      id={`ws-attended-${reg.id}`}
-                      checked={reg.attended}
-                      onCheckedChange={(checked) =>
-                        toggleAttended({ userId: reg.userId, attended: checked })
-                      }
-                    />
-                    <label
-                      htmlFor={`ws-attended-${reg.id}`}
-                      className="text-xs text-muted-foreground"
-                    >
-                      Attended
-                    </label>
-                    {isSuperAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteReg(reg.userId)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {workshop && (
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <span className="text-xs text-muted-foreground">
+                {registrations.length} registered
+                {workshop.maxParticipants !== null && ` / ${workshop.maxParticipants} max`}
+              </span>
+              {isSuperAdmin && (
+                <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+                  <UserPlus className="size-4" />
+                  Add Participant
+                </Button>
+              )}
+            </div>
           )}
-        </div>
-      </SheetContent>
-    </Sheet>
+
+          {error && <p className="px-4 py-2 text-xs text-destructive">{error}</p>}
+
+          {registrations.length > 0 && (
+            <div className="border-b px-4 py-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Filter by name or email..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-8 pl-8 text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <p className="p-4 text-sm text-muted-foreground">Loading...</p>
+            ) : registrations.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">No participants yet.</p>
+            ) : filteredRegistrations.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">
+                No participants match your search.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {filteredRegistrations.map((reg) => (
+                  <li key={reg.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                      {getInitials(reg.userName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{reg.userName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
+                      {reg.userIndex && (
+                        <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Switch
+                        id={`ws-attended-${reg.id}`}
+                        checked={reg.attended}
+                        onCheckedChange={(checked) =>
+                          toggleAttended({ userId: reg.userId, attended: checked })
+                        }
+                      />
+                      <label
+                        htmlFor={`ws-attended-${reg.id}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Attended
+                      </label>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteReg(reg.userId)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {isSuperAdmin && (
+        <Dialog open={addOpen} onOpenChange={handleAddOpenChange}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Workshop Participant</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Project Participant</label>
+                <Popover open={addComboOpen} onOpenChange={setAddComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={addComboOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedAddUser ? (
+                        <span className="truncate">
+                          {selectedAddUser.name}
+                          <span className="ml-1.5 text-muted-foreground">
+                            {selectedAddUser.email}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Search by name or email...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <div className="border-b p-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Search..."
+                          value={addSearch}
+                          onChange={(e) => setAddSearch(e.target.value)}
+                          className="h-8 pl-8 text-sm"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                      {availableForAdd.length === 0 ? (
+                        <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                          All project participants are already registered.
+                        </p>
+                      ) : filteredForAdd.length === 0 ? (
+                        <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                          No users found.
+                        </p>
+                      ) : (
+                        filteredForAdd.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => {
+                              setAddSelectedUserId(u.id);
+                              setAddComboOpen(false);
+                              setAddSearch("");
+                            }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-accent"
+                          >
+                            <Check
+                              className={cn(
+                                "size-4 shrink-0 text-primary",
+                                addSelectedUserId === u.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{u.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {addError && <p className="text-sm text-destructive">{addError}</p>}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleAddOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => addSelectedUserId && addReg(addSelectedUserId)}
+                disabled={!addSelectedUserId || isAdding}
+              >
+                {isAdding ? "Adding..." : "Add Participant"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 
