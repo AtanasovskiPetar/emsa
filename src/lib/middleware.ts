@@ -21,7 +21,7 @@ export class HttpError extends Error {
   }
 }
 
-async function getAuthUser(req: Request): Promise<JwtUser | null> {
+export async function getAuthUser(req: Request): Promise<JwtUser | null> {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   try {

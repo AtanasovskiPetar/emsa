@@ -1,14 +1,21 @@
+import dayGridPlugin from "@fullcalendar/daygrid";
+import listPlugin from "@fullcalendar/list";
+import FullCalendar from "@fullcalendar/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   Award,
   CalendarDays,
+  CalendarRange,
   CheckCircle2,
+  Clock,
   Download,
   Images,
   Layers,
+  List,
   Package,
+  Users,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -16,6 +23,16 @@ import { Link, useParams } from "react-router-dom";
 
 import { Lightbox } from "@/components/Lightbox";
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,10 +42,11 @@ import {
   type MyRegistration,
   type PublicProject,
   type PublicProjectPackage,
+  type Workshop,
 } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { cn, getRegistrationStatus } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, getRegistrationStatus } from "@/lib/utils";
 
 interface RegistrationSectionProps {
   project: PublicProject;
@@ -205,10 +223,201 @@ function RegistrationSection({
   );
 }
 
+// ─── Workshops Section ──────────────────────────────────────────────────────
+
+type CalendarView = "dayGridMonth" | "listMonth";
+
+function WorkshopsSection({
+  projectId,
+  userId,
+  isProjectRegistered,
+}: {
+  projectId: string;
+  userId: string | null;
+  isProjectRegistered: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [view, setView] = useState<CalendarView>("listMonth");
+
+  const { data: workshops = [], isLoading } = useQuery({
+    queryKey: queryKeys.publicWorkshops(projectId),
+    queryFn: () => apiClient.get<Workshop[]>(ApiRoutes.PROJECT_WORKSHOPS.replace(":id", projectId)),
+    staleTime: 60_000,
+  });
+
+  const { mutate: registerWorkshop, isPending: isRegistering } = useMutation({
+    mutationFn: (workshopId: string) =>
+      apiClient.post(ApiRoutes.WORKSHOP_REGISTER.replace(":workshopId", workshopId), {}),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(projectId) }),
+  });
+
+  const { mutate: unregisterWorkshop, isPending: isUnregistering } = useMutation({
+    mutationFn: (workshopId: string) =>
+      apiClient.delete(ApiRoutes.WORKSHOP_REGISTER.replace(":workshopId", workshopId)),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(projectId) }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  if (workshops.length === 0) return null;
+
+  const calendarEvents = workshops.map((w) => ({
+    id: w.id,
+    title: w.title,
+    start: w.startingAt,
+    end: w.endingAt ?? undefined,
+    backgroundColor: w.myRegistration ? "hsl(var(--primary))" : "hsl(var(--muted))",
+    borderColor: w.myRegistration ? "hsl(var(--primary))" : "hsl(var(--border))",
+    textColor: w.myRegistration ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
+  }));
+
+  function getWorkshopAction(w: Workshop) {
+    if (!userId) return { label: "Sign in to register", disabled: true };
+    if (!isProjectRegistered) return { label: "Register for project first", disabled: true };
+    const now = new Date();
+    if (w.myRegistration) {
+      const closed = w.registrationClosesAt && new Date(w.registrationClosesAt) < now;
+      if (closed) return { label: "Registration closed", disabled: true };
+      return { label: "Cancel", disabled: isUnregistering, action: () => unregisterWorkshop(w.id) };
+    }
+    if (w.registrationOpensAt && new Date(w.registrationOpensAt) > now)
+      return { label: `Opens ${formatDate(w.registrationOpensAt)}`, disabled: true };
+    if (w.registrationClosesAt && new Date(w.registrationClosesAt) < now)
+      return { label: "Registration closed", disabled: true };
+    if (w.availableSpots === 0) return { label: "Full", disabled: true };
+    return { label: "Register", disabled: isRegistering, action: () => registerWorkshop(w.id) };
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+          Workshops
+        </h2>
+        <div className="flex items-center gap-1 rounded-lg border p-0.5">
+          <button
+            onClick={() => setView("listMonth")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              view === "listMonth"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <List className="size-3.5" />
+            Agenda
+          </button>
+          <button
+            onClick={() => setView("dayGridMonth")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              view === "dayGridMonth"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <CalendarRange className="size-3.5" />
+            Calendar
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-8 overflow-hidden rounded-xl border">
+        <FullCalendar
+          plugins={[dayGridPlugin, listPlugin]}
+          initialView={view}
+          key={view}
+          events={calendarEvents}
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "",
+          }}
+          height="auto"
+          eventDisplay="block"
+        />
+      </div>
+
+      <div className="space-y-4">
+        {workshops.map((w) => {
+          const action = getWorkshopAction(w);
+          return (
+            <div
+              key={w.id}
+              className={cn(
+                "rounded-xl border p-5 transition-colors",
+                w.myRegistration && "border-primary/30 bg-primary/5"
+              )}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold">{w.title}</h3>
+                    {w.myRegistration && (
+                      <Badge variant="default" className="text-xs">
+                        Registered
+                      </Badge>
+                    )}
+                    {w.availableSpots === 0 && !w.myRegistration && (
+                      <Badge variant="secondary" className="text-xs">
+                        Full
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="size-3.5" />
+                      {w.endingAt
+                        ? `${formatDateTime(w.startingAt)} – ${formatDateTime(w.endingAt)}`
+                        : formatDateTime(w.startingAt)}
+                    </span>
+                    {w.maxParticipants !== null && (
+                      <span className="flex items-center gap-1">
+                        <Users className="size-3.5" />
+                        {w.registeredCount} / {w.maxParticipants} spots
+                      </span>
+                    )}
+                  </div>
+                  {w.description && (
+                    <div
+                      className="prose prose-sm prose-neutral mt-2 line-clamp-2 max-w-none text-muted-foreground"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(w.description) }}
+                    />
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant={w.myRegistration ? "outline" : "default"}
+                  disabled={action.disabled}
+                  onClick={action.action}
+                  className="shrink-0"
+                >
+                  {action.label}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [showUnregisterWarning, setShowUnregisterWarning] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -247,8 +456,29 @@ export function ProjectDetailPage() {
 
   const { mutate: unregister, isPending: isUnregistering } = useMutation({
     mutationFn: () => apiClient.delete(ApiRoutes.PROJECT_REGISTER.replace(":id", id!)),
-    onSuccess: invalidateRegistration,
+    onSuccess: () => {
+      setShowUnregisterWarning(false);
+      invalidateRegistration();
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(id!) });
+    },
   });
+
+  const { data: workshops = [] } = useQuery({
+    queryKey: queryKeys.publicWorkshops(id!),
+    queryFn: () => apiClient.get<Workshop[]>(ApiRoutes.PROJECT_WORKSHOPS.replace(":id", id!)),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  const workshopRegistrationCount = workshops.filter((w) => w.myRegistration).length;
+
+  function handleUnregisterClick() {
+    if (workshopRegistrationCount > 0) {
+      setShowUnregisterWarning(true);
+    } else {
+      unregister();
+    }
+  }
 
   const regStatus = project ? getRegistrationStatus(project) : "none";
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
@@ -369,7 +599,7 @@ export function ProjectDetailPage() {
                   selectedPackageId={selectedPackageId}
                   onSelectPackage={setSelectedPackageId}
                   onRegister={() => register()}
-                  onUnregister={() => unregister()}
+                  onUnregister={handleUnregisterClick}
                 />
               </div>
             )}
@@ -379,9 +609,41 @@ export function ProjectDetailPage() {
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
               />
             )}
+            {workshops.length > 0 && (
+              <div className="mt-12">
+                <WorkshopsSection
+                  projectId={id!}
+                  userId={user?.id ?? null}
+                  isProjectRegistered={myRegistration?.registered === true}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {/* Workshops unregister warning */}
+      <AlertDialog open={showUnregisterWarning} onOpenChange={setShowUnregisterWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Project Registration</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are also registered for{" "}
+              <strong>
+                {workshopRegistrationCount} workshop{workshopRegistrationCount !== 1 ? "s" : ""}
+              </strong>{" "}
+              in this project. Canceling your project registration will also remove those workshop
+              registrations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Registration</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => unregister()}>
+              Cancel Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Parallax gallery */}
       {project && project.images.length > 1 && (
