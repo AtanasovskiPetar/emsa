@@ -1,21 +1,15 @@
-import dayGridPlugin from "@fullcalendar/daygrid";
-import listPlugin from "@fullcalendar/list";
-import FullCalendar from "@fullcalendar/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   Award,
   CalendarDays,
-  CalendarRange,
   CheckCircle2,
   Clock,
   Download,
   Images,
   Layers,
-  List,
   Package,
-  Users,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
@@ -35,7 +29,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkshopsCalendar } from "@/components/WorkshopsCalendar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import {
@@ -225,8 +227,6 @@ function RegistrationSection({
 
 // ─── Workshops Section ──────────────────────────────────────────────────────
 
-type CalendarView = "dayGridMonth" | "listMonth";
-
 function WorkshopsSection({
   projectId,
   userId,
@@ -237,7 +237,7 @@ function WorkshopsSection({
   isProjectRegistered: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [view, setView] = useState<CalendarView>("listMonth");
+  const [detailWorkshop, setDetailWorkshop] = useState<Workshop | null>(null);
 
   const { data: workshops = [], isLoading } = useQuery({
     queryKey: queryKeys.publicWorkshops(projectId),
@@ -271,144 +271,87 @@ function WorkshopsSection({
 
   if (workshops.length === 0) return null;
 
-  const calendarEvents = workshops.map((w) => ({
-    id: w.id,
-    title: w.title,
-    start: w.startingAt,
-    end: w.endingAt ?? undefined,
-    backgroundColor: w.myRegistration ? "hsl(var(--primary))" : "hsl(var(--muted))",
-    borderColor: w.myRegistration ? "hsl(var(--primary))" : "hsl(var(--border))",
-    textColor: w.myRegistration ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
-  }));
-
   function getWorkshopAction(w: Workshop) {
+    if (!w.registrationOpensAt) return { label: "Informational", disabled: true };
     if (!userId) return { label: "Sign in to register", disabled: true };
     if (!isProjectRegistered) return { label: "Register for project first", disabled: true };
     const now = new Date();
     if (w.myRegistration) {
       const closed = w.registrationClosesAt && new Date(w.registrationClosesAt) < now;
-      if (closed) return { label: "Registration closed", disabled: true };
-      return { label: "Cancel", disabled: isUnregistering, action: () => unregisterWorkshop(w.id) };
+      if (closed) return { label: "Registration closed", disabled: true, action: undefined };
+      return {
+        label: "Cancel registration",
+        disabled: isUnregistering,
+        action: () => unregisterWorkshop(w.id),
+      };
     }
     if (w.registrationOpensAt && new Date(w.registrationOpensAt) > now)
-      return { label: `Opens ${formatDate(w.registrationOpensAt)}`, disabled: true };
+      return {
+        label: `Opens ${formatDate(w.registrationOpensAt)}`,
+        disabled: true,
+        action: undefined,
+      };
     if (w.registrationClosesAt && new Date(w.registrationClosesAt) < now)
-      return { label: "Registration closed", disabled: true };
-    if (w.availableSpots === 0) return { label: "Full", disabled: true };
+      return { label: "Registration closed", disabled: true, action: undefined };
+    if (w.availableSpots === 0) return { label: "Full", disabled: true, action: undefined };
     return { label: "Register", disabled: isRegistering, action: () => registerWorkshop(w.id) };
   }
 
+  const detailAction = detailWorkshop ? getWorkshopAction(detailWorkshop) : null;
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
-          Workshops
-        </h2>
-        <div className="flex items-center gap-1 rounded-lg border p-0.5">
-          <button
-            onClick={() => setView("listMonth")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              view === "listMonth"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <List className="size-3.5" />
-            Agenda
-          </button>
-          <button
-            onClick={() => setView("dayGridMonth")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              view === "dayGridMonth"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <CalendarRange className="size-3.5" />
-            Calendar
-          </button>
-        </div>
-      </div>
+      <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+        Workshops
+      </h2>
 
-      <div className="mb-8 overflow-hidden rounded-xl border">
-        <FullCalendar
-          plugins={[dayGridPlugin, listPlugin]}
-          initialView={view}
-          key={view}
-          events={calendarEvents}
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "",
-          }}
-          height="auto"
-          eventDisplay="block"
-        />
-      </div>
+      <WorkshopsCalendar
+        workshops={workshops}
+        getWorkshopAction={getWorkshopAction}
+        onEventClick={setDetailWorkshop}
+      />
 
-      <div className="space-y-4">
-        {workshops.map((w) => {
-          const action = getWorkshopAction(w);
-          return (
-            <div
-              key={w.id}
-              className={cn(
-                "rounded-xl border p-5 transition-colors",
-                w.myRegistration && "border-primary/30 bg-primary/5"
-              )}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold">{w.title}</h3>
-                    {w.myRegistration && (
-                      <Badge variant="default" className="text-xs">
-                        Registered
-                      </Badge>
-                    )}
-                    {w.availableSpots === 0 && !w.myRegistration && (
-                      <Badge variant="secondary" className="text-xs">
-                        Full
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="size-3.5" />
-                      {w.endingAt
-                        ? `${formatDateTime(w.startingAt)} – ${formatDateTime(w.endingAt)}`
-                        : formatDateTime(w.startingAt)}
-                    </span>
-                    {w.maxParticipants !== null && (
-                      <span className="flex items-center gap-1">
-                        <Users className="size-3.5" />
-                        {w.registeredCount} / {w.maxParticipants} spots
-                      </span>
-                    )}
-                  </div>
-                  {w.description && (
-                    <div
-                      className="prose prose-sm prose-neutral mt-2 line-clamp-2 max-w-none text-muted-foreground"
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(w.description) }}
-                    />
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant={w.myRegistration ? "outline" : "default"}
-                  disabled={action.disabled}
-                  onClick={action.action}
-                  className="shrink-0"
-                >
-                  {action.label}
-                </Button>
+      {/* Detail dialog — opened by clicking a calendar event in grid view */}
+      <Dialog open={!!detailWorkshop} onOpenChange={(open) => !open && setDetailWorkshop(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{detailWorkshop?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {detailWorkshop && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="size-3.5 shrink-0" />
+                {detailWorkshop.endingAt
+                  ? `${formatDateTime(detailWorkshop.startingAt)} – ${formatDateTime(detailWorkshop.endingAt)}`
+                  : formatDateTime(detailWorkshop.startingAt)}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            )}
+            {detailWorkshop?.description && (
+              <div
+                className="prose prose-sm prose-neutral max-w-none text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(detailWorkshop.description) }}
+              />
+            )}
+          </div>
+          {detailAction && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailWorkshop(null)}>
+                Close
+              </Button>
+              <Button
+                disabled={detailAction.disabled}
+                variant={detailWorkshop?.myRegistration ? "outline" : "default"}
+                onClick={() => {
+                  detailAction.action?.();
+                  setDetailWorkshop(null);
+                }}
+              >
+                {detailAction.label}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -586,31 +529,34 @@ export function ProjectDetailPage() {
           </div>
         ) : (
           <>
-            {regStatus !== "none" && (
-              <div className="mb-8">
-                <RegistrationSection
-                  project={project}
-                  status={regStatus}
-                  user={user ? { id: user.id, isActive: user.isActive } : null}
-                  myRegistration={myRegistration}
-                  isRegistering={isRegistering}
-                  isUnregistering={isUnregistering}
-                  registerError={registerError}
-                  selectedPackageId={selectedPackageId}
-                  onSelectPackage={setSelectedPackageId}
-                  onRegister={() => register()}
-                  onUnregister={handleUnregisterClick}
+            <>
+              {regStatus !== "none" && (
+                <div className="mb-8">
+                  <RegistrationSection
+                    project={project}
+                    status={regStatus}
+                    user={user ? { id: user.id, isActive: user.isActive } : null}
+                    myRegistration={myRegistration}
+                    isRegistering={isRegistering}
+                    isUnregistering={isUnregistering}
+                    registerError={registerError}
+                    selectedPackageId={selectedPackageId}
+                    onSelectPackage={setSelectedPackageId}
+                    onRegister={() => register()}
+                    onUnregister={handleUnregisterClick}
+                  />
+                </div>
+              )}
+              {project.description && (
+                <div
+                  className="prose prose-neutral max-w-none text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
                 />
-              </div>
-            )}
-            {project.description && (
-              <div
-                className="prose prose-neutral max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
-              />
-            )}
+              )}
+            </>
+
             {workshops.length > 0 && (
-              <div className="mt-12">
+              <div className="mt-16">
                 <WorkshopsSection
                   projectId={id!}
                   userId={user?.id ?? null}
@@ -645,9 +591,9 @@ export function ProjectDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Parallax gallery */}
+      {/* Gallery */}
       {project && project.images.length > 1 && (
-        <div className="border-t px-4 pb-16 pt-12">
+        <section className="border-t px-4 pb-16 pt-12">
           <div className="mx-auto max-w-6xl">
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -672,7 +618,7 @@ export function ProjectDetailPage() {
               ))}
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Lightbox */}
