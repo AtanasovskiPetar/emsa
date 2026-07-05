@@ -234,6 +234,54 @@ export const userActivationsRelations = relations(userActivations, ({ one }) => 
   user: one(users, { fields: [userActivations.userId], references: [users.id] }),
 }));
 
+export const workshops = pgTable("workshops", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  startingAt: timestamp("starting_at", { withTimezone: true }).notNull(),
+  endingAt: timestamp("ending_at", { withTimezone: true }),
+  registrationOpensAt: timestamp("registration_opens_at", { withTimezone: true }),
+  registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
+  maxParticipants: integer("max_participants"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const workshopRegistrations = pgTable(
+  "workshop_registrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workshopId: uuid("workshop_id")
+      .notNull()
+      .references(() => workshops.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    attended: boolean("attended").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("workshop_registrations_workshop_user_unique").on(table.workshopId, table.userId),
+    index("workshop_registrations_workshop_id_idx").on(table.workshopId),
+  ]
+);
+
+export const workshopsRelations = relations(workshops, ({ one, many }) => ({
+  project: one(projects, { fields: [workshops.projectId], references: [projects.id] }),
+  registrations: many(workshopRegistrations),
+}));
+
+export const workshopRegistrationsRelations = relations(workshopRegistrations, ({ one }) => ({
+  workshop: one(workshops, {
+    fields: [workshopRegistrations.workshopId],
+    references: [workshops.id],
+  }),
+  user: one(users, { fields: [workshopRegistrations.userId], references: [users.id] }),
+}));
+
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),

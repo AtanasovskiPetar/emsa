@@ -219,6 +219,34 @@ export interface Position {
 
 export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";
 
+export interface Workshop {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  startingAt: string;
+  endingAt: string | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  maxParticipants: number | null;
+  registeredCount: number;
+  availableSpots: number | null;
+  myRegistration: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkshopRegistration {
+  id: string;
+  workshopId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userIndex: string | null;
+  attended: boolean;
+  createdAt: string;
+}
+
 export interface GalleryImage {
   url: string;
   label: string;

@@ -9,6 +9,8 @@ export const queryKeys = {
   gallery: () => ["gallery"] as const,
   universities: () => ["universities"] as const,
   myRegistration: (projectId: string) => ["my-registration", projectId] as const,
+  publicWorkshops: (projectId: string) => ["public-workshops", projectId] as const,
+  myWorkshopRegistration: (workshopId: string) => ["my-workshop-registration", workshopId] as const,
   admin: {
     users: () => ["admin", "users"] as const,
     projects: () => ["admin", "projects"] as const,
@@ -20,5 +22,8 @@ export const queryKeys = {
     projectPackages: (projectId: string) => ["admin", "projects", projectId, "packages"] as const,
     projectCapacityPools: (projectId: string) =>
       ["admin", "projects", projectId, "capacity-pools"] as const,
+    workshops: (projectId: string) => ["admin", "projects", projectId, "workshops"] as const,
+    workshopRegistrations: (workshopId: string) =>
+      ["admin", "workshops", workshopId, "registrations"] as const,
   },
 };
