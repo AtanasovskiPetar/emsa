@@ -1216,7 +1216,7 @@ function WorkshopsTab({ project }: { project: Project }) {
         const end = row.original.endingAt;
         return (
           <span className="text-sm text-muted-foreground">
-            {end ? `${start} – ${formatDate(end)}` : start}
+            {end ? `${start} – ${formatDateTime(end)}` : start}
           </span>
         );
       },

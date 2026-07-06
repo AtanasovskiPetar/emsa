@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { Role } from "@/constants/enums";
@@ -142,6 +142,31 @@ const registerForWorkshop = withRole<{ workshopId: string }>(Role.USER, async (r
 
   if (workshop.registrationClosesAt && workshop.registrationClosesAt < now) {
     return Response.json({ error: "Registration has closed" }, { status: 422 });
+  }
+
+  if (workshop.endingAt !== null) {
+    const [conflict] = await db
+      .select({ id: workshopRegistrations.id })
+      .from(workshopRegistrations)
+      .innerJoin(workshops, eq(workshopRegistrations.workshopId, workshops.id))
+      .where(
+        and(
+          eq(workshopRegistrations.userId, user.sub),
+          eq(workshops.projectId, workshop.projectId),
+          ne(workshops.id, workshopId),
+          isNotNull(workshops.endingAt),
+          lt(workshops.startingAt, workshop.endingAt),
+          gt(workshops.endingAt, workshop.startingAt)
+        )
+      )
+      .limit(1);
+
+    if (conflict) {
+      return Response.json(
+        { error: "You are already registered for a workshop at an overlapping time" },
+        { status: 422 }
+      );
+    }
   }
 
   try {

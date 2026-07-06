@@ -294,6 +294,19 @@ function WorkshopsSection({
     if (w.registrationClosesAt && new Date(w.registrationClosesAt) < now)
       return { label: "Registration closed", disabled: true, action: undefined };
     if (w.availableSpots === 0) return { label: "Full", disabled: true, action: undefined };
+    if (w.endingAt) {
+      const wStart = new Date(w.startingAt);
+      const wEnd = new Date(w.endingAt);
+      const hasConflict = workshops.some(
+        (other) =>
+          other.myRegistration &&
+          other.id !== w.id &&
+          other.endingAt !== null &&
+          new Date(other.startingAt) < wEnd &&
+          new Date(other.endingAt) > wStart
+      );
+      if (hasConflict) return { label: "Schedule conflict", disabled: true, action: undefined };
+    }
     return { label: "Register", disabled: isRegistering, action: () => registerWorkshop(w.id) };
   }
 
