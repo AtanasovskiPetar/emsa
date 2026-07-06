@@ -62,6 +62,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -628,6 +629,7 @@ function RegistrationsTab({ project }: { project: Project }) {
     onSuccess: () => {
       setAddError(null);
       queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.projectPackages(project.id) });
     },
     onError: (err) => setAddError(err.message),
   });
@@ -635,7 +637,10 @@ function RegistrationsTab({ project }: { project: Project }) {
   const { mutate: deleteRegistration } = useMutation({
     mutationFn: (id: string) =>
       apiClient.delete(ApiRoutes.ADMIN_PROJECT_REGISTRATION_BY_ID.replace(":id", id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: registrationsQueryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: registrationsQueryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.projectPackages(project.id) });
+    },
   });
 
   const registeredUserIds = new Set(registrations.map((r) => r.userId));
@@ -1360,7 +1365,7 @@ export function AdminProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<"registrations" | "workshops">("registrations");
   const editDialog = useDialogState<Project>();
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: queryKeys.admin.projects(),
     queryFn: () => apiClient.get<Project[]>(ApiRoutes.ADMIN_PROJECTS),
   });
@@ -1409,6 +1414,16 @@ export function AdminProjectDetailPage() {
     _draftPools: DraftCapacityPool[]
   ) {
     updateProject({ payload, images });
+  }
+
+  if (isLoadingProjects) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
   }
 
   if (!project) {
