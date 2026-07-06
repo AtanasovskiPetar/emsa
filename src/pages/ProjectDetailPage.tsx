@@ -560,23 +560,28 @@ export function ProjectDetailPage() {
                   />
                 </div>
               )}
+              {workshops.length > 0 && (
+                <div className="mt-16">
+                  <WorkshopsSection
+                    projectId={id!}
+                    userId={user?.id ?? null}
+                    isProjectRegistered={myRegistration?.registered === true}
+                  />
+                </div>
+              )}
+
               {project.description && (
-                <div
-                  className="prose prose-neutral max-w-none text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
-                />
+                <div className="mt-16">
+                  <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+                    Description
+                  </h2>
+                  <div
+                    className="prose prose-neutral max-w-none text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
+                  />
+                </div>
               )}
             </>
-
-            {workshops.length > 0 && (
-              <div className="mt-16">
-                <WorkshopsSection
-                  projectId={id!}
-                  userId={user?.id ?? null}
-                  isProjectRegistered={myRegistration?.registered === true}
-                />
-              </div>
-            )}
           </>
         )}
       </div>
