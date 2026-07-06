@@ -1,10 +1,16 @@
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { Role } from "@/constants/enums";
 import { ApiRoutes } from "@/constants/routes";
 import { updateWorkshopSchema, workshopSchema } from "@/constants/schemas";
-import { projectRegistrations, users, workshopRegistrations, workshops } from "@/db/schema";
+import {
+  projectRegistrations,
+  projects,
+  users,
+  workshopRegistrations,
+  workshops,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, getAuthUser, HttpError, parseBody, withRole } from "@/lib/middleware";
 
@@ -121,9 +127,16 @@ const registerForWorkshop = withRole<{ workshopId: string }>(Role.USER, async (r
     );
   }
 
+  if (!workshop.registrationOpensAt) {
+    return Response.json(
+      { error: "Registration is not available for this workshop" },
+      { status: 422 }
+    );
+  }
+
   const now = new Date();
 
-  if (workshop.registrationOpensAt && workshop.registrationOpensAt > now) {
+  if (workshop.registrationOpensAt > now) {
     return Response.json({ error: "Registration is not open yet" }, { status: 422 });
   }
 
@@ -134,6 +147,9 @@ const registerForWorkshop = withRole<{ workshopId: string }>(Role.USER, async (r
   try {
     const [registration] = await db.transaction(async (tx) => {
       if (workshop.maxParticipants !== null) {
+        // Advisory lock prevents concurrent over-enrollment on the last spot
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${workshopId}))`);
+
         const [countRow] = await tx
           .select({ count: count() })
           .from(workshopRegistrations)
@@ -206,6 +222,14 @@ const getAdminProjectWorkshops = withRole<{ id: string }>(Role.ADMIN, async (req
 // Admin: create workshop
 const createWorkshop = withRole<{ id: string }>(Role.ADMIN, async (req) => {
   const { id } = req.params;
+
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, id))
+    .limit(1);
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
   const { startingAt, endingAt, registrationOpensAt, registrationClosesAt, description, ...rest } =
     await parseBody(req, workshopSchema);
 
@@ -295,12 +319,27 @@ const addWorkshopRegistration = withRole<{ workshopId: string }>(Role.SUPER_ADMI
   const body = await parseBody(req, z.object({ userId: z.uuid() }));
 
   const [workshop] = await db
-    .select({ id: workshops.id })
+    .select({ id: workshops.id, projectId: workshops.projectId })
     .from(workshops)
     .where(eq(workshops.id, workshopId))
     .limit(1);
 
   if (!workshop) return Response.json({ error: "Workshop not found" }, { status: 404 });
+
+  const [projectReg] = await db
+    .select({ id: projectRegistrations.id })
+    .from(projectRegistrations)
+    .where(
+      and(
+        eq(projectRegistrations.projectId, workshop.projectId),
+        eq(projectRegistrations.userId, body.userId)
+      )
+    )
+    .limit(1);
+
+  if (!projectReg) {
+    return Response.json({ error: "User is not registered for this project" }, { status: 422 });
+  }
 
   const [existing] = await db
     .select({ id: workshopRegistrations.id })
