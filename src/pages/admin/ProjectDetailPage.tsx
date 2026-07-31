@@ -816,6 +816,14 @@ function RegistrationsTab({ project }: { project: Project }) {
 
 // ─── Workshop Registrations Sheet ───────────────────────────────────────────
 
+const WORKSHOP_CSV_COLUMNS: CsvColumn<WorkshopRegistration>[] = [
+  { header: "Name", value: (r) => r.userName },
+  { header: "Email", value: (r) => r.userEmail },
+  { header: "Index", value: (r) => r.userIndex ?? "" },
+  { header: "Attended", value: (r) => (r.attended ? "Yes" : "No") },
+  { header: "Registered", value: (r) => formatDateTime(r.createdAt) },
+];
+
 function WorkshopRegistrationsSheet({
   workshop,
   onClose,
@@ -945,6 +953,19 @@ function WorkshopRegistrationsSheet({
       r.userEmail.toLowerCase().includes(search.toLowerCase())
   );
 
+  function handleExport() {
+    if (!workshop) return;
+    const slug = workshop.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    exportToCsv(
+      registrations,
+      WORKSHOP_CSV_COLUMNS,
+      `workshop-participants-${slug}-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+  }
+
   return (
     <>
       <Sheet open={!!workshop} onOpenChange={(open) => !open && onClose()}>
@@ -963,12 +984,23 @@ function WorkshopRegistrationsSheet({
                 {registrations.length} registered
                 {workshop.maxParticipants !== null && ` / ${workshop.maxParticipants} max`}
               </span>
-              {isSuperAdmin && (
-                <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-                  <UserPlus className="size-4" />
-                  Add Participant
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={registrations.length === 0}
+                >
+                  <FileDown className="size-4" />
+                  Export CSV
                 </Button>
-              )}
+                {isSuperAdmin && (
+                  <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+                    <UserPlus className="size-4" />
+                    Add Participant
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
