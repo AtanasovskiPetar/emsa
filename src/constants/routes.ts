@@ -11,6 +11,8 @@ export const PageRoutes = {
   ADMIN_PILLARS_SEGMENT: "pillars",
   ADMIN_PROJECTS: "/admin/projects",
   ADMIN_PROJECTS_SEGMENT: "projects",
+  ADMIN_PROJECT_DETAIL: "/admin/projects/:id",
+  ADMIN_PROJECT_DETAIL_SEGMENT: "projects/:id",
   ADMIN_ORGANIZATION: "/admin/organization",
   ADMIN_ORGANIZATION_SEGMENT: "organization",
   PROFILE: "/profile",
@@ -72,4 +74,13 @@ export const ApiRoutes = {
   ADMIN_PROJECT_PACKAGE_BY_ID: "/api/admin/projects/:id/packages/:packageId",
   ADMIN_PROJECT_CAPACITY_POOLS: "/api/admin/projects/:id/capacity-pools",
   ADMIN_PROJECT_CAPACITY_POOL_BY_ID: "/api/admin/projects/:id/capacity-pools/:poolId",
+  ADMIN_PROJECT_WORKSHOPS: "/api/admin/projects/:id/workshops",
+  ADMIN_WORKSHOP_BY_ID: "/api/admin/workshops/:workshopId",
+  ADMIN_WORKSHOP_REGISTRATIONS: "/api/admin/workshops/:workshopId/registrations",
+  ADMIN_WORKSHOP_REGISTRATION_BY_ID: "/api/admin/workshops/:workshopId/registrations/:userId",
+  ADMIN_WORKSHOP_REGISTRATION_ATTENDED:
+    "/api/admin/workshops/:workshopId/registrations/:userId/attended",
+  PROJECT_WORKSHOPS: "/api/projects/:id/workshops",
+  WORKSHOP_REGISTER: "/api/workshops/:workshopId/register",
+  WORKSHOP_MY_REGISTRATION: "/api/workshops/:workshopId/my-registration",
 } as const;
