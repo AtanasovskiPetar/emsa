@@ -14,6 +14,8 @@ import {
   registrationCertificates,
   userActivations,
   users,
+  workshopRegistrations,
+  workshops,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { type BunRequest, HttpError, parseBody, withRole } from "@/lib/middleware";
@@ -342,10 +344,30 @@ const unregisterFromProject = withRole<{ id: string }>(Role.USER, async (req, us
     return Response.json({ error: "Registration has already closed" }, { status: 422 });
   }
 
-  const [deleted] = await db
-    .delete(projectRegistrations)
-    .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
-    .returning({ id: projectRegistrations.id });
+  const [deleted] = await db.transaction(async (tx) => {
+    // Cancel all workshop registrations for this user within this project
+    const projectWorkshops = await tx
+      .select({ id: workshops.id })
+      .from(workshops)
+      .where(eq(workshops.projectId, id));
+
+    if (projectWorkshops.length > 0) {
+      await tx.delete(workshopRegistrations).where(
+        and(
+          inArray(
+            workshopRegistrations.workshopId,
+            projectWorkshops.map((w) => w.id)
+          ),
+          eq(workshopRegistrations.userId, user.sub)
+        )
+      );
+    }
+
+    return tx
+      .delete(projectRegistrations)
+      .where(and(eq(projectRegistrations.projectId, id), eq(projectRegistrations.userId, user.sub)))
+      .returning({ id: projectRegistrations.id });
+  });
 
   if (!deleted) return Response.json({ error: "Registration not found" }, { status: 404 });
 
@@ -818,12 +840,34 @@ const addProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, async 
 const deleteProjectRegistration = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
 
-  const [deleted] = await db
-    .delete(projectRegistrations)
+  const [reg] = await db
+    .select({ userId: projectRegistrations.userId, projectId: projectRegistrations.projectId })
+    .from(projectRegistrations)
     .where(eq(projectRegistrations.id, id))
-    .returning({ id: projectRegistrations.id });
+    .limit(1);
 
-  if (!deleted) return Response.json({ error: "Registration not found" }, { status: 404 });
+  if (!reg) return Response.json({ error: "Registration not found" }, { status: 404 });
+
+  await db.transaction(async (tx) => {
+    const projectWorkshops = await tx
+      .select({ id: workshops.id })
+      .from(workshops)
+      .where(eq(workshops.projectId, reg.projectId));
+
+    if (projectWorkshops.length > 0) {
+      await tx.delete(workshopRegistrations).where(
+        and(
+          inArray(
+            workshopRegistrations.workshopId,
+            projectWorkshops.map((w) => w.id)
+          ),
+          eq(workshopRegistrations.userId, reg.userId)
+        )
+      );
+    }
+
+    await tx.delete(projectRegistrations).where(eq(projectRegistrations.id, id));
+  });
 
   return Response.json({ success: true });
 });

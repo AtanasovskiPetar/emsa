@@ -5,6 +5,7 @@ import {
   Award,
   CalendarDays,
   CheckCircle2,
+  Clock,
   Download,
   Images,
   Layers,
@@ -16,19 +17,38 @@ import { Link, useParams } from "react-router-dom";
 
 import { Lightbox } from "@/components/Lightbox";
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkshopsCalendar } from "@/components/WorkshopsCalendar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import {
   type MyRegistration,
   type PublicProject,
   type PublicProjectPackage,
+  type Workshop,
 } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
-import { cn, getRegistrationStatus } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, getRegistrationStatus } from "@/lib/utils";
 
 interface RegistrationSectionProps {
   project: PublicProject;
@@ -205,10 +225,155 @@ function RegistrationSection({
   );
 }
 
+// ─── Workshops Section ──────────────────────────────────────────────────────
+
+function WorkshopsSection({
+  projectId,
+  userId,
+  isProjectRegistered,
+}: {
+  projectId: string;
+  userId: string | null;
+  isProjectRegistered: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [detailWorkshop, setDetailWorkshop] = useState<Workshop | null>(null);
+
+  const { data: workshops = [], isLoading } = useQuery({
+    queryKey: queryKeys.publicWorkshops(projectId),
+    queryFn: () => apiClient.get<Workshop[]>(ApiRoutes.PROJECT_WORKSHOPS.replace(":id", projectId)),
+    staleTime: 60_000,
+  });
+
+  const { mutate: registerWorkshop, isPending: isRegistering } = useMutation({
+    mutationFn: (workshopId: string) =>
+      apiClient.post(ApiRoutes.WORKSHOP_REGISTER.replace(":workshopId", workshopId), {}),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(projectId) }),
+  });
+
+  const { mutate: unregisterWorkshop, isPending: isUnregistering } = useMutation({
+    mutationFn: (workshopId: string) =>
+      apiClient.delete(ApiRoutes.WORKSHOP_REGISTER.replace(":workshopId", workshopId)),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(projectId) }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  if (workshops.length === 0) return null;
+
+  function getWorkshopAction(w: Workshop) {
+    if (!w.registrationOpensAt) return { label: "Informational", disabled: true };
+    if (!userId) return { label: "Sign in to register", disabled: true };
+    if (!isProjectRegistered) return { label: "Register for project first", disabled: true };
+    const now = new Date();
+    if (w.myRegistration) {
+      const closed = w.registrationClosesAt && new Date(w.registrationClosesAt) < now;
+      if (closed) return { label: "Registration closed", disabled: true, action: undefined };
+      return {
+        label: "Cancel registration",
+        disabled: isUnregistering,
+        action: () => unregisterWorkshop(w.id),
+      };
+    }
+    if (w.registrationOpensAt && new Date(w.registrationOpensAt) > now)
+      return {
+        label: `Opens ${formatDate(w.registrationOpensAt)}`,
+        disabled: true,
+        action: undefined,
+      };
+    if (w.registrationClosesAt && new Date(w.registrationClosesAt) < now)
+      return { label: "Registration closed", disabled: true, action: undefined };
+    if (w.availableSpots === 0) return { label: "Full", disabled: true, action: undefined };
+    if (w.endingAt) {
+      const wStart = new Date(w.startingAt);
+      const wEnd = new Date(w.endingAt);
+      const hasConflict = workshops.some(
+        (other) =>
+          other.myRegistration &&
+          other.id !== w.id &&
+          other.endingAt !== null &&
+          new Date(other.startingAt) < wEnd &&
+          new Date(other.endingAt) > wStart
+      );
+      if (hasConflict) return { label: "Schedule conflict", disabled: true, action: undefined };
+    }
+    return { label: "Register", disabled: isRegistering, action: () => registerWorkshop(w.id) };
+  }
+
+  const detailAction = detailWorkshop ? getWorkshopAction(detailWorkshop) : null;
+
+  return (
+    <div>
+      <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+        Workshops
+      </h2>
+
+      <WorkshopsCalendar
+        workshops={workshops}
+        getWorkshopAction={getWorkshopAction}
+        onEventClick={setDetailWorkshop}
+      />
+
+      {/* Detail dialog — opened by clicking a calendar event in grid view */}
+      <Dialog open={!!detailWorkshop} onOpenChange={(open) => !open && setDetailWorkshop(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{detailWorkshop?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {detailWorkshop && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="size-3.5 shrink-0" />
+                {detailWorkshop.endingAt
+                  ? `${formatDateTime(detailWorkshop.startingAt)} – ${formatDateTime(detailWorkshop.endingAt)}`
+                  : formatDateTime(detailWorkshop.startingAt)}
+              </div>
+            )}
+            {detailWorkshop?.description && (
+              <div
+                className="prose prose-sm prose-neutral max-w-none text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(detailWorkshop.description) }}
+              />
+            )}
+          </div>
+          {detailAction && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailWorkshop(null)}>
+                Close
+              </Button>
+              <Button
+                disabled={detailAction.disabled}
+                variant={detailWorkshop?.myRegistration ? "outline" : "default"}
+                onClick={() => {
+                  detailAction.action?.();
+                  setDetailWorkshop(null);
+                }}
+              >
+                {detailAction.label}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [showUnregisterWarning, setShowUnregisterWarning] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -247,8 +412,29 @@ export function ProjectDetailPage() {
 
   const { mutate: unregister, isPending: isUnregistering } = useMutation({
     mutationFn: () => apiClient.delete(ApiRoutes.PROJECT_REGISTER.replace(":id", id!)),
-    onSuccess: invalidateRegistration,
+    onSuccess: () => {
+      setShowUnregisterWarning(false);
+      invalidateRegistration();
+      queryClient.invalidateQueries({ queryKey: queryKeys.publicWorkshops(id!) });
+    },
   });
+
+  const { data: workshops = [] } = useQuery({
+    queryKey: queryKeys.publicWorkshops(id!),
+    queryFn: () => apiClient.get<Workshop[]>(ApiRoutes.PROJECT_WORKSHOPS.replace(":id", id!)),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  const workshopRegistrationCount = workshops.filter((w) => w.myRegistration).length;
+
+  function handleUnregisterClick() {
+    if (workshopRegistrationCount > 0) {
+      setShowUnregisterWarning(true);
+    } else {
+      unregister();
+    }
+  }
 
   const regStatus = project ? getRegistrationStatus(project) : "none";
   const isUpcoming = project ? new Date(project.startingAt) >= new Date() : false;
@@ -356,36 +542,76 @@ export function ProjectDetailPage() {
           </div>
         ) : (
           <>
-            {regStatus !== "none" && (
-              <div className="mb-8">
-                <RegistrationSection
-                  project={project}
-                  status={regStatus}
-                  user={user ? { id: user.id, isActive: user.isActive } : null}
-                  myRegistration={myRegistration}
-                  isRegistering={isRegistering}
-                  isUnregistering={isUnregistering}
-                  registerError={registerError}
-                  selectedPackageId={selectedPackageId}
-                  onSelectPackage={setSelectedPackageId}
-                  onRegister={() => register()}
-                  onUnregister={() => unregister()}
-                />
-              </div>
-            )}
-            {project.description && (
-              <div
-                className="prose prose-neutral max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
-              />
-            )}
+            <>
+              {regStatus !== "none" && (
+                <div className="mb-8">
+                  <RegistrationSection
+                    project={project}
+                    status={regStatus}
+                    user={user ? { id: user.id, isActive: user.isActive } : null}
+                    myRegistration={myRegistration}
+                    isRegistering={isRegistering}
+                    isUnregistering={isUnregistering}
+                    registerError={registerError}
+                    selectedPackageId={selectedPackageId}
+                    onSelectPackage={setSelectedPackageId}
+                    onRegister={() => register()}
+                    onUnregister={handleUnregisterClick}
+                  />
+                </div>
+              )}
+              {workshops.length > 0 && (
+                <div className="mt-16">
+                  <WorkshopsSection
+                    projectId={id!}
+                    userId={user?.id ?? null}
+                    isProjectRegistered={myRegistration?.registered === true}
+                  />
+                </div>
+              )}
+
+              {project.description && (
+                <div className="mt-16">
+                  <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+                    Description
+                  </h2>
+                  <div
+                    className="prose prose-neutral max-w-none text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
+                  />
+                </div>
+              )}
+            </>
           </>
         )}
       </div>
 
-      {/* Parallax gallery */}
+      {/* Workshops unregister warning */}
+      <AlertDialog open={showUnregisterWarning} onOpenChange={setShowUnregisterWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Project Registration</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are also registered for{" "}
+              <strong>
+                {workshopRegistrationCount} workshop{workshopRegistrationCount !== 1 ? "s" : ""}
+              </strong>{" "}
+              in this project. Canceling your project registration will also remove those workshop
+              registrations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Registration</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => unregister()}>
+              Cancel Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Gallery */}
       {project && project.images.length > 1 && (
-        <div className="border-t px-4 pb-16 pt-12">
+        <section className="border-t px-4 pb-16 pt-12">
           <div className="mx-auto max-w-6xl">
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -410,7 +636,7 @@ export function ProjectDetailPage() {
               ))}
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Lightbox */}

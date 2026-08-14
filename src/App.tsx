@@ -104,6 +104,9 @@ const AdminPillarsPage = lazy(() =>
 const AdminProjectsPage = lazy(() =>
   import("@/pages/admin/ProjectsPage").then((m) => ({ default: m.ProjectsPage }))
 );
+const AdminProjectDetailPage = lazy(() =>
+  import("@/pages/admin/ProjectDetailPage").then((m) => ({ default: m.AdminProjectDetailPage }))
+);
 const OrganizationPage = lazy(() =>
   import("@/pages/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage }))
 );
@@ -192,6 +195,14 @@ export default function App() {
                       element={
                         <ProtectedRoute requiredRole={Role.ADMIN}>
                           <AdminProjectsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={PageRoutes.ADMIN_PROJECT_DETAIL_SEGMENT}
+                      element={
+                        <ProtectedRoute requiredRole={Role.ADMIN}>
+                          <AdminProjectDetailPage />
                         </ProtectedRoute>
                       }
                     />
