@@ -11,6 +11,7 @@ import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type PublicPillarDetail } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { spring } from "@/lib/motion";
 
 export function PillarDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,16 +46,14 @@ export function PillarDetailPage() {
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                transition={spring.smooth}
               >
-                <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                   <span className="h-px w-6 bg-primary" />
                   Pillar
                 </div>
 
-                <div className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent">
-                  {pillar.name}
-                </div>
+                <h1 className="text-display text-foreground">{pillar.name}</h1>
 
                 {pillar.directorName && (
                   <div className="mt-4 flex items-center gap-2.5 text-sm text-muted-foreground">
@@ -79,10 +78,11 @@ export function PillarDetailPage() {
               {pillar.imageUrl && (
                 <motion.div
                   className="relative flex items-center justify-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ ...spring.smooth, delay: 0.1 }}
                 >
+                  <div className="absolute size-56 rounded-full bg-primary/10 blur-3xl" />
                   <img
                     src={pillar.imageUrl}
                     alt={pillar.name}
@@ -100,7 +100,7 @@ export function PillarDetailPage() {
         {isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+              <Skeleton key={i} className="h-48 rounded-2xl" />
             ))}
           </div>
         ) : !pillar ? (
@@ -113,14 +113,12 @@ export function PillarDetailPage() {
         ) : (
           <>
             <div className="mb-10">
-              <div className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <div className="mb-3 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                 <span className="h-px w-6 bg-primary" />
                 Projects
               </div>
-              <div className="flex items-end justify-between gap-4">
-                <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
-                  Initiatives under this pillar
-                </h2>
+              <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+                <h2 className="text-heading text-foreground">Initiatives under this pillar</h2>
                 {pillar.projects.length > 0 && (
                   <span className="text-sm text-muted-foreground">
                     {pillar.projects.length} {pillar.projects.length === 1 ? "project" : "projects"}

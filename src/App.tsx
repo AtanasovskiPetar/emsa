@@ -2,6 +2,7 @@ import "@/index.css";
 
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { MotionConfig } from "motion/react";
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
@@ -117,100 +118,105 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <OrganizationMeta />
         <AuthProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <ProfileGuard>
-              <Suspense
-                fallback={
-                  <div className="flex min-h-screen items-center justify-center">
-                    <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  </div>
-                }
-              >
-                <Routes>
-                  {/* Public site */}
-                  <Route element={<PublicLayout />}>
-                    <Route path={PageRoutes.HOME} element={<HomePage />} />
-                    <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
-                    <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
-                    <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
-                    <Route path={PageRoutes.GALLERY} element={<GalleryPage />} />
-                    <Route
-                      path={PageRoutes.PROFILE}
-                      element={
-                        <ProtectedRoute requiredRole={Role.USER}>
-                          <ProfilePage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Route>
+          <MotionConfig reducedMotion="user">
+            <BrowserRouter>
+              <ScrollToTop />
+              <ProfileGuard>
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-screen items-center justify-center">
+                      <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  }
+                >
+                  <Routes>
+                    {/* Public site */}
+                    <Route element={<PublicLayout />}>
+                      <Route path={PageRoutes.HOME} element={<HomePage />} />
+                      <Route path={PageRoutes.PROJECTS} element={<ProjectsPage />} />
+                      <Route path={PageRoutes.PROJECT_DETAIL} element={<ProjectDetailPage />} />
+                      <Route path={PageRoutes.PILLAR_DETAIL} element={<PillarDetailPage />} />
+                      <Route path={PageRoutes.GALLERY} element={<GalleryPage />} />
+                      <Route
+                        path={PageRoutes.PROFILE}
+                        element={
+                          <ProtectedRoute requiredRole={Role.USER}>
+                            <ProfilePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Route>
 
-                  {/* Auth */}
-                  <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
-                  <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
-                  <Route path={PageRoutes.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-                  <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
-                  <Route path={PageRoutes.SETUP_PASSWORD} element={<SetupPasswordPage />} />
-                  <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
-                  <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
-                  <Route path="*" element={<Navigate to={PageRoutes.HOME} replace />} />
+                    {/* Auth */}
+                    <Route path={PageRoutes.LOGIN} element={<LoginPage />} />
+                    <Route path={PageRoutes.REGISTER} element={<RegisterPage />} />
+                    <Route path={PageRoutes.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+                    <Route path={PageRoutes.RESET_PASSWORD} element={<ResetPasswordPage />} />
+                    <Route path={PageRoutes.SETUP_PASSWORD} element={<SetupPasswordPage />} />
+                    <Route path={PageRoutes.UNAUTHORIZED} element={<UnauthorizedPage />} />
+                    <Route path={PageRoutes.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+                    <Route path="*" element={<Navigate to={PageRoutes.HOME} replace />} />
 
-                  {/* Admin */}
-                  <Route
-                    path={PageRoutes.ADMIN}
-                    element={
-                      <ProtectedRoute requiredRole={Role.ADMIN}>
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
-                    <Route path={PageRoutes.ADMIN_DASHBOARD_SEGMENT} element={<DashboardPage />} />
+                    {/* Admin */}
                     <Route
-                      path={PageRoutes.ADMIN_USERS_SEGMENT}
+                      path={PageRoutes.ADMIN}
                       element={
                         <ProtectedRoute requiredRole={Role.ADMIN}>
-                          <AdminUsersPage />
+                          <AdminLayout />
                         </ProtectedRoute>
                       }
-                    />
-                    <Route
-                      path={PageRoutes.ADMIN_PILLARS_SEGMENT}
-                      element={
-                        <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
-                          <AdminPillarsPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path={PageRoutes.ADMIN_ORGANIZATION_SEGMENT}
-                      element={
-                        <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
-                          <OrganizationPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path={PageRoutes.ADMIN_PROJECTS_SEGMENT}
-                      element={
-                        <ProtectedRoute requiredRole={Role.ADMIN}>
-                          <AdminProjectsPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path={PageRoutes.ADMIN_PROJECT_DETAIL_SEGMENT}
-                      element={
-                        <ProtectedRoute requiredRole={Role.ADMIN}>
-                          <AdminProjectDetailPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </ProfileGuard>
-          </BrowserRouter>
+                    >
+                      <Route index element={<Navigate to={PageRoutes.ADMIN_DASHBOARD} replace />} />
+                      <Route
+                        path={PageRoutes.ADMIN_DASHBOARD_SEGMENT}
+                        element={<DashboardPage />}
+                      />
+                      <Route
+                        path={PageRoutes.ADMIN_USERS_SEGMENT}
+                        element={
+                          <ProtectedRoute requiredRole={Role.ADMIN}>
+                            <AdminUsersPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path={PageRoutes.ADMIN_PILLARS_SEGMENT}
+                        element={
+                          <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                            <AdminPillarsPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path={PageRoutes.ADMIN_ORGANIZATION_SEGMENT}
+                        element={
+                          <ProtectedRoute requiredRole={Role.SUPER_ADMIN}>
+                            <OrganizationPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path={PageRoutes.ADMIN_PROJECTS_SEGMENT}
+                        element={
+                          <ProtectedRoute requiredRole={Role.ADMIN}>
+                            <AdminProjectsPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path={PageRoutes.ADMIN_PROJECT_DETAIL_SEGMENT}
+                        element={
+                          <ProtectedRoute requiredRole={Role.ADMIN}>
+                            <AdminProjectDetailPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </ProfileGuard>
+            </BrowserRouter>
+          </MotionConfig>
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

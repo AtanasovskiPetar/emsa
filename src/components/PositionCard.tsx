@@ -1,8 +1,9 @@
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { SpotlightCard } from "@/components/SpotlightCard";
 import { UserAvatar } from "@/components/UserAvatar";
 import { type PublicPosition } from "@/constants/types";
+import { revealTransition } from "@/lib/motion";
 
 interface PositionCardProps {
   position: PublicPosition;
@@ -10,13 +11,14 @@ interface PositionCardProps {
 }
 
 export function PositionCard({ position, index }: PositionCardProps) {
+  const prefersReduced = useReducedMotion();
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 24 }}
+      initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={prefersReduced ? { duration: 0.2 } : revealTransition(index)}
     >
       <SpotlightCard className="h-full p-6">
         <div className="flex h-full flex-col items-center gap-4 text-center">

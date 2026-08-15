@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarDays, Layers, Pin } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageRoutes } from "@/constants/routes";
 import { type PublicProject } from "@/constants/types";
+import { spring } from "@/lib/motion";
 import { getRegistrationStatus, stripHtml } from "@/lib/utils";
 
 interface PinnedProjectSpotlightProps {
@@ -14,6 +15,7 @@ interface PinnedProjectSpotlightProps {
 }
 
 export function PinnedProjectSpotlight({ project }: PinnedProjectSpotlightProps) {
+  const prefersReduced = useReducedMotion();
   const cover = project.images[0];
   const regStatus = getRegistrationStatus(project);
   const description = stripHtml(project.description);
@@ -65,10 +67,10 @@ export function PinnedProjectSpotlight({ project }: PinnedProjectSpotlightProps)
         <div className="relative flex w-full items-end">
           <div className="mx-auto w-full max-w-6xl px-6 py-14 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 32 }}
+              initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 32 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              transition={prefersReduced ? { duration: 0.2 } : spring.smooth}
               className="max-w-2xl"
             >
               {/* Label */}
@@ -78,9 +80,7 @@ export function PinnedProjectSpotlight({ project }: PinnedProjectSpotlightProps)
               </div>
 
               {/* Title */}
-              <h2 className="mb-4 text-4xl font-bold leading-tight text-white drop-shadow-md lg:text-5xl">
-                {project.title}
-              </h2>
+              <h2 className="mb-4 text-title text-white drop-shadow-md">{project.title}</h2>
 
               {/* Description excerpt */}
               {description && (

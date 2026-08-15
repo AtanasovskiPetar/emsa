@@ -19,7 +19,7 @@ export function SpotlightCard({ children, className }: SpotlightCardProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-background transition-shadow duration-300 hover:shadow-lg",
+        "relative overflow-hidden rounded-3xl border bg-background transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-[var(--shadow-material)]",
         className
       )}
       onMouseMove={handleMouseMove}
@@ -27,7 +27,7 @@ export function SpotlightCard({ children, className }: SpotlightCardProps) {
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 rounded-3xl transition-opacity duration-300"
         style={{
           opacity: hovered ? 1 : 0,
           background: `radial-gradient(250px circle at ${mousePos.x}px ${mousePos.y}px, color-mix(in srgb, var(--primary) 10%, transparent), transparent 70%)`,

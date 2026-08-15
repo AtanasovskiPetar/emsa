@@ -39,10 +39,59 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Motion — easing curves (Apple-style: fast-out, long settle). Springs live in
+     src/lib/motion.ts; these are for simple, non-interruptible CSS transitions. */
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Typography — size-specific tracking + leading (tighten as size grows, per
+     Apple type rules). Each step pairs size + leading + tracking + weight. */
+  --text-hero: clamp(2.75rem, 7vw + 0.75rem, 6.5rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.045em;
+  --text-hero--font-weight: 700;
+  --text-display: clamp(2.75rem, 4vw + 1.75rem, 4.5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.035em;
+  --text-display--font-weight: 700;
+  --text-title: clamp(2rem, 2vw + 1.25rem, 2.75rem);
+  --text-title--line-height: 1.08;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 700;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.2;
+  --text-heading--letter-spacing: -0.015em;
+  --text-heading--font-weight: 600;
+  --text-subheading: 1.125rem;
+  --text-subheading--line-height: 1.35;
+  --text-subheading--letter-spacing: -0.01em;
+  --text-subheading--font-weight: 600;
+  --text-body-lg: 1.0625rem;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--letter-spacing: 0em;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
 }
 
 :root {
   --radius: 0.65rem;
+
+  /* Motion durations (for CSS transitions) */
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 400ms;
+
+  /* Translucent-material shadows — layered, soft (light theme) */
+  --shadow-material: 0 1px 1px oklch(0 0 0 / 0.04), 0 4px 12px oklch(0 0 0 / 0.06),
+    0 16px 48px oklch(0 0 0 / 0.08);
+  --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.05), 0 12px 32px oklch(0 0 0 / 0.1),
+    0 32px 80px oklch(0 0 0 / 0.12);
+  --shadow-material-thin: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 16px oklch(0 0 0 / 0.06);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -77,6 +126,13 @@
 }
 
 .dark {
+  /* Deeper, softer shadows on dark surfaces */
+  --shadow-material: 0 1px 1px oklch(0 0 0 / 0.3), 0 4px 12px oklch(0 0 0 / 0.4),
+    0 16px 48px oklch(0 0 0 / 0.5);
+  --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.5),
+    0 32px 80px oklch(0 0 0 / 0.6);
+  --shadow-material-thin: 0 1px 2px oklch(0 0 0 / 0.3), 0 4px 16px oklch(0 0 0 / 0.4);
+
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -116,5 +172,75 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Translucent materials — a floating functional layer that conveys hierarchy
+   through blur + a bright top edge, with content scrolling underneath. Bigger
+   surfaces read as thicker (stronger blur, deeper shadow). */
+@layer components {
+  .material,
+  .material-thin,
+  .material-thick {
+    background-color: color-mix(in oklab, var(--card) 72%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+    box-shadow: var(--shadow-material);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .material-thin {
+    background-color: color-mix(in oklab, var(--card) 60%, transparent);
+    box-shadow: var(--shadow-material-thin);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    backdrop-filter: blur(10px) saturate(160%);
+  }
+
+  .material-thick {
+    background-color: color-mix(in oklab, var(--card) 82%, transparent);
+    box-shadow: var(--shadow-material-thick);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    backdrop-filter: blur(28px) saturate(190%);
+  }
+
+  /* A bright top edge = light catching the material (skip in dark, where the
+     translucent border already reads as a highlight). */
+  .material::before,
+  .material-thin::before,
+  .material-thick::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5);
+  }
+  .dark .material::before,
+  .dark .material-thin::before,
+  .dark .material-thick::before {
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.08);
+  }
+}
+
+/* Accessibility — respect the user's transparency/contrast preferences by
+   making materials frostier/solid rather than translucent. */
+@media (prefers-reduced-transparency: reduce) {
+  .material,
+  .material-thin,
+  .material-thick {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .material,
+  .material-thin,
+  .material-thick {
+    background-color: var(--card);
+    border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

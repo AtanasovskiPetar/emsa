@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, useLocation, useOutlet } from "react-router-dom";
 
 import { MembershipBadge } from "@/components/MembershipBadge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { spring } from "@/lib/motion";
 import { cn, hasAccess } from "@/lib/utils";
 
 const navLinks = [
@@ -218,6 +219,9 @@ function MobileUserSection({ onClose }: { onClose: () => void }) {
 
 export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const outlet = useOutlet();
+  const prefersReduced = useReducedMotion();
   const { data: org } = useQuery({
     queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
@@ -266,7 +270,17 @@ export function PublicLayout() {
       </Navbar>
 
       <main className="flex-1 pt-14">
-        <Outlet />
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            transition={prefersReduced ? { duration: 0.15 } : spring.snappy}
+          >
+            {outlet}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <footer className="border-t bg-muted/40 py-4">
