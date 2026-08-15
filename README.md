@@ -136,7 +136,7 @@ Members who haven't set their phone, student index, and year of studies are redi
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) >= 1.0
+- [Bun](https://bun.sh) >= 1.3.14
 - PostgreSQL database
 - AWS S3 bucket (or compatible)
 - Google OAuth credentials
