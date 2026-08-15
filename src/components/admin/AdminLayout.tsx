@@ -169,7 +169,7 @@ export function AdminLayout() {
           <SidebarTrigger className="-ml-1" />
           <span className="text-sm font-medium">{pageTitle}</span>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 p-6">
           <Outlet />
         </div>
       </SidebarInset>

@@ -21,6 +21,7 @@ import {
 import Papa from "papaparse";
 import React, { useState } from "react";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { MembershipBadge } from "@/components/MembershipBadge";
@@ -830,27 +831,28 @@ export function UsersPage() {
   const isSaving = isCreating || isUpdating;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">Users</h2>
-            {isSuperAdmin && (
-              <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
-                <Upload className="size-4" />
-                Import CSV
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-6">
+        <AdminPageHeader
+          eyebrow="Members"
+          title="Users"
+          description={`${table.getFilteredRowModel().rows.length} of ${users.length} users`}
+          actions={
+            <>
+              {isSuperAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
+                  <Upload className="size-4" />
+                  Import CSV
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <FileDown className="size-4" />
+                Export CSV
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <FileDown className="size-4" />
-              Export CSV
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} of {users.length} users
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            </>
+          }
+        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Select
             value={
               table.getColumn("isAlumni")?.getFilterValue() === undefined

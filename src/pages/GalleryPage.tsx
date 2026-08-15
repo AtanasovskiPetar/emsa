@@ -9,6 +9,7 @@ import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import type { GalleryImage, GalleryResponse } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { spring } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 30;
@@ -18,7 +19,7 @@ function GalleryItem({ img, onClick }: { img: GalleryImage; onClick: () => void 
 
   return (
     <div
-      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-muted"
+      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl bg-muted"
       onClick={onClick}
     >
       <img
@@ -81,12 +82,14 @@ export function GalleryPage() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={spring.smooth}
           >
-            <h1 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent md:text-5xl">
-              Gallery
-            </h1>
-            <p className="mt-3 max-w-xl text-muted-foreground">
+            <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
+              <span className="h-px w-6 bg-primary" />
+              Moments
+            </div>
+            <h1 className="text-display text-foreground">Gallery</h1>
+            <p className="mt-4 max-w-xl text-body-lg text-muted-foreground">
               A collection of moments from our projects and events.
             </p>
             {!isLoading && total > 0 && (
@@ -104,7 +107,7 @@ export function GalleryPage() {
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+              <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
             ))}
           </div>
         ) : images.length === 0 ? (

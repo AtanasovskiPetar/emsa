@@ -6,6 +6,7 @@ import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { PageRoutes } from "@/constants/routes";
 import { type PublicProject } from "@/constants/types";
+import { revealTransition } from "@/lib/motion";
 import { cn, getRegistrationStatus } from "@/lib/utils";
 
 interface ProjectCardProps {
@@ -39,8 +40,8 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={revealTransition(index)}
       className={cn(
         "h-full",
         !isUpcoming && !featured && "opacity-85 hover:opacity-100 transition-opacity",
@@ -55,7 +56,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Featured: image-overlay layout */
           <div
             className={cn(
-              "relative h-102 overflow-hidden rounded-xl border transition-all duration-300",
+              "relative h-102 overflow-hidden rounded-3xl border transition-all duration-300 ease-fluid group-hover:-translate-y-1",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_32px_color-mix(in_srgb,var(--primary)_15%,transparent)]"
                 : "border-border"
@@ -112,7 +113,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Regular card */
           <div
             className={cn(
-              "flex h-48 flex-col overflow-hidden rounded-xl border bg-background transition-all duration-300 hover:shadow-md",
+              "flex h-48 flex-col overflow-hidden rounded-2xl border bg-background transition-all duration-300 ease-fluid group-hover:-translate-y-1 group-hover:shadow-[var(--shadow-material)]",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_12%,transparent)]"
                 : "border-border"

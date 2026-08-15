@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
-import { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { Suspense, useState } from "react";
+import { Link, NavLink, useLocation, useOutlet } from "react-router-dom";
 
 import { MembershipBadge } from "@/components/MembershipBadge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { spring } from "@/lib/motion";
 import { cn, hasAccess } from "@/lib/utils";
 
 const navLinks = [
@@ -218,6 +219,8 @@ function MobileUserSection({ onClose }: { onClose: () => void }) {
 
 export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const outlet = useOutlet();
   const { data: org } = useQuery({
     queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
@@ -265,8 +268,26 @@ export function PublicLayout() {
         </MobileNav>
       </Navbar>
 
-      <main className="flex-1 pt-14">
-        <Outlet />
+      <main className="relative flex-1 pt-14">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={spring.snappy}
+          >
+            <Suspense
+              fallback={
+                <div className="flex min-h-[60vh] items-center justify-center">
+                  <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              }
+            >
+              {outlet}
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <footer className="border-t bg-muted/40 py-4">

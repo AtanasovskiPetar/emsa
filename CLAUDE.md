@@ -69,7 +69,7 @@ No test suite exists yet.
 
 ### Frontend
 
-- New utilities go in `src/lib/utils.ts` — don't create new utility files.
+- Generic utilities go in `src/lib/utils.ts` — don't scatter one-off helpers into new files. A focused, cohesive domain module under `src/lib/` (e.g. `src/lib/motion.ts` for shared animation presets) is fine.
 - New shared types go in `src/constants/types.ts`.
 - New form schemas go in `src/constants/schemas.ts`.
 - All TanStack Query keys defined in `src/constants/query-keys.ts` — never use inline string arrays.

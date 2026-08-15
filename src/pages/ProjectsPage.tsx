@@ -49,14 +49,12 @@ export function ProjectsPage() {
       <div className="relative mx-auto max-w-6xl px-4 py-16">
         {/* Header */}
         <div className="mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+          <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
             <span className="h-px w-6 bg-primary" />
             Projects
           </div>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-4xl font-bold text-transparent">
-              Initiatives &amp; Events
-            </h1>
+            <h1 className="text-display text-foreground">Initiatives &amp; Events</h1>
             <span className="text-sm text-muted-foreground">
               {filtered.length} {filtered.length === 1 ? "project" : "projects"}
             </span>
@@ -65,12 +63,12 @@ export function ProjectsPage() {
 
         {/* Filters */}
         {(pillars && pillars.length > 0) || upcomingCount > 0 ? (
-          <div className="mb-10 flex flex-wrap items-center gap-2">
+          <div className="-mx-4 mb-10 flex items-center gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
             {/* Upcoming toggle */}
             <button
               onClick={() => setOnlyUpcoming((v) => !v)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
                 onlyUpcoming
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
@@ -92,11 +90,12 @@ export function ProjectsPage() {
 
             {pillars && pillars.length > 0 && (
               <>
-                <span className="h-4 w-px bg-border" />
+                <span className="h-4 w-px shrink-0 bg-border" />
 
                 <Button
                   variant={selectedPillar === null ? "default" : "outline"}
                   size="sm"
+                  className="shrink-0"
                   onClick={() => setSelectedPillar(null)}
                 >
                   All pillars
@@ -106,6 +105,7 @@ export function ProjectsPage() {
                     key={pillar.id}
                     variant={selectedPillar === pillar.id ? "default" : "outline"}
                     size="sm"
+                    className="shrink-0"
                     onClick={() => setSelectedPillar(pillar.id)}
                   >
                     {pillar.name}
@@ -120,7 +120,7 @@ export function ProjectsPage() {
         {projectsLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+              <Skeleton key={i} className="h-48 rounded-2xl" />
             ))}
           </div>
         ) : filtered.length ? (

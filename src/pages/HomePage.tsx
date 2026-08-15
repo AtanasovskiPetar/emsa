@@ -19,12 +19,8 @@ import {
   type PublicProject,
 } from "@/constants/types";
 import { apiClient } from "@/lib/api-client";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
-};
 
 function getPreviewProjects(projects: PublicProject[]): PublicProject[] {
   const now = new Date().getTime();
@@ -81,111 +77,89 @@ export function HomePage() {
           <div className="absolute left-1/2 top-1/2 size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-chart-3/15 blur-[80px]" />
         </div>
 
-        <div className="relative mx-auto w-full max-w-6xl px-4">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            {/* Left: text */}
-            <motion.div
-              className="flex flex-col items-center text-center lg:items-start lg:text-left lg:order-first order-last"
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
-            >
-              <motion.div variants={fadeUp}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
-                  <span className="size-2 animate-pulse rounded-full bg-primary" />
-                  Student Medical Platform
-                </span>
-              </motion.div>
-
-              <motion.h1
-                variants={fadeUp}
-                className="mt-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-5xl font-bold tracking-tight text-transparent lg:text-6xl"
-              >
-                {org?.name ?? "Welcome"}
-              </motion.h1>
-
-              {org?.description && (
-                <motion.p
-                  variants={fadeUp}
-                  className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground"
-                >
-                  {org.description}
-                </motion.p>
-              )}
-
-              <motion.div
-                variants={fadeUp}
-                className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start"
-              >
-                <Button size="lg" asChild>
-                  <Link to={PageRoutes.PROJECTS}>
-                    Explore Projects
-                    <ArrowRight className="ml-2 size-4" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <a href="#pillars">Pillars</a>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <a href="#about">About Us</a>
-                </Button>
-              </motion.div>
-
-              {projects?.length || pillars?.length ? (
-                <motion.div
-                  variants={fadeUp}
-                  className="mt-12 flex w-full justify-center gap-8 pt-8 lg:justify-start"
-                >
-                  {(projects?.length ?? 0) > 0 && (
-                    <div>
-                      <div className="text-3xl font-bold">{projects!.length}+</div>
-                      <div className="mt-0.5 text-sm text-muted-foreground">Projects</div>
-                    </div>
-                  )}
-                  {(pillars?.length ?? 0) > 0 && (
-                    <div className="border-l pl-8">
-                      <div className="text-3xl font-bold">{pillars!.length}</div>
-                      <div className="mt-0.5 text-sm text-muted-foreground">Pillars</div>
-                    </div>
-                  )}
-                </motion.div>
-              ) : null}
-            </motion.div>
-
-            {/* Right: logo visual */}
-            <motion.div
-              className="relative flex items-center justify-center order-first lg:order-last"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-            >
-              {/* Decorative rings */}
-              <div className="absolute size-[380px] rounded-full border border-chart-3/50" />
-              <div className="absolute size-[280px] rounded-full border border-chart-2/50" />
-              <div className="absolute size-[180px] rounded-full border border-primary/50" />
-
-              {/* Ambient glow */}
-              <div className="absolute size-56 rounded-full bg-primary/8 blur-3xl" />
-
-              {org?.logoUrl ? (
-                <motion.img
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-6 text-center">
+          <motion.div
+            className="flex flex-col items-center"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            {org?.logoUrl && (
+              <motion.div variants={staggerItem} className="relative mb-8">
+                <div className="absolute inset-0 -z-10 scale-150 rounded-full bg-primary/15 blur-2xl" />
+                <img
                   src={org.logoUrl}
                   alt={org.name}
-                  className="relative size-52 object-contain drop-shadow-2xl lg:size-64"
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="size-24 object-contain drop-shadow-xl sm:size-28"
                 />
-              ) : (
-                <motion.div
-                  className="relative flex size-52 items-center justify-center rounded-full bg-gradient-to-br from-primary to-chart-2 text-6xl font-bold text-white shadow-2xl lg:size-64"
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {org?.name?.charAt(0) ?? "?"}
-                </motion.div>
-              )}
+              </motion.div>
+            )}
+
+            <motion.div variants={staggerItem}>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-eyebrow text-primary uppercase">
+                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                Student Medical Platform
+              </span>
             </motion.div>
-          </div>
+
+            <motion.h1
+              variants={staggerItem}
+              className="mt-7 text-hero text-balance text-foreground"
+            >
+              {org?.name ?? "Welcome"}
+            </motion.h1>
+
+            {org?.description && (
+              <motion.p
+                variants={staggerItem}
+                className="mt-6 max-w-2xl text-balance text-body-lg text-muted-foreground"
+              >
+                {org.description}
+              </motion.p>
+            )}
+
+            <motion.div
+              variants={staggerItem}
+              className="mt-10 flex flex-wrap items-center justify-center gap-3"
+            >
+              <Button size="lg" asChild>
+                <Link to={PageRoutes.PROJECTS}>
+                  Explore Projects
+                  <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href="#pillars">Our Pillars</a>
+              </Button>
+              <Button size="lg" variant="ghost" asChild>
+                <a href="#about">About Us</a>
+              </Button>
+            </motion.div>
+
+            {projects?.length || pillars?.length ? (
+              <motion.div variants={staggerItem} className="mt-16 flex items-center gap-10">
+                {(projects?.length ?? 0) > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="text-4xl font-bold tabular-nums">{projects!.length}+</div>
+                    <div className="mt-1.5 text-eyebrow text-muted-foreground uppercase">
+                      Projects
+                    </div>
+                  </div>
+                )}
+                {(pillars?.length ?? 0) > 0 && (
+                  <>
+                    {(projects?.length ?? 0) > 0 && <div className="h-10 w-px bg-border" />}
+                    <div className="flex flex-col items-center">
+                      <div className="text-4xl font-bold tabular-nums">{pillars!.length}</div>
+                      <div className="mt-1.5 text-eyebrow text-muted-foreground uppercase">
+                        Pillars
+                      </div>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            ) : null}
+          </motion.div>
         </div>
       </section>
 
@@ -195,17 +169,17 @@ export function HomePage() {
       {/* Projects preview */}
       <section className="border-t py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="mb-12 flex items-end justify-between">
+          <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                 <span className="h-px w-6 bg-primary" />
                 Projects
               </div>
-              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
+              <h2 className="text-title text-foreground">
                 Upcoming events &amp; recent initiatives
               </h2>
             </div>
-            <Button variant="ghost" size="sm" asChild className="shrink-0">
+            <Button variant="ghost" size="sm" asChild className="shrink-0 self-start sm:self-auto">
               <Link to={PageRoutes.PROJECTS}>
                 View all
                 <ArrowRight className="ml-1 size-4" />
@@ -249,13 +223,11 @@ export function HomePage() {
 
           <div className="relative mx-auto max-w-6xl px-4">
             <div className="mb-12">
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                 <span className="h-px w-6 bg-primary" />
                 About Us
               </div>
-              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
-                Who we are
-              </h2>
+              <h2 className="text-title text-foreground">Who we are</h2>
             </div>
 
             {org?.aboutUs && (
@@ -268,11 +240,11 @@ export function HomePage() {
             {(positionsLoading || (positions && positions.length > 0)) && (
               <div className={cn("flex flex-col gap-6", org?.aboutUs && "mt-12")}>
                 <div>
-                  <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                  <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                     <span className="h-px w-6 bg-primary" />
                     Board
                   </div>
-                  <h3 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
+                  <h3 className="text-heading text-foreground">
                     The people leading our organization
                   </h3>
                 </div>
@@ -300,7 +272,7 @@ export function HomePage() {
       <section id="pillars" className={cn("py-20", org?.aboutUs ? "bg-primary/5" : "border-t")}>
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-12">
-            <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+            <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
               <span className="h-px w-6 bg-primary" />
               Our Pillars
             </div>
@@ -332,13 +304,11 @@ export function HomePage() {
         <section id="contact" className="border-t py-20">
           <div className="mx-auto max-w-6xl px-4">
             <div className="mb-12">
-              <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
                 <span className="h-px w-6 bg-primary" />
                 Contact
               </div>
-              <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
-                Get in touch
-              </h2>
+              <h2 className="text-title text-foreground">Get in touch</h2>
             </div>
 
             <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">

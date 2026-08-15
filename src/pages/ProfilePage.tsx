@@ -25,6 +25,7 @@ import { type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
 import { type ImageEntry, type UserProfile } from "@/constants/types";
 import { useAuth } from "@/context/auth";
 import { apiClient } from "@/lib/api-client";
+import { spring } from "@/lib/motion";
 import { getImageSrc, resolveImageEntry } from "@/lib/utils";
 
 const FADE_UP = {
@@ -124,7 +125,7 @@ export function ProfilePage() {
         {/* Header */}
         <motion.div
           {...FADE_UP}
-          transition={{ duration: 0.4, ease: "easeOut" as const }}
+          transition={{ ...spring.smooth }}
           className="flex items-start justify-between"
         >
           <div className="flex min-w-0 items-center gap-4">
@@ -134,7 +135,7 @@ export function ProfilePage() {
               className="size-14 shrink-0 text-xl"
             />
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-semibold">{profile.name}</h1>
+              <h1 className="truncate text-heading text-foreground">{profile.name}</h1>
               <p className="truncate text-sm text-muted-foreground">{profile.email}</p>
             </div>
           </div>
@@ -145,10 +146,7 @@ export function ProfilePage() {
         </motion.div>
 
         {/* Profile status banner */}
-        <motion.div
-          {...FADE_UP}
-          transition={{ duration: 0.4, ease: "easeOut" as const, delay: 0.08 }}
-        >
+        <motion.div {...FADE_UP} transition={{ ...spring.smooth, delay: 0.08 }}>
           {isComplete ? (
             <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900/40 dark:bg-green-950/20">
               <CheckCircle2 className="size-4 shrink-0 text-green-600 dark:text-green-400" />
@@ -185,10 +183,7 @@ export function ProfilePage() {
         </motion.div>
 
         {/* Avatar card */}
-        <motion.div
-          {...FADE_UP}
-          transition={{ duration: 0.4, ease: "easeOut" as const, delay: 0.16 }}
-        >
+        <motion.div {...FADE_UP} transition={{ ...spring.smooth, delay: 0.16 }}>
           <Card>
             <CardHeader>
               <CardTitle>Profile photo</CardTitle>
@@ -208,10 +203,7 @@ export function ProfilePage() {
         </motion.div>
 
         {/* Personal info card */}
-        <motion.div
-          {...FADE_UP}
-          transition={{ duration: 0.4, ease: "easeOut" as const, delay: 0.24 }}
-        >
+        <motion.div {...FADE_UP} transition={{ ...spring.smooth, delay: 0.24 }}>
           <Card>
             <CardHeader>
               <CardTitle>Personal information</CardTitle>
