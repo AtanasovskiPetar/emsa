@@ -10,6 +10,7 @@ import {
 import { Pin, Plus, Search, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import {
@@ -194,31 +195,30 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Projects</h2>
-          <p className="text-sm text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} of {projects.length} projects
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search projects..."
-              value={(table.getState().globalFilter as string) ?? ""}
-              onChange={(e) => {
-                table.setGlobalFilter(e.target.value);
-                table.setPageIndex(0);
-              }}
-              className="w-full pl-8 sm:w-64"
-            />
-          </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <AdminPageHeader
+        eyebrow="Content"
+        title="Projects"
+        description={`${table.getFilteredRowModel().rows.length} of ${projects.length} projects`}
+        actions={
           <Button onClick={() => dialog.open()}>
             <Plus className="size-4" />
             New Project
           </Button>
+        }
+      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search projects..."
+            value={(table.getState().globalFilter as string) ?? ""}
+            onChange={(e) => {
+              table.setGlobalFilter(e.target.value);
+              table.setPageIndex(0);
+            }}
+            className="w-full pl-8 sm:w-64"
+          />
         </div>
       </div>
 

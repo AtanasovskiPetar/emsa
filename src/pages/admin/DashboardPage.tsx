@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronRight, FolderOpen, Mountain, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
@@ -53,7 +54,7 @@ interface StatCardProps {
 function StatCard({ title, total, totalLabel, icon, iconBg, rows, footer, to }: StatCardProps) {
   return (
     <Link to={to} className="block">
-      <Card className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <Card className="cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-[var(--shadow-material)]">
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">
@@ -100,14 +101,12 @@ export function DashboardPage() {
   const nextProject = stats.projects.next;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-xl font-semibold">
-          {getGreeting()}
-          {user ? `, ${user.name.split(" ")[0]}` : ""}!
-        </h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">{TODAY}</p>
-      </div>
+    <div className="flex min-w-0 flex-col gap-8">
+      <AdminPageHeader
+        eyebrow="Dashboard"
+        title={`${getGreeting()}${user ? `, ${user.name.split(" ")[0]}` : ""}!`}
+        description={TODAY}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard

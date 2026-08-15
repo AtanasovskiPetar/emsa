@@ -10,6 +10,7 @@ import {
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { PillarDialog } from "@/components/admin/PillarDialog";
@@ -169,31 +170,30 @@ export function PillarsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Pillars</h2>
-          <p className="text-sm text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} of {pillars.length} pillars
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search pillars..."
-              value={(table.getState().globalFilter as string) ?? ""}
-              onChange={(e) => {
-                table.setGlobalFilter(e.target.value);
-                table.setPageIndex(0);
-              }}
-              className="w-full pl-8 sm:w-64"
-            />
-          </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <AdminPageHeader
+        eyebrow="Structure"
+        title="Pillars"
+        description={`${table.getFilteredRowModel().rows.length} of ${pillars.length} pillars`}
+        actions={
           <Button onClick={() => dialog.open()}>
             <Plus className="size-4" />
             New Pillar
           </Button>
+        }
+      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search pillars..."
+            value={(table.getState().globalFilter as string) ?? ""}
+            onChange={(e) => {
+              table.setGlobalFilter(e.target.value);
+              table.setPageIndex(0);
+            }}
+            className="w-full pl-8 sm:w-64"
+          />
         </div>
       </div>
 

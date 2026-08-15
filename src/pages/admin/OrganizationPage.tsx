@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -91,13 +92,12 @@ export function OrganizationPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-lg font-semibold">Organization</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your organization&apos;s public information.
-        </p>
-      </div>
+    <div className="flex min-w-0 flex-col gap-8">
+      <AdminPageHeader
+        eyebrow="Settings"
+        title="Organization"
+        description="Manage your organization's public information."
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex max-w-2xl flex-col gap-6">
         <div className="flex flex-col gap-2">
@@ -107,7 +107,7 @@ export function OrganizationPage() {
 
         <div className="flex flex-col gap-4">
           <div>
-            <h3 className="font-medium">Contact</h3>
+            <h3 className="text-subheading text-foreground">Contact</h3>
             <p className="text-sm text-muted-foreground">
               Shown in the contact section of the public site.
             </p>
@@ -157,7 +157,7 @@ export function OrganizationPage() {
 
         <div className="flex flex-col gap-4">
           <div>
-            <h3 className="font-medium">Socials</h3>
+            <h3 className="text-subheading text-foreground">Socials</h3>
             <p className="text-sm text-muted-foreground">Links shown in the public footer.</p>
           </div>
           <div className="flex flex-col gap-2">

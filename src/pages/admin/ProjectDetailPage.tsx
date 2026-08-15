@@ -1474,7 +1474,7 @@ export function AdminProjectDetailPage() {
     : formatDate(project.startingAt);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       {/* Header */}
       <div>
         <Button variant="ghost" size="sm" className="mb-4 -ml-2 gap-1" asChild>
@@ -1486,7 +1486,7 @@ export function AdminProjectDetailPage() {
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{project.title}</h1>
+            <h1 className="text-title text-foreground">{project.title}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               {project.pillarName && (
                 <Badge variant="secondary" className="text-xs">
