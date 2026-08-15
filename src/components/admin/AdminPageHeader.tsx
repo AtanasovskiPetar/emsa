@@ -10,12 +10,6 @@ interface AdminPageHeaderProps {
   actions?: React.ReactNode;
 }
 
-/**
- * Bold, consistent page header for the admin panel — an uppercase eyebrow, a
- * large title, an optional description, and a slot for actions. Springs in on
- * mount; movement degrades to a cross-fade under reduced motion (global
- * MotionConfig).
- */
 export function AdminPageHeader({ eyebrow, title, description, actions }: AdminPageHeaderProps) {
   return (
     <motion.div

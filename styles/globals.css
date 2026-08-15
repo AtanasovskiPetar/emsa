@@ -40,14 +40,12 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Motion — easing curves (Apple-style: fast-out, long settle). Springs live in
-     src/lib/motion.ts; these are for simple, non-interruptible CSS transitions. */
+  /* Motion easing */
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
-  /* Typography — size-specific tracking + leading (tighten as size grows, per
-     Apple type rules). Each step pairs size + leading + tracking + weight. */
+  /* Typography scale (size-specific tracking + leading) */
   --text-hero: clamp(2.75rem, 7vw + 0.75rem, 6.5rem);
   --text-hero--line-height: 0.95;
   --text-hero--letter-spacing: -0.045em;
@@ -80,12 +78,10 @@
 :root {
   --radius: 0.65rem;
 
-  /* Motion durations (for CSS transitions) */
   --duration-fast: 150ms;
   --duration-base: 240ms;
   --duration-slow: 400ms;
 
-  /* Translucent-material shadows — layered, soft (light theme) */
   --shadow-material: 0 1px 1px oklch(0 0 0 / 0.04), 0 4px 12px oklch(0 0 0 / 0.06),
     0 16px 48px oklch(0 0 0 / 0.08);
   --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.05), 0 12px 32px oklch(0 0 0 / 0.1),
@@ -126,7 +122,6 @@
 }
 
 .dark {
-  /* Deeper, softer shadows on dark surfaces */
   --shadow-material: 0 1px 1px oklch(0 0 0 / 0.3), 0 4px 12px oklch(0 0 0 / 0.4),
     0 16px 48px oklch(0 0 0 / 0.5);
   --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.5),
@@ -175,9 +170,6 @@
   }
 }
 
-/* Translucent materials — a floating functional layer that conveys hierarchy
-   through blur + a bright top edge, with content scrolling underneath. Bigger
-   surfaces read as thicker (stronger blur, deeper shadow). */
 @layer components {
   .material,
   .material-thin,
@@ -203,8 +195,7 @@
     backdrop-filter: blur(28px) saturate(190%);
   }
 
-  /* A bright top edge = light catching the material (skip in dark, where the
-     translucent border already reads as a highlight). */
+  /* bright top edge = light catching the material */
   .material::before,
   .material-thin::before,
   .material-thick::before {
@@ -222,8 +213,6 @@
   }
 }
 
-/* Accessibility — respect the user's transparency/contrast preferences by
-   making materials frostier/solid rather than translucent. */
 @media (prefers-reduced-transparency: reduce) {
   .material,
   .material-thin,
