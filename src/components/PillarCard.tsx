@@ -1,10 +1,11 @@
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { SpotlightCard } from "@/components/SpotlightCard";
 import { UserAvatar } from "@/components/UserAvatar";
 import { PageRoutes } from "@/constants/routes";
 import { type PublicPillar } from "@/constants/types";
+import { revealTransition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface PillarCardProps {
@@ -14,12 +15,13 @@ interface PillarCardProps {
 }
 
 export function PillarCard({ pillar, index, className }: PillarCardProps) {
+  const prefersReduced = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: Math.min(index * 0.1, 0.4) }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={prefersReduced ? { duration: 0.2 } : revealTransition(index)}
       className={cn("h-full", className)}
     >
       <Link to={PageRoutes.PILLAR_DETAIL.replace(":id", pillar.id)} className="group block h-full">

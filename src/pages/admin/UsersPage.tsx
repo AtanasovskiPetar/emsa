@@ -830,11 +830,11 @@ export function UsersPage() {
   const isSaving = isCreating || isUpdating;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">Users</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-heading text-foreground">Users</h2>
             {isSuperAdmin && (
               <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
                 <Upload className="size-4" />
@@ -850,7 +850,7 @@ export function UsersPage() {
             {table.getFilteredRowModel().rows.length} of {users.length} users
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
           <Select
             value={
               table.getColumn("isAlumni")?.getFilterValue() === undefined

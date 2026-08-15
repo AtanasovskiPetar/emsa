@@ -314,9 +314,7 @@ function WorkshopsSection({
 
   return (
     <div>
-      <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
-        Workshops
-      </h2>
+      <h2 className="mb-6 text-heading text-foreground">Workshops</h2>
 
       <WorkshopsCalendar
         workshops={workshops}
@@ -513,9 +511,7 @@ export function ProjectDetailPage() {
                 )}
                 <RegistrationStatusBadge status={regStatus} overlay />
               </div>
-              <h1 className="mt-3 text-3xl font-bold text-white drop-shadow md:text-4xl">
-                {project.title}
-              </h1>
+              <h1 className="mt-3 text-title text-white drop-shadow">{project.title}</h1>
               <div className="mt-2 flex items-center gap-1.5 text-sm text-white/70">
                 <CalendarDays className="size-4" />
                 {date}
@@ -572,9 +568,7 @@ export function ProjectDetailPage() {
 
               {project.description && (
                 <div className="mt-16">
-                  <h2 className="mb-6 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
-                    Description
-                  </h2>
+                  <h2 className="mb-6 text-heading text-foreground">Description</h2>
                   <div
                     className="prose prose-neutral max-w-none text-muted-foreground"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description) }}
@@ -615,9 +609,7 @@ export function ProjectDetailPage() {
           <div className="mx-auto max-w-6xl">
             <div className="mb-8">
               <div className="flex items-center justify-between">
-                <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-2xl font-bold text-transparent">
-                  Photos
-                </h2>
+                <h2 className="text-heading text-foreground">Photos</h2>
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Images className="size-4" />
                   {project.images.length} images
@@ -630,7 +622,7 @@ export function ProjectDetailPage() {
                   key={img}
                   src={img}
                   alt={`Image ${i + 1}`}
-                  className="aspect-video w-full cursor-pointer rounded-xl object-cover transition-opacity hover:opacity-90"
+                  className="aspect-video w-full cursor-pointer rounded-2xl object-cover transition-opacity hover:opacity-90"
                   onClick={() => setLightboxIndex(i)}
                 />
               ))}
