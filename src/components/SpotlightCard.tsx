@@ -19,7 +19,7 @@ export function SpotlightCard({ children, className }: SpotlightCardProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-3xl border bg-background transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-[var(--shadow-material)]",
+        "relative overflow-hidden rounded-3xl border bg-background transition-[transform,box-shadow] duration-300 ease-fluid hover:-translate-y-1 hover:shadow-[var(--shadow-material)]",
         className
       )}
       onMouseMove={handleMouseMove}

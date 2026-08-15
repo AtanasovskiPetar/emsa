@@ -148,7 +148,7 @@ export function HomePage() {
                 )}
                 {(pillars?.length ?? 0) > 0 && (
                   <>
-                    <div className="h-10 w-px bg-border" />
+                    {(projects?.length ?? 0) > 0 && <div className="h-10 w-px bg-border" />}
                     <div className="flex flex-col items-center">
                       <div className="text-4xl font-bold tabular-nums">{pillars!.length}</div>
                       <div className="mt-1.5 text-eyebrow text-muted-foreground uppercase">
