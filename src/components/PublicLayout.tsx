@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Suspense, useState } from "react";
 import { Link, NavLink, useLocation, useOutlet } from "react-router-dom";
 
 import { MembershipBadge } from "@/components/MembershipBadge";
@@ -221,7 +221,6 @@ export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const outlet = useOutlet();
-  const prefersReduced = useReducedMotion();
   const { data: org } = useQuery({
     queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
@@ -269,16 +268,24 @@ export function PublicLayout() {
         </MobileNav>
       </Navbar>
 
-      <main className="flex-1 pt-14">
-        <AnimatePresence mode="wait" initial={false}>
+      <main className="relative flex-1 pt-14">
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -6 }}
-            transition={prefersReduced ? { duration: 0.15 } : spring.snappy}
+            exit={{ opacity: 0, y: -6 }}
+            transition={spring.snappy}
           >
-            {outlet}
+            <Suspense
+              fallback={
+                <div className="flex min-h-[60vh] items-center justify-center">
+                  <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              }
+            >
+              {outlet}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

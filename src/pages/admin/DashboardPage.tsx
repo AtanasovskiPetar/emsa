@@ -54,7 +54,7 @@ interface StatCardProps {
 function StatCard({ title, total, totalLabel, icon, iconBg, rows, footer, to }: StatCardProps) {
   return (
     <Link to={to} className="block">
-      <Card className="cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-[var(--shadow-material)]">
+      <Card className="cursor-pointer transition-all duration-200 ease-fluid hover:-translate-y-1 hover:shadow-[var(--shadow-material)]">
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">

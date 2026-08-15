@@ -1,5 +1,5 @@
 import { CalendarDays, Layers } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
@@ -17,7 +17,6 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index, featured = false, className }: ProjectCardProps) {
-  const prefersReduced = useReducedMotion();
   const cover = project.images[0];
   const isUpcoming = new Date(project.startingAt) >= new Date();
   const formatCardDate = (dateStr: string, opts?: Intl.DateTimeFormatOptions) =>
@@ -39,10 +38,10 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
 
   return (
     <motion.div
-      initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={prefersReduced ? { duration: 0.2 } : revealTransition(index)}
+      transition={revealTransition(index)}
       className={cn(
         "h-full",
         !isUpcoming && !featured && "opacity-85 hover:opacity-100 transition-opacity",
@@ -57,7 +56,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Featured: image-overlay layout */
           <div
             className={cn(
-              "relative h-102 overflow-hidden rounded-3xl border transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-1",
+              "relative h-102 overflow-hidden rounded-3xl border transition-all duration-300 ease-fluid group-hover:-translate-y-1",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_32px_color-mix(in_srgb,var(--primary)_15%,transparent)]"
                 : "border-border"
@@ -114,7 +113,7 @@ export function ProjectCard({ project, index, featured = false, className }: Pro
           /* Regular card */
           <div
             className={cn(
-              "flex h-48 flex-col overflow-hidden rounded-2xl border bg-background transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-1 group-hover:shadow-[var(--shadow-material)]",
+              "flex h-48 flex-col overflow-hidden rounded-2xl border bg-background transition-all duration-300 ease-fluid group-hover:-translate-y-1 group-hover:shadow-[var(--shadow-material)]",
               isUpcoming
                 ? "border-primary/40 shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_12%,transparent)]"
                 : "border-border"

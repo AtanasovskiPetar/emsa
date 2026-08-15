@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarDays, Layers, Pin } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 
 import { RegistrationStatusBadge } from "@/components/RegistrationStatusBadge";
@@ -15,7 +15,6 @@ interface PinnedProjectSpotlightProps {
 }
 
 export function PinnedProjectSpotlight({ project }: PinnedProjectSpotlightProps) {
-  const prefersReduced = useReducedMotion();
   const cover = project.images[0];
   const regStatus = getRegistrationStatus(project);
   const description = stripHtml(project.description);
@@ -67,10 +66,10 @@ export function PinnedProjectSpotlight({ project }: PinnedProjectSpotlightProps)
         <div className="relative flex w-full items-end">
           <div className="mx-auto w-full max-w-6xl px-6 py-14 lg:px-8">
             <motion.div
-              initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 32 }}
+              initial={{ opacity: 0, y: 32 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={prefersReduced ? { duration: 0.2 } : spring.smooth}
+              transition={spring.smooth}
               className="max-w-2xl"
             >
               {/* Label */}
