@@ -276,3 +276,7 @@ bun start       # Start production server
 | `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page           |
 | `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                   |
 | `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                       |
+
+## License
+
+[MIT](./LICENSE)
