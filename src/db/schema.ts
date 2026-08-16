@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -15,6 +15,20 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { MemberFieldType, Role } from "@/constants/enums";
+
+const jsonbObject = customType<{ data: Record<string, string | number> }>({
+  dataType() {
+    return "jsonb";
+  },
+  toDriver(value) {
+    return value;
+  },
+  fromDriver(value) {
+    return typeof value === "string"
+      ? JSON.parse(value)
+      : (value as Record<string, string | number>);
+  },
+});
 
 export const roleEnum = pgEnum("role", [Role.USER, Role.ADMIN, Role.SUPER_ADMIN]);
 
@@ -43,10 +57,7 @@ export const users = pgTable("users", {
   googleId: varchar("google_id", { length: 255 }).unique(),
   role: roleEnum("role").notNull().default(Role.USER),
   imageUrl: varchar("image_url", { length: 2048 }),
-  customFields: jsonb("custom_fields")
-    .$type<Record<string, string | number>>()
-    .notNull()
-    .default({}),
+  customFields: jsonbObject("custom_fields").notNull().default({}),
   profileCompleted: boolean("profile_completed").notNull().default(false),
   isAlumni: boolean("is_alumni").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
