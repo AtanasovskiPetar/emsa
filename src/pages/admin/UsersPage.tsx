@@ -25,6 +25,16 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { MembershipBadge } from "@/components/MembershipBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -92,7 +102,9 @@ function useColumns(
   defs: MemberFieldDefinition[],
   updateUser: (args: { id: string; payload: UpdateUserPayload }) => void,
   onOpenActivations: (user: AdminUser) => void,
-  isSuperAdmin: boolean
+  onDeleteUser: (user: AdminUser) => void,
+  isSuperAdmin: boolean,
+  currentUserId: string | undefined
 ): ColumnDef<AdminUser>[] {
   return [
     {
@@ -237,6 +249,25 @@ function useColumns(
         </span>
       ),
     },
+    ...(isSuperAdmin
+      ? [
+          {
+            id: "actions",
+            header: () => null,
+            cell: ({ row }) =>
+              row.original.id === currentUserId ? null : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-destructive hover:text-destructive"
+                  onClick={() => onDeleteUser(row.original)}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              ),
+          } satisfies ColumnDef<AdminUser>,
+        ]
+      : []),
   ];
 }
 
@@ -681,6 +712,10 @@ export function UsersPage() {
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
 
+  // Delete user dialog
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const { data: users = [], isLoading } = useQuery({
     queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
@@ -694,6 +729,18 @@ export function UsersPage() {
       apiClient.patch<AdminUser>(`${ApiRoutes.ADMIN_USERS}/${id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+    },
+  });
+
+  const { mutate: deleteUser, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => apiClient.delete(ApiRoutes.ADMIN_USER_BY_ID.replace(":id", id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+      setDeletingUser(null);
+      setDeleteError(null);
+    },
+    onError: (err: unknown) => {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete user");
     },
   });
 
@@ -823,7 +870,19 @@ export function UsersPage() {
     }
   }
 
-  const columns = useColumns(defs, updateUser, handleOpenActivations, isSuperAdmin);
+  function handleOpenDelete(targetUser: AdminUser) {
+    setDeleteError(null);
+    setDeletingUser(targetUser);
+  }
+
+  const columns = useColumns(
+    defs,
+    updateUser,
+    handleOpenActivations,
+    handleOpenDelete,
+    isSuperAdmin,
+    user?.id
+  );
 
   const table = useReactTable({
     data: users,
@@ -1151,6 +1210,40 @@ export function UsersPage() {
         onClose={() => setShowImportDialog(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })}
       />
+
+      <AlertDialog
+        open={!!deletingUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingUser(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {deletingUser?.name} ({deletingUser?.email}) along with their
+              project and workshop registrations, certificates, and membership history. This cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deletingUser) deleteUser(deletingUser.id);
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

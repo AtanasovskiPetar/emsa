@@ -10,7 +10,15 @@ import {
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
-import { memberFieldDefinitions, userActivations, users } from "@/db/schema";
+import {
+  memberFieldDefinitions,
+  pillars,
+  positions,
+  projectRegistrations,
+  registrationCertificates,
+  userActivations,
+  users,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
@@ -234,6 +242,67 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   });
 });
 
+const deleteUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req, user) => {
+  const { id } = req.params;
+
+  if (id === user.sub) {
+    throw new HttpError(422, "You cannot delete your own account");
+  }
+
+  const [directedPillar] = await db
+    .select({ name: pillars.name })
+    .from(pillars)
+    .where(eq(pillars.directorId, id))
+    .limit(1);
+  if (directedPillar) {
+    throw new HttpError(422, `Reassign the director of pillar "${directedPillar.name}" first`);
+  }
+
+  const [heldPosition] = await db
+    .select({ title: positions.title })
+    .from(positions)
+    .where(eq(positions.userId, id))
+    .limit(1);
+  if (heldPosition) {
+    throw new HttpError(422, `Remove their board position "${heldPosition.title}" first`);
+  }
+
+  const certificates = await db
+    .select({ url: registrationCertificates.url })
+    .from(registrationCertificates)
+    .innerJoin(
+      projectRegistrations,
+      eq(registrationCertificates.registrationId, projectRegistrations.id)
+    )
+    .where(eq(projectRegistrations.userId, id));
+
+  let deleted;
+  try {
+    [deleted] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id, imageUrl: users.imageUrl });
+  } catch (err) {
+    if ((err as { code?: string }).code === "23503") {
+      throw new HttpError(422, "User is still referenced by other records");
+    }
+    throw err;
+  }
+
+  if (!deleted) {
+    return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (deleted.imageUrl) {
+    deleteObject(deleted.imageUrl).catch(console.error);
+  }
+  for (const cert of certificates) {
+    deleteObject(cert.url).catch(console.error);
+  }
+
+  return Response.json({ id: deleted.id });
+});
+
 // Activations
 async function checkOverlap(
   userId: string,
@@ -415,7 +484,7 @@ export const userRoutes = {
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
   [ApiRoutes.ADMIN_USERS]: { GET: getUsers },
-  [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser },
+  [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser, DELETE: deleteUser },
   [ApiRoutes.ADMIN_USER_ACTIVATIONS]: { POST: createActivation },
   [ApiRoutes.ADMIN_ACTIVATION_BY_ID]: { PATCH: updateActivation, DELETE: deleteActivation },
   [ApiRoutes.ADMIN_USERS_BULK_IMPORT]: { POST: bulkImportUsers },

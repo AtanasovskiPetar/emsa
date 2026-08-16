@@ -251,7 +251,7 @@ bun start       # Start production server
 | ------------------ | --------------------------------------- | ------------- |
 | `GET`              | `/api/admin/dashboard`                  | `ADMIN`       |
 | `GET`              | `/api/admin/users`                      | `ADMIN`       |
-| `PATCH`            | `/api/admin/users/:id`                  | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/users/:id`                  | `SUPER_ADMIN` |
 | `GET` / `POST`     | `/api/admin/projects`                   | `ADMIN`       |
 | `PATCH` / `DELETE` | `/api/admin/projects/:id`               | `ADMIN`       |
 | `GET`              | `/api/admin/projects/upload`            | `ADMIN`       |
