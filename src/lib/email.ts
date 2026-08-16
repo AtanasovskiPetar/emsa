@@ -91,6 +91,8 @@ export async function sendAccountSetupEmail(
   });
 }
 
+// Email clients need hex, so this palette cannot share the oklch tokens in
+// styles/globals.css — keep the two in sync when rebranding (see README "Theming").
 const theme = {
   primary: "#dc2626",
   primaryDark: "#b91c1c",
@@ -119,7 +121,7 @@ async function getBrand(): Promise<Brand> {
     .where(eq(organization.id, 1))
     .limit(1);
   const value: Brand = {
-    orgName: org?.name?.trim() || "Our Platform",
+    orgName: org?.name?.trim() || "emsa",
     logoUrl: org?.logoUrl ?? null,
   };
   brandCache = { value, at: Date.now() };

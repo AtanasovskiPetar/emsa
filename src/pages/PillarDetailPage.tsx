@@ -10,11 +10,13 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type PublicPillarDetail } from "@/constants/types";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { spring } from "@/lib/motion";
 
 export function PillarDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { singular, singularLower } = usePillarLabels();
 
   const { data: pillar, isLoading } = useQuery({
     queryKey: queryKeys.publicPillar(id!),
@@ -105,7 +107,7 @@ export function PillarDetailPage() {
           </div>
         ) : !pillar ? (
           <div className="py-16 text-center">
-            <p className="text-muted-foreground">Pillar not found.</p>
+            <p className="text-muted-foreground">{singular} not found.</p>
             <Button asChild className="mt-4">
               <Link to={PageRoutes.HOME}>Back to Home</Link>
             </Button>
@@ -118,7 +120,9 @@ export function PillarDetailPage() {
                 Projects
               </div>
               <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-                <h2 className="text-heading text-foreground">Initiatives under this pillar</h2>
+                <h2 className="text-heading text-foreground">
+                  Initiatives under this {singularLower}
+                </h2>
                 {pillar.projects.length > 0 && (
                   <span className="text-sm text-muted-foreground">
                     {pillar.projects.length} {pillar.projects.length === 1 ? "project" : "projects"}
@@ -136,7 +140,9 @@ export function PillarDetailPage() {
             ) : (
               <div className="py-16 text-center">
                 <Mountain className="mx-auto mb-4 size-12 text-muted-foreground/20" />
-                <p className="text-sm text-muted-foreground">No projects for this pillar yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No projects for this {singularLower} yet.
+                </p>
               </div>
             )}
           </>

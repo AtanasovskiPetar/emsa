@@ -28,8 +28,13 @@ function OrganizationMeta() {
     if (!org) return;
     if (org.name) document.title = org.name;
     if (org.logoUrl) {
-      const favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']");
-      if (favicon) favicon.href = org.logoUrl;
+      let favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+      if (!favicon) {
+        favicon = document.createElement("link");
+        favicon.rel = "icon";
+        document.head.appendChild(favicon);
+      }
+      favicon.href = org.logoUrl;
     }
   }, [org]);
 

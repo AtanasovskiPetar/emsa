@@ -10,11 +10,25 @@ import {
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
-import { userActivations, users } from "@/db/schema";
+import {
+  memberFieldDefinitions,
+  pillars,
+  positions,
+  projectRegistrations,
+  registrationCertificates,
+  userActivations,
+  users,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
-import { parseBody, withRole } from "@/lib/middleware";
+import {
+  buildCustomFieldsSchema,
+  cleanCustomFieldValues,
+  computeProfileCompleted,
+  firstIssueMessage,
+} from "@/lib/member-fields";
+import { HttpError, parseBody, withRole } from "@/lib/middleware";
 import { deleteObject, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const meColumns = {
@@ -22,11 +36,8 @@ const meColumns = {
   name: users.name,
   email: users.email,
   role: users.role,
-  phone: users.phone,
   imageUrl: users.imageUrl,
-  index: users.index,
-  yearOfStudies: users.yearOfStudies,
-  university: users.university,
+  customFields: users.customFields,
   profileCompleted: users.profileCompleted,
   isAlumni: users.isAlumni,
   createdAt: users.createdAt,
@@ -36,16 +47,17 @@ const adminUserColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
-  phone: users.phone,
-  index: users.index,
-  yearOfStudies: users.yearOfStudies,
-  university: users.university,
+  customFields: users.customFields,
   profileCompleted: users.profileCompleted,
   role: users.role,
   isAlumni: users.isAlumni,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
+
+async function getFieldDefinitions() {
+  return db.select().from(memberFieldDefinitions).orderBy(asc(memberFieldDefinitions.order));
+}
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -87,10 +99,7 @@ const updateMe = withRole(
 
     const [current] = await db
       .select({
-        phone: users.phone,
-        index: users.index,
-        yearOfStudies: users.yearOfStudies,
-        university: users.university,
+        customFields: users.customFields,
         profileCompleted: users.profileCompleted,
         imageUrl: users.imageUrl,
       })
@@ -102,16 +111,30 @@ const updateMe = withRole(
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    const phone = data.phone !== undefined ? data.phone : current.phone;
-    const index = data.index !== undefined ? data.index : current.index;
-    const yearOfStudies =
-      data.yearOfStudies !== undefined ? data.yearOfStudies : current.yearOfStudies;
-    const profileCompleted = !!(phone && index && yearOfStudies);
+    const defs = await getFieldDefinitions();
+
+    let customFields = current.customFields;
+    if (data.customFields !== undefined) {
+      const result = buildCustomFieldsSchema(defs, { enforceRequired: false }).safeParse(
+        data.customFields
+      );
+      if (!result.success) {
+        throw new HttpError(400, firstIssueMessage(result.error));
+      }
+      customFields = cleanCustomFieldValues(defs, { ...current.customFields, ...result.data });
+    }
+    const profileCompleted = computeProfileCompleted(defs, customFields);
 
     const today = todayStr();
     const [updated] = await db
       .update(users)
-      .set({ ...data, phone, index, yearOfStudies, profileCompleted, updatedAt: new Date() })
+      .set({
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
+        customFields,
+        profileCompleted,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, user.sub))
       .returning(meColumns);
 
@@ -164,16 +187,6 @@ const getPresignedUrl = withRole(
   { allowIncomplete: true }
 );
 
-// Public
-const getUniversities = async () => {
-  const rows = await db
-    .selectDistinct({ university: users.university })
-    .from(users)
-    .where(isNotNull(users.university))
-    .orderBy(asc(users.university));
-  return Response.json(rows.map((r) => r.university).filter(Boolean));
-};
-
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
   const today = todayStr();
@@ -205,6 +218,27 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
   const data = await parseBody(req, updateUserSchema);
 
+  if (data.role && data.role !== Role.SUPER_ADMIN) {
+    const [target] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!target) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+    if (target.role === Role.SUPER_ADMIN) {
+      const [other] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.role, Role.SUPER_ADMIN), ne(users.id, id)))
+        .limit(1);
+      if (!other) {
+        throw new HttpError(422, "Cannot demote the only super admin");
+      }
+    }
+  }
+
   const [updated] = await db
     .update(users)
     .set({ ...data, updatedAt: new Date() })
@@ -227,6 +261,67 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     activations: activationRows,
     isActive: activationRows.some((a) => a.startDate <= today && a.endDate >= today),
   });
+});
+
+const deleteUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req, user) => {
+  const { id } = req.params;
+
+  if (id === user.sub) {
+    throw new HttpError(422, "You cannot delete your own account");
+  }
+
+  const [directedPillar] = await db
+    .select({ name: pillars.name })
+    .from(pillars)
+    .where(eq(pillars.directorId, id))
+    .limit(1);
+  if (directedPillar) {
+    throw new HttpError(422, `Reassign the director of "${directedPillar.name}" first`);
+  }
+
+  const [heldPosition] = await db
+    .select({ title: positions.title })
+    .from(positions)
+    .where(eq(positions.userId, id))
+    .limit(1);
+  if (heldPosition) {
+    throw new HttpError(422, `Remove their board position "${heldPosition.title}" first`);
+  }
+
+  const certificates = await db
+    .select({ url: registrationCertificates.url })
+    .from(registrationCertificates)
+    .innerJoin(
+      projectRegistrations,
+      eq(registrationCertificates.registrationId, projectRegistrations.id)
+    )
+    .where(eq(projectRegistrations.userId, id));
+
+  let deleted;
+  try {
+    [deleted] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id, imageUrl: users.imageUrl });
+  } catch (err) {
+    if ((err as { code?: string }).code === "23503") {
+      throw new HttpError(422, "User is still referenced by other records");
+    }
+    throw err;
+  }
+
+  if (!deleted) {
+    return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (deleted.imageUrl) {
+    deleteObject(deleted.imageUrl).catch(console.error);
+  }
+  for (const cert of certificates) {
+    deleteObject(cert.url).catch(console.error);
+  }
+
+  return Response.json({ id: deleted.id });
 });
 
 // Activations
@@ -322,6 +417,15 @@ const deleteActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) 
 const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
   const data = await parseBody(req, bulkImportSchema);
 
+  const defs = await getFieldDefinitions();
+  const customFieldsSchema = buildCustomFieldsSchema(defs, { enforceRequired: false });
+  for (const u of data.users) {
+    const result = customFieldsSchema.safeParse(u.customFields ?? {});
+    if (!result.success) {
+      throw new HttpError(400, `Row ${u.email}: ${firstIssueMessage(result.error)}`);
+    }
+  }
+
   const emails = data.users.map((u) => u.email);
   const existing = await db
     .select({ email: users.email })
@@ -342,17 +446,18 @@ const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
     const inserted = await tx
       .insert(users)
       .values(
-        toCreate.map((u) => ({
-          name: u.name,
-          email: u.email,
-          phone: u.phone ?? null,
-          role: u.role ?? Role.USER,
-          imageUrl: u.imageUrl ?? null,
-          index: u.index ?? null,
-          yearOfStudies: u.yearOfStudies ?? null,
-          isAlumni: u.isAlumni ?? false,
-          profileCompleted: !!(u.phone && u.index && u.yearOfStudies),
-        }))
+        toCreate.map((u) => {
+          const customFields = cleanCustomFieldValues(defs, u.customFields ?? {});
+          return {
+            name: u.name,
+            email: u.email,
+            role: u.role ?? Role.USER,
+            imageUrl: u.imageUrl ?? null,
+            customFields,
+            isAlumni: u.isAlumni ?? false,
+            profileCompleted: computeProfileCompleted(defs, customFields),
+          };
+        })
       )
       .returning();
 
@@ -397,11 +502,10 @@ const resendWelcomeEmails = withRole(Role.SUPER_ADMIN, async (req) => {
 });
 
 export const userRoutes = {
-  [ApiRoutes.UNIVERSITIES]: { GET: getUniversities },
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
   [ApiRoutes.ADMIN_USERS]: { GET: getUsers },
-  [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser },
+  [ApiRoutes.ADMIN_USER_BY_ID]: { PATCH: updateUser, DELETE: deleteUser },
   [ApiRoutes.ADMIN_USER_ACTIVATIONS]: { POST: createActivation },
   [ApiRoutes.ADMIN_ACTIVATION_BY_ID]: { PATCH: updateActivation, DELETE: deleteActivation },
   [ApiRoutes.ADMIN_USERS_BULK_IMPORT]: { POST: bulkImportUsers },

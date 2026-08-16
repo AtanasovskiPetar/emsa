@@ -9,6 +9,7 @@ import { escapeHtml } from "./lib/utils";
 import { authRoutes } from "./routes/auth";
 import { dashboardRoutes } from "./routes/dashboard";
 import { galleryRoutes } from "./routes/gallery";
+import { memberFieldRoutes } from "./routes/member-fields";
 import { organizationRoutes } from "./routes/organization";
 import { pillarRoutes } from "./routes/pillars";
 import { positionRoutes } from "./routes/positions";
@@ -33,10 +34,9 @@ function getOrgMeta(): Promise<OrgMeta> {
       .where(eq(organization.id, 1))
       .limit(1)
       .then(([org]) => ({
-        name: org?.name || "EMSA Macedonia",
-        logoUrl: org?.logoUrl || `${env.APP_URL}/logo.png`,
-        description:
-          org?.description || "EMSA Macedonia — European Medical Students' Association Macedonia.",
+        name: org?.name || "emsa",
+        logoUrl: org?.logoUrl || "",
+        description: org?.description || "emsa — a self-hosted member platform for organizations.",
       }));
   }
   return orgMetaPromise;
@@ -96,12 +96,17 @@ const server = serve({
             .replaceAll("%APP_URL%", env.APP_URL)
             .replaceAll("%ORG_NAME%", escapeHtml(org.name))
             .replaceAll("%ORG_LOGO_URL%", escapeHtml(org.logoUrl))
-            .replaceAll("%ORG_DESCRIPTION%", escapeHtml(org.description));
+            .replaceAll("%ORG_DESCRIPTION%", escapeHtml(org.description))
+            .replace(
+              "<!--FAVICON-->",
+              org.logoUrl ? `<link rel="icon" href="${escapeHtml(org.logoUrl)}" />` : ""
+            );
           return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
         }
       : index,
     ...authRoutes,
     ...galleryRoutes,
+    ...memberFieldRoutes,
     ...organizationRoutes,
     ...pillarRoutes,
     ...positionRoutes,

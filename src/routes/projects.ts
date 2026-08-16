@@ -759,7 +759,6 @@ const getProjectRegistrations = withRole<{ id: string }>(Role.ADMIN, async (req)
       userId: projectRegistrations.userId,
       userName: users.name,
       userEmail: users.email,
-      userIndex: users.index,
       packageId: projectRegistrations.packageId,
       packageName: projectPackages.name,
       attended: projectRegistrations.attended,

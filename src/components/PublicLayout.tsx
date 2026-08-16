@@ -44,7 +44,7 @@ function OrgLogo({ org }: { org?: OrganizationPublic }) {
         <img src={org.logoUrl} alt="Logo" className="size-8 rounded object-cover" />
       ) : (
         <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-          {org?.name?.charAt(0) ?? "E"}
+          {org?.name?.charAt(0) ?? "?"}
         </div>
       )}
     </Link>
@@ -293,7 +293,8 @@ export function PublicLayout() {
       <footer className="border-t bg-muted/40 py-4">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 sm:relative sm:flex-row sm:gap-0">
           <p className="text-center text-sm text-muted-foreground sm:flex-1">
-            © {new Date().getFullYear()} {org?.name ?? "EMSA"}. All rights reserved.
+            © {new Date().getFullYear()}
+            {org?.name ? ` ${org.name}.` : ""} All rights reserved.
           </p>
           {(org?.facebookUrl || org?.instagramUrl || org?.email) && (
             <div className="flex items-center gap-3 sm:absolute sm:right-4">

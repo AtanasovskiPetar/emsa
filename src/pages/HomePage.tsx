@@ -18,6 +18,7 @@ import {
   type PublicPosition,
   type PublicProject,
 } from "@/constants/types";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ function getPreviewProjects(projects: PublicProject[]): PublicProject[] {
 }
 
 export function HomePage() {
+  const { plural, pluralLower } = usePillarLabels();
   const { data: org } = useQuery({
     queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
@@ -95,12 +97,14 @@ export function HomePage() {
               </motion.div>
             )}
 
-            <motion.div variants={staggerItem}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-eyebrow text-primary uppercase">
-                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                Student Medical Platform
-              </span>
-            </motion.div>
+            {org?.tagline && (
+              <motion.div variants={staggerItem}>
+                <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-eyebrow text-primary uppercase">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                  {org.tagline}
+                </span>
+              </motion.div>
+            )}
 
             <motion.h1
               variants={staggerItem}
@@ -129,7 +133,7 @@ export function HomePage() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <a href="#pillars">Our Pillars</a>
+                <a href="#pillars">Our {plural}</a>
               </Button>
               <Button size="lg" variant="ghost" asChild>
                 <a href="#about">About Us</a>
@@ -152,7 +156,7 @@ export function HomePage() {
                     <div className="flex flex-col items-center">
                       <div className="text-4xl font-bold tabular-nums">{pillars!.length}</div>
                       <div className="mt-1.5 text-eyebrow text-muted-foreground uppercase">
-                        Pillars
+                        {plural}
                       </div>
                     </div>
                   </>
@@ -274,7 +278,7 @@ export function HomePage() {
           <div className="mb-12">
             <div className="mb-4 inline-flex items-center gap-2 text-eyebrow text-primary uppercase">
               <span className="h-px w-6 bg-primary" />
-              Our Pillars
+              Our {plural}
             </div>
             <h2 className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-3xl font-bold text-transparent">
               The focus areas that drive our work
@@ -294,7 +298,7 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No pillars yet.</p>
+            <p className="text-sm text-muted-foreground">No {pluralLower} yet.</p>
           )}
         </div>
       </section>

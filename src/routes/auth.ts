@@ -9,11 +9,22 @@ import {
   resetPasswordSchema,
   setupPasswordSchema,
 } from "@/constants/schemas";
-import { accountSetupTokens, passwordResetTokens, users } from "@/db/schema";
+import {
+  accountSetupTokens,
+  memberFieldDefinitions,
+  passwordResetTokens,
+  users,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendAccountSetupEmail, sendPasswordResetEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { createUserToken } from "@/lib/jwt";
+import {
+  buildCustomFieldsSchema,
+  cleanCustomFieldValues,
+  computeProfileCompleted,
+  firstIssueMessage,
+} from "@/lib/member-fields";
 
 const OAUTH_STATE_COOKIE = "oauth_state";
 
@@ -26,13 +37,28 @@ function parseCookies(header: string): Record<string, string> {
   );
 }
 
+// The first account on a fresh install becomes SUPER_ADMIN
+async function roleForNewUser(): Promise<Role> {
+  const [existing] = await db.select({ id: users.id }).from(users).limit(1);
+  return existing ? Role.USER : Role.SUPER_ADMIN;
+}
+
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {
   const body = registerSchema.safeParse(await req.json());
   if (!body.success) {
     return Response.json({ error: body.error.issues[0]?.message }, { status: 400 });
   }
-  const { name, email, password, phone, index, yearOfStudies, university } = body.data;
+  const { name, email, password } = body.data;
+
+  const defs = await db.select().from(memberFieldDefinitions);
+  const fieldsResult = buildCustomFieldsSchema(defs, { enforceRequired: true }).safeParse(
+    body.data.customFields
+  );
+  if (!fieldsResult.success) {
+    return Response.json({ error: firstIssueMessage(fieldsResult.error) }, { status: 400 });
+  }
+  const customFields = cleanCustomFieldValues(defs, fieldsResult.data);
 
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
@@ -47,12 +73,9 @@ async function register(req: Request): Promise<Response> {
       name,
       email,
       passwordHash,
-      phone,
-      index,
-      yearOfStudies,
-      university: university ?? null,
-      profileCompleted: true,
-      role: Role.USER,
+      customFields,
+      profileCompleted: computeProfileCompleted(defs, customFields),
+      role: await roleForNewUser(),
     })
     .returning();
 
@@ -211,6 +234,12 @@ async function googleCallback(req: Request): Promise<Response> {
   let user = existing;
 
   if (!user) {
+    const [requiredDef] = await db
+      .select({ id: memberFieldDefinitions.id })
+      .from(memberFieldDefinitions)
+      .where(eq(memberFieldDefinitions.required, true))
+      .limit(1);
+
     const [created] = await db
       .insert(users)
       .values({
@@ -218,7 +247,8 @@ async function googleCallback(req: Request): Promise<Response> {
         email: profile.email,
         googleId: profile.sub,
         imageUrl: profile.picture ?? null,
-        role: Role.USER,
+        profileCompleted: !requiredDef,
+        role: await roleForNewUser(),
       })
       .returning();
     user = created;

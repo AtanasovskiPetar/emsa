@@ -8,6 +8,7 @@ import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type DashboardStats } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,7 @@ function StatCard({ title, total, totalLabel, icon, iconBg, rows, footer, to }: 
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { plural, pluralLower } = usePillarLabels();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: queryKeys.admin.dashboard(),
@@ -151,9 +153,9 @@ export function DashboardPage() {
         />
 
         <StatCard
-          title="Pillars"
+          title={plural}
           total={stats.pillars.total}
-          totalLabel="Total pillars"
+          totalLabel={`Total ${pluralLower}`}
           icon={<Mountain className="size-5 text-violet-600" />}
           iconBg="bg-violet-100"
           rows={[]}

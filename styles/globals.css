@@ -82,10 +82,10 @@
   --duration-base: 240ms;
   --duration-slow: 400ms;
 
-  --shadow-material: 0 1px 1px oklch(0 0 0 / 0.04), 0 4px 12px oklch(0 0 0 / 0.06),
-    0 16px 48px oklch(0 0 0 / 0.08);
-  --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.05), 0 12px 32px oklch(0 0 0 / 0.1),
-    0 32px 80px oklch(0 0 0 / 0.12);
+  --shadow-material:
+    0 1px 1px oklch(0 0 0 / 0.04), 0 4px 12px oklch(0 0 0 / 0.06), 0 16px 48px oklch(0 0 0 / 0.08);
+  --shadow-material-thick:
+    0 2px 4px oklch(0 0 0 / 0.05), 0 12px 32px oklch(0 0 0 / 0.1), 0 32px 80px oklch(0 0 0 / 0.12);
   --shadow-material-thin: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 16px oklch(0 0 0 / 0.06);
 
   --background: oklch(1 0 0);
@@ -122,10 +122,10 @@
 }
 
 .dark {
-  --shadow-material: 0 1px 1px oklch(0 0 0 / 0.3), 0 4px 12px oklch(0 0 0 / 0.4),
-    0 16px 48px oklch(0 0 0 / 0.5);
-  --shadow-material-thick: 0 2px 4px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.5),
-    0 32px 80px oklch(0 0 0 / 0.6);
+  --shadow-material:
+    0 1px 1px oklch(0 0 0 / 0.3), 0 4px 12px oklch(0 0 0 / 0.4), 0 16px 48px oklch(0 0 0 / 0.5);
+  --shadow-material-thick:
+    0 2px 4px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.5), 0 32px 80px oklch(0 0 0 / 0.6);
   --shadow-material-thin: 0 1px 2px oklch(0 0 0 / 0.3), 0 4px 16px oklch(0 0 0 / 0.4);
 
   --background: oklch(0.141 0.005 285.823);

@@ -40,6 +40,7 @@ import { ApiRoutes } from "@/constants/routes";
 import { type PillarFormValues } from "@/constants/schemas";
 import { type AdminUser, type ImageEntry, type Pillar } from "@/constants/types";
 import { useDialogState } from "@/hooks/useDialogState";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { formatDate, resolveImageEntry } from "@/lib/utils";
 
@@ -88,6 +89,7 @@ function useColumns(
 
 export function PillarsPage() {
   const queryClient = useQueryClient();
+  const { singular, plural, pluralLower } = usePillarLabels();
   const dialog = useDialogState<Pillar>();
   const [deletingPillar, setDeletingPillar] = useState<Pillar | undefined>(undefined);
 
@@ -166,19 +168,19 @@ export function PillarsPage() {
   });
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading pillars...</div>;
+    return <div className="text-sm text-muted-foreground">Loading {pluralLower}...</div>;
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <AdminPageHeader
         eyebrow="Structure"
-        title="Pillars"
-        description={`${table.getFilteredRowModel().rows.length} of ${pillars.length} pillars`}
+        title={plural}
+        description={`${table.getFilteredRowModel().rows.length} of ${pillars.length} ${pluralLower}`}
         actions={
           <Button onClick={() => dialog.open()}>
             <Plus className="size-4" />
-            New Pillar
+            New {singular}
           </Button>
         }
       />
@@ -186,7 +188,7 @@ export function PillarsPage() {
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Search pillars..."
+            placeholder={`Search ${pluralLower}...`}
             value={(table.getState().globalFilter as string) ?? ""}
             onChange={(e) => {
               table.setGlobalFilter(e.target.value);
@@ -212,7 +214,7 @@ export function PillarsPage() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
-              <DataTableEmptyRow colSpan={columns.length} message="No pillars found." />
+              <DataTableEmptyRow colSpan={columns.length} message={`No ${pluralLower} found.`} />
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
@@ -245,7 +247,7 @@ export function PillarsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Pillar</AlertDialogTitle>
+            <AlertDialogTitle>Delete {singular}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{deletingPillar?.name}</strong>? This action
               cannot be undone.

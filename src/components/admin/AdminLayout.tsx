@@ -25,6 +25,7 @@ import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type OrganizationPublic } from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { cn, hasAccess } from "@/lib/utils";
 
@@ -64,25 +65,29 @@ const navItems = [
 function NavItems() {
   const { user } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
+  const { plural } = usePillarLabels();
 
   return (
     <SidebarMenu>
       {navItems
         .filter((item) => user && hasAccess(user.role, item.requiredRole))
-        .map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild tooltip={item.title}>
-              <NavLink
-                to={item.url}
-                className={({ isActive }) => (isActive ? "font-medium" : "")}
-                onClick={() => isMobile && setOpenMobile(false)}
-              >
-                <item.icon />
-                <span>{item.title}</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+        .map((item) => {
+          const title = item.url === PageRoutes.ADMIN_PILLARS ? plural : item.title;
+          return (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild tooltip={title}>
+                <NavLink
+                  to={item.url}
+                  className={({ isActive }) => (isActive ? "font-medium" : "")}
+                  onClick={() => isMobile && setOpenMobile(false)}
+                >
+                  <item.icon />
+                  <span>{title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
     </SidebarMenu>
   );
 }
@@ -107,13 +112,17 @@ function BackToSiteItem() {
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+  const { plural } = usePillarLabels();
   const { data: org } = useQuery({
     queryKey: queryKeys.organization(),
     queryFn: () => apiClient.get<OrganizationPublic>(ApiRoutes.ORGANIZATION),
     staleTime: Infinity,
   });
 
-  const pageTitle = navItems.find((item) => item.url === pathname)?.title ?? "Admin";
+  const pageTitle =
+    pathname === PageRoutes.ADMIN_PILLARS
+      ? plural
+      : (navItems.find((item) => item.url === pathname)?.title ?? "Admin");
 
   return (
     <SidebarProvider className="min-h-screen w-full">

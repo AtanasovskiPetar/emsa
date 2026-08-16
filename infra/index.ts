@@ -36,10 +36,10 @@ if (deployType === "infra") {
   const server = new hcloud.Server(
     "emsa-server",
     {
-      image: "ubuntu-24.04",
-      location: "nbg1",
-      name: "ubuntu-4gb-nbg1-1",
-      serverType: "cax11",
+      image: config.require("serverImage"),
+      location: config.require("serverLocation"),
+      name: config.require("serverName"),
+      serverType: config.require("serverType"),
       sshKeys: [sshKeyName],
     },
     {
@@ -115,13 +115,8 @@ if (deployType === "infra") {
 // ==========================================
 if (deployType === "app") {
   const envName = pulumi.getStack();
-  const dbHostPortByEnv: Record<string, string> = { prod: "5432", dev: "5433" };
-  const dbHostPort = dbHostPortByEnv[envName];
-  if (!dbHostPort) {
-    throw new Error(`Unknown stack "${envName}". Add it to dbHostPortByEnv in infra/index.ts.`);
-  }
+  const dbHostPort = config.require("dbHostPort");
   const domain = config.require("domain");
-
   const dbPassword = config.requireSecret("dbPassword");
   const jwtSecret = config.requireSecret("jwtSecret");
   const googleClientId = config.requireSecret("googleClientId");
@@ -132,7 +127,8 @@ if (deployType === "app") {
   const r2Bucket = config.require("r2Bucket");
   const r2PublicUrl = config.require("r2PublicUrl");
   const resendApiKey = config.requireSecret("resendApiKey");
-  const fromEmail = config.get("fromEmail") ?? "noreply@emsa.mk";
+  const fromEmail = config.get("fromEmail") ?? `noreply@${domain}`;
+  const appEnv = config.require("appEnv");
 
   const pulumiOrg = config.require("pulumiOrg");
   const infraStack = new pulumi.StackReference(`${pulumiOrg}/emsa/infra`);
@@ -199,6 +195,7 @@ if (deployType === "app") {
   const envFileCmd = makeEnvFileCmd({
     appDir,
     envName,
+    appEnv,
     domain,
     dbHostPort,
     dbPassword,

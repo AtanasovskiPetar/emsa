@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { MemberFieldsSection } from "@/components/admin/MemberFieldsSection";
 import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { resolveImageEntry } from "@/lib/utils";
 
 type FormValues = {
   name: string;
+  tagline: string;
   description: string;
   aboutUs: string;
   instagramUrl: string;
@@ -25,6 +27,7 @@ type FormValues = {
   location: string;
   email: string;
   phone: string;
+  pillarLabel: string;
 };
 
 export function OrganizationPage() {
@@ -39,6 +42,7 @@ export function OrganizationPage() {
   const { register, setValue, watch, handleSubmit } = useForm<FormValues>({
     defaultValues: {
       name: "",
+      tagline: "",
       description: "",
       aboutUs: "",
       instagramUrl: "",
@@ -46,6 +50,7 @@ export function OrganizationPage() {
       location: "",
       email: "",
       phone: "",
+      pillarLabel: "",
     },
   });
 
@@ -53,6 +58,7 @@ export function OrganizationPage() {
   useEffect(() => {
     if (!org) return;
     setValue("name", org.name);
+    setValue("tagline", org.tagline ?? "");
     setValue("description", org.description);
     setValue("aboutUs", org.aboutUs);
     setValue("instagramUrl", org.instagramUrl ?? "");
@@ -60,14 +66,20 @@ export function OrganizationPage() {
     setValue("location", org.location ?? "");
     setValue("email", org.email ?? "");
     setValue("phone", org.phone ?? "");
+    setValue("pillarLabel", org.pillarLabel);
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
-  const { mutate: save, isPending } = useMutation({
+  const {
+    mutate: save,
+    isPending,
+    error: saveError,
+  } = useMutation({
     mutationFn: async ({ logo: imageEntry, ...values }: FormValues & { logo: ImageEntry }) => {
       const logoUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD);
       return apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, {
         name: values.name,
+        tagline: values.tagline.trim() || null,
         description: values.description,
         aboutUs: values.aboutUs,
         logoUrl,
@@ -76,10 +88,12 @@ export function OrganizationPage() {
         location: values.location.trim() || null,
         email: values.email.trim() || null,
         phone: values.phone.trim() || null,
+        pillarLabel: values.pillarLabel.trim() || "Pillar",
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.organization() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization() });
     },
   });
 
@@ -105,6 +119,28 @@ export function OrganizationPage() {
           <Input id="name" placeholder="Organization name" {...register("name")} />
         </div>
 
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="tagline">Tagline</Label>
+          <Input
+            id="tagline"
+            placeholder="Short badge shown in the hero, e.g. Member Platform"
+            {...register("tagline")}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pillarLabel">Pillars Label</Label>
+          <Input
+            id="pillarLabel"
+            placeholder='What your organization calls its pillars, e.g. "Committee" or "Department"'
+            {...register("pillarLabel")}
+          />
+          <p className="text-sm text-muted-foreground">
+            Singular form — the plural is derived by adding an &quot;s&quot;. Used everywhere the
+            public site and admin panel mention pillars.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-4">
           <div>
             <h3 className="text-subheading text-foreground">Contact</h3>
@@ -114,11 +150,7 @@ export function OrganizationPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              placeholder="e.g. Skopje, North Macedonia"
-              {...register("location")}
-            />
+            <Input id="location" placeholder="e.g. City, Country" {...register("location")} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
@@ -131,7 +163,7 @@ export function OrganizationPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" type="tel" placeholder="+389 2 123 456" {...register("phone")} />
+            <Input id="phone" type="tel" placeholder="+1 555 0100" {...register("phone")} />
           </div>
         </div>
 
@@ -178,7 +210,12 @@ export function OrganizationPage() {
           </div>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-2">
+          {saveError && (
+            <p className="text-sm text-destructive">
+              {saveError instanceof Error ? saveError.message : "Failed to save changes"}
+            </p>
+          )}
           <Button type="submit" disabled={isPending}>
             {isPending ? "Saving..." : "Save changes"}
           </Button>
@@ -186,6 +223,8 @@ export function OrganizationPage() {
       </form>
 
       <PositionsSection />
+
+      <MemberFieldsSection />
     </div>
   );
 }

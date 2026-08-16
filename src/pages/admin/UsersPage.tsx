@@ -19,12 +19,22 @@ import {
   X,
 } from "lucide-react";
 import Papa from "papaparse";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTableEmptyRow } from "@/components/admin/DataTableEmptyRow";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import { MembershipBadge } from "@/components/MembershipBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -49,7 +59,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Role } from "@/constants/enums";
+import { MemberFieldType, Role } from "@/constants/enums";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import {
@@ -60,9 +70,16 @@ import {
   type UpdateActivationPayload,
   type UpdateUserPayload,
 } from "@/constants/schemas";
-import type { AdminUser, CsvColumn, UserActivation } from "@/constants/types";
+import type {
+  AdminUser,
+  CsvColumn,
+  MemberFieldDefinition,
+  UserActivation,
+} from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { useMemberFields } from "@/hooks/useMemberFields";
 import { apiClient } from "@/lib/api-client";
+import { buildCustomFieldsSchema } from "@/lib/member-fields";
 import { exportToCsv, formatDate, formatDateTime, hasAccess, toDateStr } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -82,9 +99,12 @@ function todayStr(): string {
 }
 
 function useColumns(
+  defs: MemberFieldDefinition[],
   updateUser: (args: { id: string; payload: UpdateUserPayload }) => void,
   onOpenActivations: (user: AdminUser) => void,
-  isSuperAdmin: boolean
+  onDeleteUser: (user: AdminUser) => void,
+  isSuperAdmin: boolean,
+  currentUserId: string | undefined
 ): ColumnDef<AdminUser>[] {
   return [
     {
@@ -106,42 +126,16 @@ function useColumns(
       header: "Email",
       cell: ({ row }) => <span className="text-muted-foreground">{row.getValue("email")}</span>,
     },
-    {
-      accessorKey: "phone",
-      header: "Phone",
+    ...defs.map<ColumnDef<AdminUser>>((def) => ({
+      id: `cf_${def.key}`,
+      accessorFn: (row) => row.customFields[def.key] ?? "",
+      header: def.label,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.getValue<string | null>("phone") ?? "—"}
+          {row.original.customFields[def.key] ?? "—"}
         </span>
       ),
-    },
-    {
-      accessorKey: "index",
-      header: "Index",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.getValue<string | null>("index") ?? "—"}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "yearOfStudies",
-      header: "Year",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.getValue<number | null>("yearOfStudies") ?? "—"}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "university",
-      header: "University",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.getValue<string | null>("university") ?? "—"}
-        </span>
-      ),
-    },
+    })),
     {
       accessorKey: "profileCompleted",
       header: "Profile",
@@ -255,6 +249,25 @@ function useColumns(
         </span>
       ),
     },
+    ...(isSuperAdmin
+      ? [
+          {
+            id: "actions",
+            header: () => null,
+            cell: ({ row }) =>
+              row.original.id === currentUserId ? null : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-destructive hover:text-destructive"
+                  onClick={() => onDeleteUser(row.original)}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              ),
+          } satisfies ColumnDef<AdminUser>,
+        ]
+      : []),
   ];
 }
 
@@ -307,13 +320,32 @@ function InlineEditForm({
   );
 }
 
-const CSV_TEMPLATE = [
-  "name,email,phone,role,imageUrl,index,yearOfStudies,isAlumni,activationStartDate,activationEndDate",
-  "Jane Doe,jane@example.com,+1234567890,USER,,EX-001,2,false,20.10.2025,20.10.2026",
-].join("\n");
+function buildCsvTemplate(defs: MemberFieldDefinition[]): string {
+  const headers = [
+    "name",
+    "email",
+    "role",
+    "imageUrl",
+    "isAlumni",
+    "activationStartDate",
+    "activationEndDate",
+    ...defs.map((d) => d.key),
+  ];
+  const example = [
+    "Jane Doe",
+    "jane@example.com",
+    "USER",
+    "",
+    "false",
+    "20.10.2025",
+    "20.10.2026",
+    ...defs.map((d) => (d.type === MemberFieldType.NUMBER ? "1" : "example")),
+  ];
+  return [headers.join(","), example.join(",")].join("\n");
+}
 
-function downloadCsvTemplate() {
-  const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+function downloadCsvTemplate(defs: MemberFieldDefinition[]) {
+  const blob = new Blob([buildCsvTemplate(defs)], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -333,7 +365,7 @@ function parseDateStr(s: string | undefined): string | undefined {
   return trimmed;
 }
 
-function preprocessCsvRow(raw: Record<string, string>) {
+function preprocessCsvRow(raw: Record<string, string>, defs: MemberFieldDefinition[]) {
   const clean = (s: string | undefined) => s?.trim() || undefined;
   const parseBool = (s: string | undefined) => {
     if (!s?.trim()) return false;
@@ -347,11 +379,16 @@ function preprocessCsvRow(raw: Record<string, string>) {
   return {
     name: clean(raw.name),
     email: clean(raw.email),
-    phone: clean(raw.phone),
     role: clean(raw.role)?.toUpperCase() || undefined,
     imageUrl: clean(raw.imageUrl) ?? clean(raw["image_url"]),
-    index: clean(raw.index),
-    yearOfStudies: parseNum(raw.yearOfStudies ?? raw["year_of_studies"]),
+    customFields: Object.fromEntries(
+      defs.map((d) => [
+        d.key,
+        d.type === MemberFieldType.NUMBER
+          ? (parseNum(raw[d.key]) ?? null)
+          : (clean(raw[d.key]) ?? null),
+      ])
+    ),
     isAlumni: parseBool(raw.isAlumni ?? raw["is_alumni"]),
     activationStartDate: parseDateStr(raw.activationStartDate ?? raw["activation_start_date"]),
     activationEndDate: parseDateStr(raw.activationEndDate ?? raw["activation_end_date"]),
@@ -366,11 +403,12 @@ interface ParsedRow {
 
 interface ImportUsersDialogProps {
   open: boolean;
+  defs: MemberFieldDefinition[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps) {
+function ImportUsersDialog({ open, defs, onClose, onSuccess }: ImportUsersDialogProps) {
   const [stage, setStage] = useState<"select" | "preview" | "done">("select");
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [sendWelcomeEmails, setSendWelcomeEmails] = useState(true);
@@ -384,6 +422,11 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
     onClose();
   }
 
+  const customFieldsSchema = useMemo(
+    () => buildCustomFieldsSchema(defs, { enforceRequired: false }),
+    [defs]
+  );
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -395,16 +438,24 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
         skipEmptyLines: true,
       });
       const validatedRows: ParsedRow[] = parsed.data.map((raw) => {
-        const processed = preprocessCsvRow(raw);
+        const processed = preprocessCsvRow(raw, defs);
         const validation = bulkImportRowSchema.safeParse(processed);
-        if (validation.success) {
-          return { raw, data: validation.data, error: null };
+        if (!validation.success) {
+          return {
+            raw,
+            data: null,
+            error: validation.error.issues[0]?.message ?? "Invalid row",
+          };
         }
-        return {
-          raw,
-          data: null,
-          error: validation.error.issues[0]?.message ?? "Invalid row",
-        };
+        const fieldsValidation = customFieldsSchema.safeParse(validation.data.customFields ?? {});
+        if (!fieldsValidation.success) {
+          return {
+            raw,
+            data: null,
+            error: fieldsValidation.error.issues[0]?.message ?? "Invalid row",
+          };
+        }
+        return { raw, data: validation.data, error: null };
       });
       setRows(validatedRows);
       if (validatedRows.length > 0) setStage("preview");
@@ -470,7 +521,7 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
             </label>
             <button
               type="button"
-              onClick={downloadCsvTemplate}
+              onClick={() => downloadCsvTemplate(defs)}
               className="self-start text-xs text-primary underline-offset-4 hover:underline"
             >
               Download template CSV
@@ -518,11 +569,11 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
                     <TableHead>Status</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Image URL</TableHead>
-                    <TableHead>Index</TableHead>
-                    <TableHead>Year</TableHead>
+                    {defs.map((def) => (
+                      <TableHead key={def.id}>{def.label}</TableHead>
+                    ))}
                     <TableHead>Alumni</TableHead>
                     <TableHead>Activation Start</TableHead>
                     <TableHead>Activation End</TableHead>
@@ -547,13 +598,13 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
                       </TableCell>
                       <TableCell>{row.raw.name || "—"}</TableCell>
                       <TableCell>{row.raw.email || "—"}</TableCell>
-                      <TableCell>{row.raw.phone || "—"}</TableCell>
                       <TableCell>{row.raw.role || "USER"}</TableCell>
                       <TableCell className="max-w-32 truncate">
                         {row.raw.imageUrl || row.raw["image_url"] || "—"}
                       </TableCell>
-                      <TableCell>{row.raw.index || "—"}</TableCell>
-                      <TableCell>{row.raw.yearOfStudies || "—"}</TableCell>
+                      {defs.map((def) => (
+                        <TableCell key={def.id}>{row.raw[def.key] || "—"}</TableCell>
+                      ))}
                       <TableCell>{row.raw.isAlumni || row.raw["is_alumni"] || "false"}</TableCell>
                       <TableCell>
                         {row.raw.activationStartDate || row.raw["activation_start_date"] || "—"}
@@ -617,27 +668,29 @@ function ImportUsersDialog({ open, onClose, onSuccess }: ImportUsersDialogProps)
   );
 }
 
-const USER_CSV_COLUMNS: CsvColumn<AdminUser>[] = [
-  { header: "Name", value: (u) => u.name },
-  { header: "Email", value: (u) => u.email },
-  { header: "Phone", value: (u) => u.phone ?? "" },
-  { header: "Index", value: (u) => u.index ?? "" },
-  { header: "Year of Studies", value: (u) => u.yearOfStudies?.toString() ?? "" },
-  { header: "University", value: (u) => u.university ?? "" },
-  { header: "Profile", value: (u) => (u.profileCompleted ? "Complete" : "Incomplete") },
-  { header: "Role", value: (u) => ROLE_LABELS[u.role] },
-  { header: "Alumni", value: (u) => (u.isAlumni ? "Yes" : "No") },
-  { header: "Active", value: (u) => (u.isActive ? "Yes" : "No") },
-  {
-    header: "Membership Start",
-    value: (u) => (u.activations[0] ? formatDate(u.activations[0].startDate) : ""),
-  },
-  {
-    header: "Membership End",
-    value: (u) => (u.activations[0] ? formatDate(u.activations[0].endDate) : ""),
-  },
-  { header: "Joined", value: (u) => formatDateTime(u.createdAt) },
-];
+function buildUserCsvColumns(defs: MemberFieldDefinition[]): CsvColumn<AdminUser>[] {
+  return [
+    { header: "Name", value: (u) => u.name },
+    { header: "Email", value: (u) => u.email },
+    ...defs.map<CsvColumn<AdminUser>>((def) => ({
+      header: def.label,
+      value: (u) => String(u.customFields[def.key] ?? ""),
+    })),
+    { header: "Profile", value: (u) => (u.profileCompleted ? "Complete" : "Incomplete") },
+    { header: "Role", value: (u) => ROLE_LABELS[u.role] },
+    { header: "Alumni", value: (u) => (u.isAlumni ? "Yes" : "No") },
+    { header: "Active", value: (u) => (u.isActive ? "Yes" : "No") },
+    {
+      header: "Membership Start",
+      value: (u) => (u.activations[0] ? formatDate(u.activations[0].startDate) : ""),
+    },
+    {
+      header: "Membership End",
+      value: (u) => (u.activations[0] ? formatDate(u.activations[0].endDate) : ""),
+    },
+    { header: "Joined", value: (u) => formatDateTime(u.createdAt) },
+  ];
+}
 
 export function UsersPage() {
   const { user } = useAuth();
@@ -659,16 +712,41 @@ export function UsersPage() {
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
 
+  // Delete user dialog
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   const { data: users = [], isLoading } = useQuery({
     queryKey: queryKeys.admin.users(),
     queryFn: () => apiClient.get<AdminUser[]>(ApiRoutes.ADMIN_USERS),
   });
 
+  const { data: fieldDefs } = useMemberFields();
+  const defs = useMemo(() => fieldDefs ?? [], [fieldDefs]);
+
   const { mutate: updateUser } = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
       apiClient.patch<AdminUser>(`${ApiRoutes.ADMIN_USERS}/${id}`, payload),
     onSuccess: () => {
+      setUpdateError(null);
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+    },
+    onError: (err: unknown) => {
+      setUpdateError(err instanceof Error ? err.message : "Failed to update user");
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+    },
+  });
+
+  const { mutate: deleteUser, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => apiClient.delete(ApiRoutes.ADMIN_USER_BY_ID.replace(":id", id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+      setDeletingUser(null);
+      setDeleteError(null);
+    },
+    onError: (err: unknown) => {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete user");
     },
   });
 
@@ -798,7 +876,19 @@ export function UsersPage() {
     }
   }
 
-  const columns = useColumns(updateUser, handleOpenActivations, isSuperAdmin);
+  function handleOpenDelete(targetUser: AdminUser) {
+    setDeleteError(null);
+    setDeletingUser(targetUser);
+  }
+
+  const columns = useColumns(
+    defs,
+    updateUser,
+    handleOpenActivations,
+    handleOpenDelete,
+    isSuperAdmin,
+    user?.id
+  );
 
   const table = useReactTable({
     data: users,
@@ -815,7 +905,11 @@ export function UsersPage() {
 
   function handleExport() {
     const filtered = table.getFilteredRowModel().rows.map((r) => r.original);
-    exportToCsv(filtered, USER_CSV_COLUMNS, `users-${new Date().toISOString().slice(0, 10)}.csv`);
+    exportToCsv(
+      filtered,
+      buildUserCsvColumns(defs),
+      `users-${new Date().toISOString().slice(0, 10)}.csv`
+    );
   }
 
   function handleActiveOnChange(date: Date | undefined) {
@@ -931,6 +1025,8 @@ export function UsersPage() {
           </div>
         </div>
       </div>
+
+      {updateError && <p className="text-sm text-destructive">{updateError}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <Table>
@@ -1118,9 +1214,44 @@ export function UsersPage() {
 
       <ImportUsersDialog
         open={showImportDialog}
+        defs={defs}
         onClose={() => setShowImportDialog(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })}
       />
+
+      <AlertDialog
+        open={!!deletingUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingUser(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {deletingUser?.name} ({deletingUser?.email}) along with their
+              project and workshop registrations, certificates, and membership history. This cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deletingUser) deleteUser(deletingUser.id);
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

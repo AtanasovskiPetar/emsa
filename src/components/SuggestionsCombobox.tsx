@@ -10,19 +10,21 @@ import { ApiRoutes } from "@/constants/routes";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-interface UniversityComboboxProps {
+interface SuggestionsComboboxProps {
+  fieldKey: string;
   value: string | null | undefined;
   onChange: (value: string | null) => void;
   placeholder?: string;
   disabled?: boolean;
 }
 
-export function UniversityCombobox({
+export function SuggestionsCombobox({
+  fieldKey,
   value,
   onChange,
-  placeholder = "Search or enter university...",
+  placeholder = "Search or enter a value...",
   disabled,
-}: UniversityComboboxProps) {
+}: SuggestionsComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,21 +33,22 @@ export function UniversityCombobox({
     setInputValue(value ?? "");
   }, [value]);
 
-  const { data: universities = [] } = useQuery({
-    queryKey: queryKeys.universities(),
-    queryFn: () => apiClient.get<string[]>(ApiRoutes.UNIVERSITIES),
+  const { data: suggestions = [] } = useQuery({
+    queryKey: queryKeys.memberFieldSuggestions(fieldKey),
+    queryFn: () =>
+      apiClient.get<string[]>(ApiRoutes.MEMBER_FIELD_SUGGESTIONS.replace(":key", fieldKey)),
     staleTime: Infinity,
   });
 
-  const filtered = universities.filter((u) =>
-    u.toLowerCase().includes(inputValue.toLowerCase().trim())
+  const filtered = suggestions.filter((s) =>
+    s.toLowerCase().includes(inputValue.toLowerCase().trim())
   );
 
   const showSuggestions = open && (filtered.length > 0 || inputValue.trim().length > 0);
 
-  function handleSelect(university: string) {
-    setInputValue(university);
-    onChange(university);
+  function handleSelect(suggestion: string) {
+    setInputValue(suggestion);
+    onChange(suggestion);
     setOpen(false);
   }
 
@@ -109,16 +112,16 @@ export function UniversityCombobox({
               <span className="font-medium">&ldquo;{inputValue.trim()}&rdquo;</span>
             </div>
           )}
-          {filtered.map((u) => (
+          {filtered.map((s) => (
             <div
-              key={u}
+              key={s}
               className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-accent"
-              onClick={() => handleSelect(u)}
+              onClick={() => handleSelect(s)}
             >
               <Check
-                className={cn("size-3.5 shrink-0", value === u ? "opacity-100" : "opacity-0")}
+                className={cn("size-3.5 shrink-0", value === s ? "opacity-100" : "opacity-0")}
               />
-              {u}
+              {s}
             </div>
           ))}
         </div>

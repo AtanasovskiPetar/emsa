@@ -1,4 +1,4 @@
-import type { Role } from "@/constants/enums";
+import type { MemberFieldType, Role } from "@/constants/enums";
 
 export type ImageEntry =
   | { type: "none" }
@@ -6,6 +6,19 @@ export type ImageEntry =
   | { type: "new"; file: File; previewUrl: string };
 
 export type ActiveImageEntry = Exclude<ImageEntry, { type: "none" }>;
+
+export interface MemberFieldDefinition {
+  id: string;
+  key: string;
+  label: string;
+  type: MemberFieldType;
+  required: boolean;
+  suggestions: boolean;
+  order: number;
+  createdAt: string;
+}
+
+export type CustomFieldValues = Record<string, string | number | null>;
 
 export interface UserActivation {
   id: string;
@@ -19,10 +32,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  phone: string | null;
-  index: string | null;
-  yearOfStudies: number | null;
-  university: string | null;
+  customFields: Record<string, string | number>;
   profileCompleted: boolean;
   role: Role;
   isAlumni: boolean;
@@ -37,11 +47,8 @@ export interface UserProfile {
   name: string;
   email: string;
   role: Role;
-  phone: string | null;
   imageUrl: string | null;
-  index: string | null;
-  yearOfStudies: number | null;
-  university: string | null;
+  customFields: Record<string, string | number>;
   profileCompleted: boolean;
   isAlumni: boolean;
   isActive: boolean;
@@ -102,7 +109,6 @@ export interface ProjectRegistration {
   userId: string;
   userName: string;
   userEmail: string;
-  userIndex: string | null;
   packageId: string | null;
   packageName: string | null;
   attended: boolean;
@@ -113,6 +119,7 @@ export interface ProjectRegistration {
 
 export interface OrganizationPublic {
   name: string;
+  tagline: string | null;
   logoUrl: string | null;
   description: string;
   aboutUs: string;
@@ -121,6 +128,7 @@ export interface OrganizationPublic {
   location: string | null;
   email: string | null;
   phone: string | null;
+  pillarLabel: string;
 }
 
 export interface PublicProject {
@@ -166,6 +174,7 @@ export interface PublicPillarDetail extends PublicPillar {
 export interface Organization {
   id: number;
   name: string;
+  tagline: string | null;
   logoUrl: string | null;
   description: string;
   aboutUs: string;
@@ -174,6 +183,7 @@ export interface Organization {
   location: string | null;
   email: string | null;
   phone: string | null;
+  pillarLabel: string;
   updatedAt: string;
 }
 
@@ -242,7 +252,6 @@ export interface WorkshopRegistration {
   userId: string;
   userName: string;
   userEmail: string;
-  userIndex: string | null;
   attended: boolean;
   createdAt: string;
 }

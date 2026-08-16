@@ -56,6 +56,7 @@ import {
   type Project,
   type ProjectPackage,
 } from "@/constants/types";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { getImageId, getImageSrc, toDatetimeLocalValue } from "@/lib/utils";
 
@@ -168,6 +169,7 @@ export function ProjectDialog({
   onSubmit,
   isPending,
 }: ProjectDialogProps) {
+  const { singular, singularLower } = usePillarLabels();
   const { data: pillars = [] } = useQuery({
     queryKey: queryKeys.admin.pillars(),
     queryFn: () => apiClient.get<Pillar[]>(ApiRoutes.ADMIN_PILLARS),
@@ -379,15 +381,15 @@ export function ProjectDialog({
                 name="pillarId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pillar</FormLabel>
+                    <FormLabel>{singular}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="No pillar" />
+                          <SelectValue placeholder={`No ${singularLower}`} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No pillar</SelectItem>
+                        <SelectItem value="none">No {singularLower}</SelectItem>
                         {pillars.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name}

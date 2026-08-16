@@ -8,10 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
 import { type PublicPillar, type PublicProject } from "@/constants/types";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export function ProjectsPage() {
+  const { pluralLower } = usePillarLabels();
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [onlyUpcoming, setOnlyUpcoming] = useState(false);
 
@@ -98,7 +100,7 @@ export function ProjectsPage() {
                   className="shrink-0"
                   onClick={() => setSelectedPillar(null)}
                 >
-                  All pillars
+                  All {pluralLower}
                 </Button>
                 {pillars.map((pillar) => (
                   <Button

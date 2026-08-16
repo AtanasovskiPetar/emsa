@@ -1,6 +1,6 @@
-# EMSA Macedonia — Member Platform
+# emsa — Member Platform
 
-The official web platform for **EMSA Macedonia** (European Medical Students' Association) — a single place to manage members, projects, pillars, and organisational information.
+A self-hosted member platform for organizations — a single place to manage members, projects, pillars, and organisational information. Originally built for **EMSA Macedonia** (European Medical Students' Association), now open source: the name, logo, brand color, and labels are all configurable, so any organization can run it as its own.
 
 > **Note:** A significant portion of this codebase was built with the assistance of Claude (Anthropic). All generated code has been reviewed, tested, and adapted to fit the project's requirements.
 
@@ -12,13 +12,14 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 
 **Key features:**
 
-- Public-facing pages for projects and organisational pillars
+- Public-facing pages for projects and organisational pillars (the "pillar" label is configurable — call them committees, departments, chapters, ...)
 - Member registration with profile completion gate
+- Admin-configurable custom member fields (text/number, required flag, value autosuggestions)
 - Email/password and Google OAuth login
 - Role-based access: `USER` → `ADMIN` → `SUPER_ADMIN`
 - Admin panel: members, projects, pillars, positions, organisation settings
 - Project registration with configurable windows and participant caps
-- S3-backed image uploads via presigned URLs
+- Image uploads via presigned URLs (Cloudflare R2 or any S3-compatible storage)
 - Password reset via email (Resend)
 
 ---
@@ -38,7 +39,7 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 | Backend      | Bun native HTTP server                |
 | Database     | PostgreSQL via Drizzle ORM            |
 | Auth         | JWT (jose) + Google OAuth 2.0         |
-| File storage | AWS S3 (presigned uploads)            |
+| File storage | Cloudflare R2 (presigned uploads)     |
 | Email        | Resend                                |
 
 ---
@@ -60,6 +61,20 @@ Extend these tokens rather than hard-coding values.
   Prefer springs for anything interruptible. Reduced motion is handled globally via
   `<MotionConfig reducedMotion="user">` in `src/App.tsx`, so movement automatically degrades
   to opacity cross-fades for users who request it.
+
+### Theming
+
+To rebrand from the default red, change the brand color in **two places** (they cannot share a
+source — emails need hex, the web app uses oklch CSS tokens):
+
+1. [`styles/globals.css`](./styles/globals.css) — `--primary`, `--primary-foreground`,
+   `--sidebar-primary`, and `--sidebar-primary-foreground`, in both the light (`:root`) and
+   `.dark` blocks. The defaults are Tailwind's red scale (`red-600` light / `red-500` dark).
+2. [`src/lib/email.ts`](./src/lib/email.ts) — the `theme` object used by transactional email
+   templates (`primary` = `red-600`, `primaryDark` = `red-700`).
+
+Everything else (logo, organization name, tagline, pillars label) is editable at runtime from
+the Organization admin page.
 
 ---
 
@@ -93,9 +108,11 @@ drizzle/              # Generated SQL migrations
 
 New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the Users admin page.
 
+**Exception:** on a fresh install, the first account to register (email/password or Google) automatically becomes `SUPER_ADMIN` so the instance has an owner. The last remaining super admin cannot be demoted.
+
 ### Profile Completion Gate
 
-Members who haven't set their phone, student index, and year of studies are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update.
+Admins define custom member fields (text or number, optionally required, optionally with value autosuggestions) from the Organization admin page. Autosuggestion values are publicly readable (they power the registration form), so don't enable suggestions for sensitive fields. Members who haven't filled in every required field are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update. With no required fields defined, all profiles are complete by default.
 
 ---
 
@@ -122,13 +139,13 @@ Members who haven't set their phone, student index, and year of studies are redi
 
 ### Admin (`/admin/*`)
 
-| Route           | Required Role | Description                                                        |
-| --------------- | ------------- | ------------------------------------------------------------------ |
-| `/dashboard`    | `ADMIN`       | Member stats overview                                              |
-| `/users`        | `ADMIN`       | Member list and role management                                    |
-| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                |
-| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                      |
-| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials |
+| Route           | Required Role | Description                                                                                      |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `/dashboard`    | `ADMIN`       | Member stats overview                                                                            |
+| `/users`        | `ADMIN`       | Member list and role management                                                                  |
+| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                                              |
+| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                                                    |
+| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials, member fields, pillars label |
 
 ---
 
@@ -138,7 +155,7 @@ Members who haven't set their phone, student index, and year of studies are redi
 
 - [Bun](https://bun.sh) >= 1.3.14
 - PostgreSQL database
-- AWS S3 bucket (or compatible)
+- Cloudflare R2 bucket (or any S3-compatible storage)
 - Google OAuth credentials
 - [Resend](https://resend.com) account (for password reset emails)
 
@@ -150,41 +167,29 @@ bun install
 
 ### Environment Variables
 
-Create a `.env` file in the project root. All variables are validated at startup in [`src/lib/env.ts`](./src/lib/env.ts).
+Copy the template and fill in your values. All variables are validated at startup in [`src/lib/env.ts`](./src/lib/env.ts).
 
-```env
-# Server
-PORT=3000
-ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=your_password
-DB_NAME=emsa
-DB_SCHEMA=public
-
-# Auth
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-# AWS S3
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=eu-central-1
-AWS_S3_BUCKET=your_bucket_name
-
-# Email (Resend)
-RESEND_API_KEY=re_your_api_key
-FROM_EMAIL=noreply@yourdomain.com
-APP_URL=http://localhost:3000
+```bash
+cp .env.example .env
 ```
+
+| Variable                                    | Required | Description                                                                       |
+| ------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `PORT`                                      | No       | Server port (default `3000`)                                                      |
+| `ENV`                                       | No       | `development` or `production` (default `development`)                             |
+| `APP_URL`                                   | Yes      | Public base URL of the app, used in emails and OAuth redirects                    |
+| `DB_HOST` / `DB_PORT` / `DB_USER`           | No       | PostgreSQL connection (defaults: `localhost` / `5432` / `postgres`)               |
+| `DB_PASS` / `DB_NAME` / `DB_SCHEMA`         | Yes      | PostgreSQL credentials, database, and schema                                      |
+| `JWT_SECRET`                                | Yes      | Secret for signing JWTs — use a long random string                                |
+| `JWT_EXPIRES_IN`                            | No       | Token lifetime (default `7d`)                                                     |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Yes      | Google OAuth 2.0 credentials                                                      |
+| `GOOGLE_REDIRECT_URI`                       | Yes      | Must be `<APP_URL>/api/auth/google/callback` and registered in the Google console |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Yes      | Cloudflare R2 API token credentials                                               |
+| `R2_ACCOUNT_ID`                             | Yes      | Cloudflare account ID (forms the R2 endpoint URL)                                 |
+| `R2_BUCKET`                                 | Yes      | R2 bucket name for image uploads                                                  |
+| `R2_PUBLIC_URL`                             | Yes      | Public base URL of the bucket (custom domain or `r2.dev` URL)                     |
+| `RESEND_API_KEY`                            | Yes      | [Resend](https://resend.com) API key for transactional emails                     |
+| `FROM_EMAIL`                                | Yes      | Sender address for emails (domain must be verified in Resend)                     |
 
 ### Database Setup
 
@@ -231,16 +236,18 @@ bun start       # Start production server
 
 ### Public
 
-| Method            | Endpoint                            | Auth   | Description                         |
-| ----------------- | ----------------------------------- | ------ | ----------------------------------- |
-| `GET`             | `/api/organization`                 | —      | Organisation info                   |
-| `GET`             | `/api/positions`                    | —      | All positions (ordered)             |
-| `GET`             | `/api/projects`                     | —      | All projects                        |
-| `GET`             | `/api/projects/:id`                 | —      | Single project                      |
-| `POST` / `DELETE` | `/api/projects/:id/register`        | `USER` | Register / unregister for a project |
-| `GET`             | `/api/projects/:id/my-registration` | `USER` | Current user's registration status  |
-| `GET`             | `/api/pillars`                      | —      | All pillars                         |
-| `GET`             | `/api/pillars/:id`                  | —      | Single pillar                       |
+| Method            | Endpoint                              | Auth   | Description                             |
+| ----------------- | ------------------------------------- | ------ | --------------------------------------- |
+| `GET`             | `/api/organization`                   | —      | Organisation info                       |
+| `GET`             | `/api/positions`                      | —      | All positions (ordered)                 |
+| `GET`             | `/api/projects`                       | —      | All projects                            |
+| `GET`             | `/api/projects/:id`                   | —      | Single project                          |
+| `POST` / `DELETE` | `/api/projects/:id/register`          | `USER` | Register / unregister for a project     |
+| `GET`             | `/api/projects/:id/my-registration`   | `USER` | Current user's registration status      |
+| `GET`             | `/api/pillars`                        | —      | All pillars                             |
+| `GET`             | `/api/pillars/:id`                    | —      | Single pillar                           |
+| `GET`             | `/api/member-fields`                  | —      | Custom member field definitions         |
+| `GET`             | `/api/member-fields/:key/suggestions` | —      | Distinct values for a suggestions field |
 
 ### Admin
 
@@ -248,7 +255,7 @@ bun start       # Start production server
 | ------------------ | --------------------------------------- | ------------- |
 | `GET`              | `/api/admin/dashboard`                  | `ADMIN`       |
 | `GET`              | `/api/admin/users`                      | `ADMIN`       |
-| `PATCH`            | `/api/admin/users/:id`                  | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/users/:id`                  | `SUPER_ADMIN` |
 | `GET` / `POST`     | `/api/admin/projects`                   | `ADMIN`       |
 | `PATCH` / `DELETE` | `/api/admin/projects/:id`               | `ADMIN`       |
 | `GET`              | `/api/admin/projects/upload`            | `ADMIN`       |
@@ -261,18 +268,26 @@ bun start       # Start production server
 | `PATCH`            | `/api/admin/positions/reorder`          | `SUPER_ADMIN` |
 | `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN` |
 | `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN` |
+| `POST`             | `/api/admin/member-fields`              | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/member-fields/:id`          | `SUPER_ADMIN` |
+| `PATCH`            | `/api/admin/member-fields/reorder`      | `SUPER_ADMIN` |
 
 ---
 
 ## Database Schema
 
-| Table                   | Description                                                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role |
-| `pillars`               | Organisational pillars, each with a designated director (user)                               |
-| `projects`              | Projects linked to a pillar; optional registration window and participant cap                |
-| `project_images`        | Ordered images for a project                                                                 |
-| `project_registrations` | Members registered for a project, with an `attended` flag                                    |
-| `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page           |
-| `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                   |
-| `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                       |
+| Table                      | Description                                                                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                    | Members — name, email, password hash, Google ID, role, custom field values (jsonb)                                                                        |
+| `member_field_definitions` | Admin-defined custom member fields — key, label, type, required, suggestions, order                                                                       |
+| `pillars`                  | Organisational pillars, each with a designated director (user). The label shown for pillars across the UI is configurable via `organization.pillar_label` |
+| `projects`                 | Projects linked to a pillar; optional registration window and participant cap                                                                             |
+| `project_images`           | Ordered images for a project                                                                                                                              |
+| `project_registrations`    | Members registered for a project, with an `attended` flag                                                                                                 |
+| `positions`                | Named positions (e.g. board roles) assigned to members, displayed on the home page                                                                        |
+| `organization`             | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                                                                                |
+| `password_reset_tokens`    | Single-use, hashed, expiring tokens for password reset                                                                                                    |
+
+## License
+
+[MIT](./LICENSE)

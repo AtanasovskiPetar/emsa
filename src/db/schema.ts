@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -13,9 +14,40 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { Role } from "@/constants/enums";
+import { MemberFieldType, Role } from "@/constants/enums";
+
+const jsonbObject = customType<{ data: Record<string, string | number> }>({
+  dataType() {
+    return "jsonb";
+  },
+  toDriver(value) {
+    return value;
+  },
+  fromDriver(value) {
+    return typeof value === "string"
+      ? JSON.parse(value)
+      : (value as Record<string, string | number>);
+  },
+});
 
 export const roleEnum = pgEnum("role", [Role.USER, Role.ADMIN, Role.SUPER_ADMIN]);
+
+export const memberFieldTypeEnum = pgEnum("member_field_type", [
+  MemberFieldType.TEXT,
+  MemberFieldType.NUMBER,
+]);
+
+export const memberFieldDefinitions = pgTable("member_field_definitions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: varchar("key", { length: 64 }).notNull().unique(),
+  label: varchar("label", { length: 255 }).notNull(),
+  type: memberFieldTypeEnum("type").notNull().default(MemberFieldType.TEXT),
+  required: boolean("required").notNull().default(false),
+  suggestions: boolean("suggestions").notNull().default(false),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -23,12 +55,9 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash"),
   googleId: varchar("google_id", { length: 255 }).unique(),
-  phone: varchar("phone", { length: 50 }),
   role: roleEnum("role").notNull().default(Role.USER),
   imageUrl: varchar("image_url", { length: 2048 }),
-  index: varchar("student_index", { length: 50 }),
-  yearOfStudies: integer("year_of_studies"),
-  university: varchar("university", { length: 500 }),
+  customFields: jsonbObject("custom_fields").notNull().default({}),
   profileCompleted: boolean("profile_completed").notNull().default(false),
   isAlumni: boolean("is_alumni").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -285,6 +314,7 @@ export const workshopRegistrationsRelations = relations(workshopRegistrations, (
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),
+  tagline: varchar("tagline", { length: 255 }),
   logoUrl: varchar("logo_url", { length: 2048 }),
   description: text("description").notNull().default(""),
   aboutUs: text("about_us").notNull().default(""),
@@ -293,5 +323,6 @@ export const organization = pgTable("organization", {
   location: varchar("location", { length: 500 }),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
+  pillarLabel: varchar("pillar_label", { length: 64 }).notNull().default("Pillar"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
