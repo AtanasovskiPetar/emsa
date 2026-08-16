@@ -15,6 +15,7 @@ const getOrganization = async () => {
   const [org] = await db
     .select({
       name: organization.name,
+      tagline: organization.tagline,
       logoUrl: organization.logoUrl,
       description: organization.description,
       aboutUs: organization.aboutUs,

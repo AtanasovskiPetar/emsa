@@ -119,7 +119,7 @@ async function getBrand(): Promise<Brand> {
     .where(eq(organization.id, 1))
     .limit(1);
   const value: Brand = {
-    orgName: org?.name?.trim() || "Our Platform",
+    orgName: org?.name?.trim() || "emsa",
     logoUrl: org?.logoUrl ?? null,
   };
   brandCache = { value, at: Date.now() };

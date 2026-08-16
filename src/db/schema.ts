@@ -285,6 +285,7 @@ export const workshopRegistrationsRelations = relations(workshopRegistrations, (
 export const organization = pgTable("organization", {
   id: integer("id").primaryKey().default(1),
   name: varchar("name", { length: 255 }).notNull().default(""),
+  tagline: varchar("tagline", { length: 255 }),
   logoUrl: varchar("logo_url", { length: 2048 }),
   description: text("description").notNull().default(""),
   aboutUs: text("about_us").notNull().default(""),

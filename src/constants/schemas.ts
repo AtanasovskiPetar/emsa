@@ -301,6 +301,7 @@ export type UpdateMePayload = z.infer<typeof updateMeSchema>;
 export const updateOrganizationSchema = z
   .object({
     name: z.string().min(1, "Organization name is required").optional(),
+    tagline: z.string().max(255).nullable().optional(),
     logoUrl: z.url().nullable().optional(),
     description: z.string().optional(),
     aboutUs: z.string().optional(),
@@ -313,6 +314,7 @@ export const updateOrganizationSchema = z
   .refine(
     (data) =>
       data.name !== undefined ||
+      data.tagline !== undefined ||
       data.logoUrl !== undefined ||
       data.description !== undefined ||
       data.aboutUs !== undefined ||

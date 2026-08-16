@@ -109,7 +109,7 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("mk-MK", {
+  return new Date(dateStr).toLocaleString("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

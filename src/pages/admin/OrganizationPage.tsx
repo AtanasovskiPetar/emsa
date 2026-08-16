@@ -18,6 +18,7 @@ import { resolveImageEntry } from "@/lib/utils";
 
 type FormValues = {
   name: string;
+  tagline: string;
   description: string;
   aboutUs: string;
   instagramUrl: string;
@@ -39,6 +40,7 @@ export function OrganizationPage() {
   const { register, setValue, watch, handleSubmit } = useForm<FormValues>({
     defaultValues: {
       name: "",
+      tagline: "",
       description: "",
       aboutUs: "",
       instagramUrl: "",
@@ -53,6 +55,7 @@ export function OrganizationPage() {
   useEffect(() => {
     if (!org) return;
     setValue("name", org.name);
+    setValue("tagline", org.tagline ?? "");
     setValue("description", org.description);
     setValue("aboutUs", org.aboutUs);
     setValue("instagramUrl", org.instagramUrl ?? "");
@@ -68,6 +71,7 @@ export function OrganizationPage() {
       const logoUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD);
       return apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, {
         name: values.name,
+        tagline: values.tagline.trim() || null,
         description: values.description,
         aboutUs: values.aboutUs,
         logoUrl,
@@ -105,6 +109,15 @@ export function OrganizationPage() {
           <Input id="name" placeholder="Organization name" {...register("name")} />
         </div>
 
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="tagline">Tagline</Label>
+          <Input
+            id="tagline"
+            placeholder="Short badge shown in the hero, e.g. Member Platform"
+            {...register("tagline")}
+          />
+        </div>
+
         <div className="flex flex-col gap-4">
           <div>
             <h3 className="text-subheading text-foreground">Contact</h3>
@@ -114,11 +127,7 @@ export function OrganizationPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              placeholder="e.g. Skopje, North Macedonia"
-              {...register("location")}
-            />
+            <Input id="location" placeholder="e.g. City, Country" {...register("location")} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
@@ -131,7 +140,7 @@ export function OrganizationPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" type="tel" placeholder="+389 2 123 456" {...register("phone")} />
+            <Input id="phone" type="tel" placeholder="+1 555 0100" {...register("phone")} />
           </div>
         </div>
 

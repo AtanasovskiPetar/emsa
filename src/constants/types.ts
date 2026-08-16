@@ -113,6 +113,7 @@ export interface ProjectRegistration {
 
 export interface OrganizationPublic {
   name: string;
+  tagline: string | null;
   logoUrl: string | null;
   description: string;
   aboutUs: string;
@@ -166,6 +167,7 @@ export interface PublicPillarDetail extends PublicPillar {
 export interface Organization {
   id: number;
   name: string;
+  tagline: string | null;
   logoUrl: string | null;
   description: string;
   aboutUs: string;

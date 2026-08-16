@@ -95,12 +95,14 @@ export function HomePage() {
               </motion.div>
             )}
 
-            <motion.div variants={staggerItem}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-eyebrow text-primary uppercase">
-                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                Student Medical Platform
-              </span>
-            </motion.div>
+            {org?.tagline && (
+              <motion.div variants={staggerItem}>
+                <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-eyebrow text-primary uppercase">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                  {org.tagline}
+                </span>
+              </motion.div>
+            )}
 
             <motion.h1
               variants={staggerItem}
