@@ -139,12 +139,12 @@ Admins define custom member fields (text or number, optionally required, optiona
 
 ### Admin (`/admin/*`)
 
-| Route           | Required Role | Description                                                        |
-| --------------- | ------------- | ------------------------------------------------------------------ |
-| `/dashboard`    | `ADMIN`       | Member stats overview                                              |
-| `/users`        | `ADMIN`       | Member list and role management                                    |
-| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                |
-| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                      |
+| Route           | Required Role | Description                                                                                      |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `/dashboard`    | `ADMIN`       | Member stats overview                                                                            |
+| `/users`        | `ADMIN`       | Member list and role management                                                                  |
+| `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                                              |
+| `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                                                    |
 | `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials, member fields, pillars label |
 
 ---
@@ -248,18 +248,18 @@ bun start       # Start production server
 
 ### Public
 
-| Method            | Endpoint                            | Auth   | Description                         |
-| ----------------- | ----------------------------------- | ------ | ----------------------------------- |
-| `GET`             | `/api/organization`                 | —      | Organisation info                   |
-| `GET`             | `/api/positions`                    | —      | All positions (ordered)             |
-| `GET`             | `/api/projects`                     | —      | All projects                        |
-| `GET`             | `/api/projects/:id`                 | —      | Single project                      |
-| `POST` / `DELETE` | `/api/projects/:id/register`        | `USER` | Register / unregister for a project |
-| `GET`             | `/api/projects/:id/my-registration` | `USER` | Current user's registration status  |
-| `GET`             | `/api/pillars`                      | —      | All pillars                         |
-| `GET`             | `/api/pillars/:id`                  | —      | Single pillar                       |
-| `GET`             | `/api/member-fields`                | —      | Custom member field definitions     |
-| `GET`             | `/api/member-fields/:key/suggestions` | —    | Distinct values for a suggestions field |
+| Method            | Endpoint                              | Auth   | Description                             |
+| ----------------- | ------------------------------------- | ------ | --------------------------------------- |
+| `GET`             | `/api/organization`                   | —      | Organisation info                       |
+| `GET`             | `/api/positions`                      | —      | All positions (ordered)                 |
+| `GET`             | `/api/projects`                       | —      | All projects                            |
+| `GET`             | `/api/projects/:id`                   | —      | Single project                          |
+| `POST` / `DELETE` | `/api/projects/:id/register`          | `USER` | Register / unregister for a project     |
+| `GET`             | `/api/projects/:id/my-registration`   | `USER` | Current user's registration status      |
+| `GET`             | `/api/pillars`                        | —      | All pillars                             |
+| `GET`             | `/api/pillars/:id`                    | —      | Single pillar                           |
+| `GET`             | `/api/member-fields`                  | —      | Custom member field definitions         |
+| `GET`             | `/api/member-fields/:key/suggestions` | —      | Distinct values for a suggestions field |
 
 ### Admin
 
@@ -288,17 +288,17 @@ bun start       # Start production server
 
 ## Database Schema
 
-| Table                   | Description                                                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| `users`                 | Members — name, email, password hash, Google ID, role, custom field values (jsonb)           |
-| `member_field_definitions` | Admin-defined custom member fields — key, label, type, required, suggestions, order       |
-| `pillars`               | Organisational pillars, each with a designated director (user). The label shown for pillars across the UI is configurable via `organization.pillar_label` |
-| `projects`              | Projects linked to a pillar; optional registration window and participant cap                |
-| `project_images`        | Ordered images for a project                                                                 |
-| `project_registrations` | Members registered for a project, with an `attended` flag                                    |
-| `positions`             | Named positions (e.g. board roles) assigned to members, displayed on the home page           |
-| `organization`          | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                   |
-| `password_reset_tokens` | Single-use, hashed, expiring tokens for password reset                                       |
+| Table                      | Description                                                                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                    | Members — name, email, password hash, Google ID, role, custom field values (jsonb)                                                                        |
+| `member_field_definitions` | Admin-defined custom member fields — key, label, type, required, suggestions, order                                                                       |
+| `pillars`                  | Organisational pillars, each with a designated director (user). The label shown for pillars across the UI is configurable via `organization.pillar_label` |
+| `projects`                 | Projects linked to a pillar; optional registration window and participant cap                                                                             |
+| `project_images`           | Ordered images for a project                                                                                                                              |
+| `project_registrations`    | Members registered for a project, with an `attended` flag                                                                                                 |
+| `positions`                | Named positions (e.g. board roles) assigned to members, displayed on the home page                                                                        |
+| `organization`             | Singleton row — name, logo, rich text content, Instagram and Facebook URLs                                                                                |
+| `password_reset_tokens`    | Single-use, hashed, expiring tokens for password reset                                                                                                    |
 
 ## License
 
