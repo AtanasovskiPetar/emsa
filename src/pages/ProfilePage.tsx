@@ -2,10 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, LogOut } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { CustomFieldInput } from "@/components/CustomFieldInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,14 +19,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { UserAvatar } from "@/components/UserAvatar";
 import { queryKeys } from "@/constants/query-keys";
 import { ApiRoutes } from "@/constants/routes";
-import { type UpdateMePayload, updateMeSchema } from "@/constants/schemas";
-import { type ImageEntry, type UserProfile } from "@/constants/types";
+import {
+  type CustomFieldValues,
+  type ImageEntry,
+  type MemberFieldDefinition,
+  type UserProfile,
+} from "@/constants/types";
 import { useAuth } from "@/context/auth";
+import { useMemberFields } from "@/hooks/useMemberFields";
 import { apiClient } from "@/lib/api-client";
+import { buildCustomFieldsSchema, isEmptyFieldValue } from "@/lib/member-fields";
 import { spring } from "@/lib/motion";
 import { getImageSrc, resolveImageEntry } from "@/lib/utils";
 
@@ -33,12 +40,15 @@ const FADE_UP = {
   animate: { opacity: 1, y: 0 },
 };
 
-function getMissingFields(profile: UserProfile): string[] {
-  return [
-    !profile.phone?.trim() && "Phone number",
-    !profile.index?.trim() && "Student index",
-    !profile.yearOfStudies && "Year of studies",
-  ].filter(Boolean) as string[];
+type ProfileFormValues = {
+  name: string;
+  customFields: CustomFieldValues;
+};
+
+function getMissingFields(defs: MemberFieldDefinition[], profile: UserProfile): string[] {
+  return defs
+    .filter((d) => d.required && isEmptyFieldValue(profile.customFields[d.key]))
+    .map((d) => d.label);
 }
 
 export function ProfilePage() {
@@ -53,11 +63,23 @@ export function ProfilePage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: fieldDefs, isLoading: isLoadingFields } = useMemberFields();
+  const defs = useMemo(() => fieldDefs ?? [], [fieldDefs]);
+
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+        customFields: buildCustomFieldsSchema(defs, { enforceRequired: false }),
+      }),
+    [defs]
+  );
+
   const { mutate: updateMe, isPending } = useMutation({
     mutationFn: async ({
       imageEntry: img,
       ...values
-    }: UpdateMePayload & { imageEntry: ImageEntry }) => {
+    }: ProfileFormValues & { imageEntry: ImageEntry }) => {
       const imageUrl = await resolveImageEntry(img, ApiRoutes.UPLOAD_PRESIGNED);
       return apiClient.patch<UserProfile & { token?: string }>(ApiRoutes.USERS_ME, {
         ...values,
@@ -78,29 +100,28 @@ export function ProfilePage() {
     },
   });
 
-  const form = useForm<UpdateMePayload>({
-    resolver: zodResolver(updateMeSchema),
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(formSchema),
   });
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !fieldDefs) return;
     setImageEntry(
       profile.imageUrl ? { type: "existing", url: profile.imageUrl } : { type: "none" }
     );
     form.reset({
       name: profile.name,
-      phone: profile.phone,
-      index: profile.index,
-      yearOfStudies: profile.yearOfStudies,
-      university: profile.university,
+      customFields: Object.fromEntries(
+        fieldDefs.map((d) => [d.key, profile.customFields[d.key] ?? null])
+      ),
     });
-  }, [profile, form]);
+  }, [profile, fieldDefs, form]);
 
-  function handleSubmit(values: UpdateMePayload) {
+  function handleSubmit(values: ProfileFormValues) {
     updateMe({ ...values, imageEntry });
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingFields) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading profile...</p>
@@ -110,7 +131,7 @@ export function ProfilePage() {
 
   if (!profile) return null;
 
-  const missingFields = getMissingFields(profile);
+  const missingFields = getMissingFields(defs, profile);
   const isComplete = user?.profileCompleted ?? profile.profileCompleted;
 
   return (
@@ -229,76 +250,16 @@ export function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Phone {!profile.phone && <span className="text-amber-500">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value ?? ""}
-                            placeholder="+1 234 567 8900"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="index"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Student index{" "}
-                          {!profile.index && <span className="text-amber-500">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value ?? ""} placeholder="123456" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="yearOfStudies"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Year of studies{" "}
-                          {!profile.yearOfStudies && <span className="text-amber-500">*</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="e.g. 3"
-                            {...field}
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="university"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>University</FormLabel>
-                        <FormControl>
-                          <UniversityCombobox value={field.value} onChange={field.onChange} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {defs.map((def) => (
+                    <CustomFieldInput
+                      key={def.id}
+                      def={def}
+                      control={form.control}
+                      showRequired={
+                        def.required && isEmptyFieldValue(profile.customFields[def.key])
+                      }
+                    />
+                  ))}
                   <div className="flex justify-end pt-1">
                     <Button type="submit" disabled={isPending}>
                       {isPending ? "Saving..." : "Save changes"}

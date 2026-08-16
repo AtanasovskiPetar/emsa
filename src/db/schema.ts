@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -13,9 +14,26 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { Role } from "@/constants/enums";
+import { MemberFieldType, Role } from "@/constants/enums";
 
 export const roleEnum = pgEnum("role", [Role.USER, Role.ADMIN, Role.SUPER_ADMIN]);
+
+export const memberFieldTypeEnum = pgEnum("member_field_type", [
+  MemberFieldType.TEXT,
+  MemberFieldType.NUMBER,
+]);
+
+export const memberFieldDefinitions = pgTable("member_field_definitions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: varchar("key", { length: 64 }).notNull().unique(),
+  label: varchar("label", { length: 255 }).notNull(),
+  type: memberFieldTypeEnum("type").notNull().default(MemberFieldType.TEXT),
+  required: boolean("required").notNull().default(false),
+  suggestions: boolean("suggestions").notNull().default(false),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -23,12 +41,12 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash"),
   googleId: varchar("google_id", { length: 255 }).unique(),
-  phone: varchar("phone", { length: 50 }),
   role: roleEnum("role").notNull().default(Role.USER),
   imageUrl: varchar("image_url", { length: 2048 }),
-  index: varchar("student_index", { length: 50 }),
-  yearOfStudies: integer("year_of_studies"),
-  university: varchar("university", { length: 500 }),
+  customFields: jsonb("custom_fields")
+    .$type<Record<string, string | number>>()
+    .notNull()
+    .default({}),
   profileCompleted: boolean("profile_completed").notNull().default(false),
   isAlumni: boolean("is_alumni").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

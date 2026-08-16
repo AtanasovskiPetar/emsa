@@ -394,7 +394,6 @@ function CertificateCell({ reg, onRefresh }: { reg: ProjectRegistration; onRefre
 const REGISTRATION_CSV_COLUMNS: CsvColumn<ProjectRegistration>[] = [
   { header: "Name", value: (r) => r.userName },
   { header: "Email", value: (r) => r.userEmail },
-  { header: "Index", value: (r) => r.userIndex ?? "" },
   { header: "Package", value: (r) => r.packageName ?? "" },
   { header: "Attended", value: (r) => (r.attended ? "Yes" : "No") },
   { header: "Certificate", value: (r) => r.certificateFilename ?? "" },
@@ -761,9 +760,6 @@ function RegistrationsTab({ project }: { project: Project }) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{reg.userName}</p>
                       <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
-                      {reg.userIndex && (
-                        <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
-                      )}
                       {reg.packageName && (
                         <p className="text-xs font-medium text-primary">{reg.packageName}</p>
                       )}
@@ -819,7 +815,6 @@ function RegistrationsTab({ project }: { project: Project }) {
 const WORKSHOP_CSV_COLUMNS: CsvColumn<WorkshopRegistration>[] = [
   { header: "Name", value: (r) => r.userName },
   { header: "Email", value: (r) => r.userEmail },
-  { header: "Index", value: (r) => r.userIndex ?? "" },
   { header: "Attended", value: (r) => (r.attended ? "Yes" : "No") },
   { header: "Registered", value: (r) => formatDateTime(r.createdAt) },
 ];
@@ -1039,9 +1034,6 @@ function WorkshopRegistrationsSheet({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{reg.userName}</p>
                       <p className="truncate text-xs text-muted-foreground">{reg.userEmail}</p>
-                      {reg.userIndex && (
-                        <p className="text-xs text-muted-foreground">{reg.userIndex}</p>
-                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <Switch

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { Role } from "@/constants/enums";
+import { MemberFieldType, Role } from "@/constants/enums";
 
 export const loginSchema = z.object({
   email: z.email({ message: "Invalid email address" }),
@@ -8,6 +8,64 @@ export const loginSchema = z.object({
 });
 
 export type LoginSchema = z.infer<typeof loginSchema>;
+
+export const customFieldValuesSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.null()])
+);
+
+export type CustomFieldValuesPayload = z.infer<typeof customFieldValuesSchema>;
+
+export const MEMBER_FIELD_RESERVED_KEYS = [
+  "id",
+  "name",
+  "email",
+  "role",
+  "imageUrl",
+  "image_url",
+  "isAlumni",
+  "is_alumni",
+  "activationStartDate",
+  "activation_start_date",
+  "activationEndDate",
+  "activation_end_date",
+  "createdAt",
+  "profileCompleted",
+  "customFields",
+] as const;
+
+export const memberFieldSchema = z.object({
+  key: z
+    .string()
+    .regex(/^[a-z][a-zA-Z0-9_]{0,63}$/, {
+      message: "Key must start with a lowercase letter and contain only letters, numbers and _",
+    })
+    .refine((k) => !MEMBER_FIELD_RESERVED_KEYS.includes(k as never), {
+      message: "This key is reserved",
+    }),
+  label: z.string().min(1, { message: "Label is required" }).max(255),
+  type: z.enum(Object.values(MemberFieldType) as [MemberFieldType, ...MemberFieldType[]]),
+  required: z.boolean().default(false),
+  suggestions: z.boolean().default(false),
+});
+
+export type MemberFieldPayload = z.infer<typeof memberFieldSchema>;
+
+export const updateMemberFieldSchema = z
+  .object({
+    label: z.string().min(1, { message: "Label is required" }).max(255).optional(),
+    required: z.boolean().optional(),
+    suggestions: z.boolean().optional(),
+  })
+  .refine((d) => d.label !== undefined || d.required !== undefined || d.suggestions !== undefined, {
+    message: "At least one field must be provided",
+  });
+
+export type UpdateMemberFieldPayload = z.infer<typeof updateMemberFieldSchema>;
+
+export const memberFieldReorderSchema = z.object({
+  ids: z.array(z.uuid()).min(1),
+});
 
 export const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -17,14 +75,7 @@ export const registerSchema = z.object({
     .min(8, { message: "Password must be at least 8 characters" })
     .regex(/[a-zA-Z]/, { message: "Password must contain at least one letter" })
     .regex(/[0-9]/, { message: "Password must contain at least one number" }),
-  phone: z.string().trim().min(1, { message: "Phone is required" }),
-  index: z.string().trim().min(1, { message: "Student index is required" }),
-  yearOfStudies: z
-    .number()
-    .int()
-    .min(1, { message: "Year must be between 1 and 6" })
-    .max(6, { message: "Year must be between 1 and 6" }),
-  university: z.string().trim().min(1).optional().nullable(),
+  customFields: customFieldValuesSchema.default({}),
 });
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
@@ -268,31 +319,12 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as 
 export const updateMeSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
-    phone: z.string().trim().min(1, { message: "Phone cannot be blank" }).optional().nullable(),
     imageUrl: z.url({ message: "Image URL must be a valid URL" }).optional().nullable(),
-    index: z
-      .string()
-      .trim()
-      .min(1, { message: "Student index cannot be blank" })
-      .optional()
-      .nullable(),
-    yearOfStudies: z
-      .number()
-      .int()
-      .min(1, { message: "Year must be between 1 and 6" })
-      .max(6, { message: "Year must be between 1 and 6" })
-      .optional()
-      .nullable(),
-    university: z.string().trim().min(1).optional().nullable(),
+    customFields: customFieldValuesSchema.optional(),
   })
   .refine(
     (data) =>
-      data.name !== undefined ||
-      data.phone !== undefined ||
-      data.imageUrl !== undefined ||
-      data.index !== undefined ||
-      data.yearOfStudies !== undefined ||
-      data.university !== undefined,
+      data.name !== undefined || data.imageUrl !== undefined || data.customFields !== undefined,
     { message: "At least one field must be provided" }
   );
 
@@ -341,19 +373,12 @@ export const bulkImportRowSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }),
     email: z.email({ message: "Invalid email address" }),
-    phone: z.string().trim().min(1).optional(),
     role: z
       .enum(Object.values(Role) as [Role, ...Role[]])
       .optional()
       .default(Role.USER),
     imageUrl: z.url({ message: "Invalid image URL" }).optional(),
-    index: z.string().trim().min(1).optional(),
-    yearOfStudies: z
-      .number()
-      .int()
-      .min(1, { message: "Year must be between 1 and 6" })
-      .max(6, { message: "Year must be between 1 and 6" })
-      .optional(),
+    customFields: customFieldValuesSchema.optional(),
     isAlumni: z.boolean().optional().default(false),
     activationStartDate: z.iso.date().optional(),
     activationEndDate: z.iso.date().optional(),

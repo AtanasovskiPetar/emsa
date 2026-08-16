@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { MemberFieldsSection } from "@/components/admin/MemberFieldsSection";
 import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
@@ -195,6 +196,8 @@ export function OrganizationPage() {
       </form>
 
       <PositionsSection />
+
+      <MemberFieldsSection />
     </div>
   );
 }

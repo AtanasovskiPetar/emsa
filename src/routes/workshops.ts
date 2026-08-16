@@ -326,7 +326,6 @@ const getWorkshopRegistrations = withRole<{ workshopId: string }>(Role.ADMIN, as
       userId: workshopRegistrations.userId,
       userName: users.name,
       userEmail: users.email,
-      userIndex: users.index,
       attended: workshopRegistrations.attended,
       createdAt: workshopRegistrations.createdAt,
     })

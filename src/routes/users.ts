@@ -10,11 +10,17 @@ import {
   updateMeSchema,
   updateUserSchema,
 } from "@/constants/schemas";
-import { userActivations, users } from "@/db/schema";
+import { memberFieldDefinitions, userActivations, users } from "@/db/schema";
 import { db } from "@/lib/db";
 import { sendBulkWelcomeEmails } from "@/lib/email";
 import { createUserToken } from "@/lib/jwt";
-import { parseBody, withRole } from "@/lib/middleware";
+import {
+  buildCustomFieldsSchema,
+  cleanCustomFieldValues,
+  computeProfileCompleted,
+  firstIssueMessage,
+} from "@/lib/member-fields";
+import { HttpError, parseBody, withRole } from "@/lib/middleware";
 import { deleteObject, getPresignedUploadUrl, validateImageContentType } from "@/lib/s3";
 
 const meColumns = {
@@ -22,11 +28,8 @@ const meColumns = {
   name: users.name,
   email: users.email,
   role: users.role,
-  phone: users.phone,
   imageUrl: users.imageUrl,
-  index: users.index,
-  yearOfStudies: users.yearOfStudies,
-  university: users.university,
+  customFields: users.customFields,
   profileCompleted: users.profileCompleted,
   isAlumni: users.isAlumni,
   createdAt: users.createdAt,
@@ -36,16 +39,17 @@ const adminUserColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
-  phone: users.phone,
-  index: users.index,
-  yearOfStudies: users.yearOfStudies,
-  university: users.university,
+  customFields: users.customFields,
   profileCompleted: users.profileCompleted,
   role: users.role,
   isAlumni: users.isAlumni,
   imageUrl: users.imageUrl,
   createdAt: users.createdAt,
 };
+
+async function getFieldDefinitions() {
+  return db.select().from(memberFieldDefinitions).orderBy(asc(memberFieldDefinitions.order));
+}
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -87,10 +91,7 @@ const updateMe = withRole(
 
     const [current] = await db
       .select({
-        phone: users.phone,
-        index: users.index,
-        yearOfStudies: users.yearOfStudies,
-        university: users.university,
+        customFields: users.customFields,
         profileCompleted: users.profileCompleted,
         imageUrl: users.imageUrl,
       })
@@ -102,16 +103,30 @@ const updateMe = withRole(
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    const phone = data.phone !== undefined ? data.phone : current.phone;
-    const index = data.index !== undefined ? data.index : current.index;
-    const yearOfStudies =
-      data.yearOfStudies !== undefined ? data.yearOfStudies : current.yearOfStudies;
-    const profileCompleted = !!(phone && index && yearOfStudies);
+    const defs = await getFieldDefinitions();
+
+    let customFields = current.customFields;
+    if (data.customFields !== undefined) {
+      const result = buildCustomFieldsSchema(defs, { enforceRequired: false }).safeParse(
+        data.customFields
+      );
+      if (!result.success) {
+        throw new HttpError(400, firstIssueMessage(result.error));
+      }
+      customFields = cleanCustomFieldValues(defs, { ...current.customFields, ...result.data });
+    }
+    const profileCompleted = computeProfileCompleted(defs, customFields);
 
     const today = todayStr();
     const [updated] = await db
       .update(users)
-      .set({ ...data, phone, index, yearOfStudies, profileCompleted, updatedAt: new Date() })
+      .set({
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
+        customFields,
+        profileCompleted,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, user.sub))
       .returning(meColumns);
 
@@ -163,16 +178,6 @@ const getPresignedUrl = withRole(
   },
   { allowIncomplete: true }
 );
-
-// Public
-const getUniversities = async () => {
-  const rows = await db
-    .selectDistinct({ university: users.university })
-    .from(users)
-    .where(isNotNull(users.university))
-    .orderBy(asc(users.university));
-  return Response.json(rows.map((r) => r.university).filter(Boolean));
-};
 
 // Admin
 const getUsers = withRole(Role.ADMIN, async () => {
@@ -322,6 +327,15 @@ const deleteActivation = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) 
 const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
   const data = await parseBody(req, bulkImportSchema);
 
+  const defs = await getFieldDefinitions();
+  const customFieldsSchema = buildCustomFieldsSchema(defs, { enforceRequired: false });
+  for (const u of data.users) {
+    const result = customFieldsSchema.safeParse(u.customFields ?? {});
+    if (!result.success) {
+      throw new HttpError(400, `Row ${u.email}: ${firstIssueMessage(result.error)}`);
+    }
+  }
+
   const emails = data.users.map((u) => u.email);
   const existing = await db
     .select({ email: users.email })
@@ -342,17 +356,18 @@ const bulkImportUsers = withRole(Role.SUPER_ADMIN, async (req) => {
     const inserted = await tx
       .insert(users)
       .values(
-        toCreate.map((u) => ({
-          name: u.name,
-          email: u.email,
-          phone: u.phone ?? null,
-          role: u.role ?? Role.USER,
-          imageUrl: u.imageUrl ?? null,
-          index: u.index ?? null,
-          yearOfStudies: u.yearOfStudies ?? null,
-          isAlumni: u.isAlumni ?? false,
-          profileCompleted: !!(u.phone && u.index && u.yearOfStudies),
-        }))
+        toCreate.map((u) => {
+          const customFields = cleanCustomFieldValues(defs, u.customFields ?? {});
+          return {
+            name: u.name,
+            email: u.email,
+            role: u.role ?? Role.USER,
+            imageUrl: u.imageUrl ?? null,
+            customFields,
+            isAlumni: u.isAlumni ?? false,
+            profileCompleted: computeProfileCompleted(defs, customFields),
+          };
+        })
       )
       .returning();
 
@@ -397,7 +412,6 @@ const resendWelcomeEmails = withRole(Role.SUPER_ADMIN, async (req) => {
 });
 
 export const userRoutes = {
-  [ApiRoutes.UNIVERSITIES]: { GET: getUniversities },
   [ApiRoutes.USERS_ME]: { GET: getMe, PATCH: updateMe },
   [ApiRoutes.UPLOAD_PRESIGNED]: { GET: getPresignedUrl },
   [ApiRoutes.ADMIN_USERS]: { GET: getUsers },

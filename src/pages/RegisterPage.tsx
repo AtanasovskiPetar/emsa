@@ -1,9 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
 import { AuthLayout } from "@/components/AuthLayout";
+import { CustomFieldInput } from "@/components/CustomFieldInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -15,27 +17,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { UniversityCombobox } from "@/components/UniversityCombobox";
 import { ApiRoutes, PageRoutes } from "@/constants/routes";
 import { type RegisterSchema, registerSchema } from "@/constants/schemas";
 import { useAuth } from "@/context/auth";
+import { useMemberFields } from "@/hooks/useMemberFields";
 import { apiClient } from "@/lib/api-client";
+import { buildCustomFieldsSchema } from "@/lib/member-fields";
 import { navigateAfterLogin } from "@/lib/utils";
 
 export function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const { data: fieldDefs } = useMemberFields();
+  const defs = useMemo(() => fieldDefs ?? [], [fieldDefs]);
+
+  const formSchema = useMemo(
+    () =>
+      registerSchema.extend({
+        customFields: buildCustomFieldsSchema(defs, { enforceRequired: true }),
+      }),
+    [defs]
+  );
+
   const form = useForm<RegisterSchema>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       email: "",
       password: "",
-      phone: "",
-      index: "",
-      yearOfStudies: undefined,
-      university: null,
+      customFields: {},
     },
   });
 
@@ -107,67 +118,14 @@ export function RegisterPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+1 234 567 8900" autoComplete="tel" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="index"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Student index</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123456" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="yearOfStudies"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year of studies</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="e.g. 3"
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="university"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>University</FormLabel>
-                    <FormControl>
-                      <UniversityCombobox value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {defs.map((def) => (
+                <CustomFieldInput
+                  key={def.id}
+                  def={def}
+                  control={form.control}
+                  showRequired={def.required}
+                />
+              ))}
 
               {error && <p className="text-sm text-destructive">{error.message}</p>}
 

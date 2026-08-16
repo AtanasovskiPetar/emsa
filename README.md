@@ -14,6 +14,7 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 
 - Public-facing pages for projects and organisational pillars
 - Member registration with profile completion gate
+- Admin-configurable custom member fields (text/number, required flag, value autosuggestions)
 - Email/password and Google OAuth login
 - Role-based access: `USER` → `ADMIN` → `SUPER_ADMIN`
 - Admin panel: members, projects, pillars, positions, organisation settings
@@ -95,7 +96,7 @@ New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the User
 
 ### Profile Completion Gate
 
-Members who haven't set their phone, student index, and year of studies are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update.
+Admins define custom member fields (text or number, optionally required, optionally with value autosuggestions) from the Organization admin page. Members who haven't filled in every required field are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update. With no required fields defined, all profiles are complete by default.
 
 ---
 
@@ -241,6 +242,8 @@ bun start       # Start production server
 | `GET`             | `/api/projects/:id/my-registration` | `USER` | Current user's registration status  |
 | `GET`             | `/api/pillars`                      | —      | All pillars                         |
 | `GET`             | `/api/pillars/:id`                  | —      | Single pillar                       |
+| `GET`             | `/api/member-fields`                | —      | Custom member field definitions     |
+| `GET`             | `/api/member-fields/:key/suggestions` | —    | Distinct values for a suggestions field |
 
 ### Admin
 
@@ -261,6 +264,9 @@ bun start       # Start production server
 | `PATCH`            | `/api/admin/positions/reorder`          | `SUPER_ADMIN` |
 | `GET` / `PATCH`    | `/api/admin/organization`               | `SUPER_ADMIN` |
 | `GET`              | `/api/admin/organization/upload`        | `SUPER_ADMIN` |
+| `POST`             | `/api/admin/member-fields`              | `SUPER_ADMIN` |
+| `PATCH` / `DELETE` | `/api/admin/member-fields/:id`          | `SUPER_ADMIN` |
+| `PATCH`            | `/api/admin/member-fields/reorder`      | `SUPER_ADMIN` |
 
 ---
 
@@ -268,7 +274,8 @@ bun start       # Start production server
 
 | Table                   | Description                                                                                  |
 | ----------------------- | -------------------------------------------------------------------------------------------- |
-| `users`                 | Members — name, email, password hash, Google ID, phone, student index, year of studies, role |
+| `users`                 | Members — name, email, password hash, Google ID, role, custom field values (jsonb)           |
+| `member_field_definitions` | Admin-defined custom member fields — key, label, type, required, suggestions, order       |
 | `pillars`               | Organisational pillars, each with a designated director (user)                               |
 | `projects`              | Projects linked to a pillar; optional registration window and participant cap                |
 | `project_images`        | Ordered images for a project                                                                 |
