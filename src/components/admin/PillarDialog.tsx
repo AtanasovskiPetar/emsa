@@ -31,6 +31,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { type PillarFormValues, pillarSchema } from "@/constants/schemas";
 import { type AdminUser, type ImageEntry, type Pillar } from "@/constants/types";
+import { usePillarLabels } from "@/hooks/usePillarLabels";
 
 interface PillarDialogProps {
   open: boolean;
@@ -49,6 +50,7 @@ export function PillarDialog({
   onSubmit,
   isPending,
 }: PillarDialogProps) {
+  const { singular } = usePillarLabels();
   const [imageEntry, setImageEntry] = useState<ImageEntry>({ type: "none" });
 
   const form = useForm<PillarFormValues>({
@@ -70,7 +72,7 @@ export function PillarDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{pillar ? "Edit Pillar" : "Create Pillar"}</DialogTitle>
+          <DialogTitle>{pillar ? `Edit ${singular}` : `Create ${singular}`}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
@@ -81,7 +83,7 @@ export function PillarDialog({
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Pillar name" {...field} />
+                    <Input placeholder={`${singular} name`} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -94,7 +96,7 @@ export function PillarDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Pillar description" rows={3} {...field} />
+                    <Textarea placeholder={`${singular} description`} rows={3} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

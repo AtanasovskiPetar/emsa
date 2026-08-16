@@ -24,6 +24,7 @@ const getOrganization = async () => {
       location: organization.location,
       email: organization.email,
       phone: organization.phone,
+      pillarLabel: organization.pillarLabel,
     })
     .from(organization)
     .where(eq(organization.id, ORG_ID))

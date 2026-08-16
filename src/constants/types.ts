@@ -128,6 +128,7 @@ export interface OrganizationPublic {
   location: string | null;
   email: string | null;
   phone: string | null;
+  pillarLabel: string;
 }
 
 export interface PublicProject {
@@ -182,6 +183,7 @@ export interface Organization {
   location: string | null;
   email: string | null;
   phone: string | null;
+  pillarLabel: string;
   updatedAt: string;
 }
 

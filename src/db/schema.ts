@@ -323,5 +323,6 @@ export const organization = pgTable("organization", {
   location: varchar("location", { length: 500 }),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
+  pillarLabel: varchar("pillar_label", { length: 64 }).notNull().default("Pillar"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

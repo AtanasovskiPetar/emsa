@@ -276,7 +276,7 @@ const deleteUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req, user) 
     .where(eq(pillars.directorId, id))
     .limit(1);
   if (directedPillar) {
-    throw new HttpError(422, `Reassign the director of pillar "${directedPillar.name}" first`);
+    throw new HttpError(422, `Reassign the director of "${directedPillar.name}" first`);
   }
 
   const [heldPosition] = await db

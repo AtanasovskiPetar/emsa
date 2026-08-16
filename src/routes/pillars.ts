@@ -112,7 +112,7 @@ const createPillar = withRole(Role.SUPER_ADMIN, async (req) => {
 
   const [pillar] = await db.insert(pillars).values(data).returning();
   if (!pillar) {
-    return Response.json({ error: "Failed to create pillar" }, { status: 500 });
+    return Response.json({ error: "Failed to create" }, { status: 500 });
   }
 
   return Response.json(pillar, { status: 201 });
@@ -131,7 +131,7 @@ const updatePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     .returning();
 
   if (!updated) {
-    return Response.json({ error: "Pillar not found" }, { status: 404 });
+    return Response.json({ error: "Not found" }, { status: 404 });
   }
 
   if (existing?.imageUrl && data.imageUrl !== undefined && data.imageUrl !== existing.imageUrl) {
@@ -150,7 +150,7 @@ const deletePillar = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
     .returning({ id: pillars.id });
 
   if (!deleted) {
-    return Response.json({ error: "Pillar not found" }, { status: 404 });
+    return Response.json({ error: "Not found" }, { status: 404 });
   }
 
   return Response.json({ success: true });

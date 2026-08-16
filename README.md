@@ -12,7 +12,7 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 
 **Key features:**
 
-- Public-facing pages for projects and organisational pillars
+- Public-facing pages for projects and organisational pillars (the "pillar" label is configurable — call them committees, departments, chapters, ...)
 - Member registration with profile completion gate
 - Admin-configurable custom member fields (text/number, required flag, value autosuggestions)
 - Email/password and Google OAuth login
@@ -61,6 +61,20 @@ Extend these tokens rather than hard-coding values.
   Prefer springs for anything interruptible. Reduced motion is handled globally via
   `<MotionConfig reducedMotion="user">` in `src/App.tsx`, so movement automatically degrades
   to opacity cross-fades for users who request it.
+
+### Theming
+
+To rebrand from the default red, change the brand color in **two places** (they cannot share a
+source — emails need hex, the web app uses oklch CSS tokens):
+
+1. [`styles/globals.css`](./styles/globals.css) — `--primary`, `--primary-foreground`,
+   `--sidebar-primary`, and `--sidebar-primary-foreground`, in both the light (`:root`) and
+   `.dark` blocks. The defaults are Tailwind's red scale (`red-600` light / `red-500` dark).
+2. [`src/lib/email.ts`](./src/lib/email.ts) — the `theme` object used by transactional email
+   templates (`primary` = `red-600`, `primaryDark` = `red-700`).
+
+Everything else (logo, organization name, tagline, pillars label) is editable at runtime from
+the Organization admin page.
 
 ---
 
@@ -131,7 +145,7 @@ Admins define custom member fields (text or number, optionally required, optiona
 | `/users`        | `ADMIN`       | Member list and role management                                    |
 | `/projects`     | `ADMIN`       | Create, edit, delete projects; manage registrations                |
 | `/pillars`      | `SUPER_ADMIN` | Manage organisational pillars                                      |
-| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials |
+| `/organization` | `SUPER_ADMIN` | Organisation name, logo, description, about us, positions, socials, member fields, pillars label |
 
 ---
 
@@ -278,7 +292,7 @@ bun start       # Start production server
 | ----------------------- | -------------------------------------------------------------------------------------------- |
 | `users`                 | Members — name, email, password hash, Google ID, role, custom field values (jsonb)           |
 | `member_field_definitions` | Admin-defined custom member fields — key, label, type, required, suggestions, order       |
-| `pillars`               | Organisational pillars, each with a designated director (user)                               |
+| `pillars`               | Organisational pillars, each with a designated director (user). The label shown for pillars across the UI is configurable via `organization.pillar_label` |
 | `projects`              | Projects linked to a pillar; optional registration window and participant cap                |
 | `project_images`        | Ordered images for a project                                                                 |
 | `project_registrations` | Members registered for a project, with an `attended` flag                                    |

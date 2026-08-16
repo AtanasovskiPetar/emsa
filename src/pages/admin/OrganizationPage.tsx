@@ -27,6 +27,7 @@ type FormValues = {
   location: string;
   email: string;
   phone: string;
+  pillarLabel: string;
 };
 
 export function OrganizationPage() {
@@ -49,6 +50,7 @@ export function OrganizationPage() {
       location: "",
       email: "",
       phone: "",
+      pillarLabel: "",
     },
   });
 
@@ -64,6 +66,7 @@ export function OrganizationPage() {
     setValue("location", org.location ?? "");
     setValue("email", org.email ?? "");
     setValue("phone", org.phone ?? "");
+    setValue("pillarLabel", org.pillarLabel);
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
@@ -81,10 +84,12 @@ export function OrganizationPage() {
         location: values.location.trim() || null,
         email: values.email.trim() || null,
         phone: values.phone.trim() || null,
+        pillarLabel: values.pillarLabel.trim() || "Pillar",
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.organization() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization() });
     },
   });
 
@@ -117,6 +122,19 @@ export function OrganizationPage() {
             placeholder="Short badge shown in the hero, e.g. Member Platform"
             {...register("tagline")}
           />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pillarLabel">Pillars Label</Label>
+          <Input
+            id="pillarLabel"
+            placeholder='What your organization calls its pillars, e.g. "Committee" or "Department"'
+            {...register("pillarLabel")}
+          />
+          <p className="text-sm text-muted-foreground">
+            Singular form — the plural is derived by adding an &quot;s&quot;. Used everywhere the
+            public site and admin panel mention pillars.
+          </p>
         </div>
 
         <div className="flex flex-col gap-4">

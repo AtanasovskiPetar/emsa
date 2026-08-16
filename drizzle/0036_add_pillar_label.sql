@@ -1,0 +1,1 @@
+ALTER TABLE "organization" ADD COLUMN "pillar_label" varchar(64) DEFAULT 'Pillar' NOT NULL;
