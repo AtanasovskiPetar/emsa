@@ -1,6 +1,6 @@
-# EMSA Macedonia — Member Platform
+# emsa — Member Platform
 
-The official web platform for **EMSA Macedonia** (European Medical Students' Association) — a single place to manage members, projects, pillars, and organisational information.
+A self-hosted member platform for organizations — a single place to manage members, projects, pillars, and organisational information. Originally built for **EMSA Macedonia** (European Medical Students' Association), now open source: the name, logo, brand color, and labels are all configurable, so any organization can run it as its own.
 
 > **Note:** A significant portion of this codebase was built with the assistance of Claude (Anthropic). All generated code has been reviewed, tested, and adapted to fit the project's requirements.
 
@@ -19,7 +19,7 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 - Role-based access: `USER` → `ADMIN` → `SUPER_ADMIN`
 - Admin panel: members, projects, pillars, positions, organisation settings
 - Project registration with configurable windows and participant caps
-- S3-backed image uploads via presigned URLs
+- Image uploads via presigned URLs (Cloudflare R2 or any S3-compatible storage)
 - Password reset via email (Resend)
 
 ---
@@ -39,7 +39,7 @@ Full-stack SPA backed by a single Bun process. The backend and frontend are co-l
 | Backend      | Bun native HTTP server                |
 | Database     | PostgreSQL via Drizzle ORM            |
 | Auth         | JWT (jose) + Google OAuth 2.0         |
-| File storage | AWS S3 (presigned uploads)            |
+| File storage | Cloudflare R2 (presigned uploads)     |
 | Email        | Resend                                |
 
 ---
@@ -112,7 +112,7 @@ New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the User
 
 ### Profile Completion Gate
 
-Admins define custom member fields (text or number, optionally required, optionally with value autosuggestions) from the Organization admin page. Members who haven't filled in every required field are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update. With no required fields defined, all profiles are complete by default.
+Admins define custom member fields (text or number, optionally required, optionally with value autosuggestions) from the Organization admin page. Autosuggestion values are publicly readable (they power the registration form), so don't enable suggestions for sensitive fields. Members who haven't filled in every required field are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update. With no required fields defined, all profiles are complete by default.
 
 ---
 
@@ -155,7 +155,7 @@ Admins define custom member fields (text or number, optionally required, optiona
 
 - [Bun](https://bun.sh) >= 1.3.14
 - PostgreSQL database
-- AWS S3 bucket (or compatible)
+- Cloudflare R2 bucket (or any S3-compatible storage)
 - Google OAuth credentials
 - [Resend](https://resend.com) account (for password reset emails)
 
@@ -167,41 +167,29 @@ bun install
 
 ### Environment Variables
 
-Create a `.env` file in the project root. All variables are validated at startup in [`src/lib/env.ts`](./src/lib/env.ts).
+Copy the template and fill in your values. All variables are validated at startup in [`src/lib/env.ts`](./src/lib/env.ts).
 
-```env
-# Server
-PORT=3000
-ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=your_password
-DB_NAME=emsa
-DB_SCHEMA=public
-
-# Auth
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-# AWS S3
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=eu-central-1
-AWS_S3_BUCKET=your_bucket_name
-
-# Email (Resend)
-RESEND_API_KEY=re_your_api_key
-FROM_EMAIL=noreply@yourdomain.com
-APP_URL=http://localhost:3000
+```bash
+cp .env.example .env
 ```
+
+| Variable                                    | Required | Description                                                                       |
+| ------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `PORT`                                      | No       | Server port (default `3000`)                                                      |
+| `ENV`                                       | No       | `development` or `production` (default `development`)                             |
+| `APP_URL`                                   | Yes      | Public base URL of the app, used in emails and OAuth redirects                    |
+| `DB_HOST` / `DB_PORT` / `DB_USER`           | No       | PostgreSQL connection (defaults: `localhost` / `5432` / `postgres`)               |
+| `DB_PASS` / `DB_NAME` / `DB_SCHEMA`         | Yes      | PostgreSQL credentials, database, and schema                                      |
+| `JWT_SECRET`                                | Yes      | Secret for signing JWTs — use a long random string                                |
+| `JWT_EXPIRES_IN`                            | No       | Token lifetime (default `7d`)                                                     |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Yes      | Google OAuth 2.0 credentials                                                      |
+| `GOOGLE_REDIRECT_URI`                       | Yes      | Must be `<APP_URL>/api/auth/google/callback` and registered in the Google console |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Yes      | Cloudflare R2 API token credentials                                               |
+| `R2_ACCOUNT_ID`                             | Yes      | Cloudflare account ID (forms the R2 endpoint URL)                                 |
+| `R2_BUCKET`                                 | Yes      | R2 bucket name for image uploads                                                  |
+| `R2_PUBLIC_URL`                             | Yes      | Public base URL of the bucket (custom domain or `r2.dev` URL)                     |
+| `RESEND_API_KEY`                            | Yes      | [Resend](https://resend.com) API key for transactional emails                     |
+| `FROM_EMAIL`                                | Yes      | Sender address for emails (domain must be verified in Resend)                     |
 
 ### Database Setup
 

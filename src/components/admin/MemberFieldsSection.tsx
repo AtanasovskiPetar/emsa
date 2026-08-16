@@ -353,7 +353,8 @@ export function MemberFieldsSection() {
               <div>
                 <Label>Suggestions</Label>
                 <p className="text-xs text-muted-foreground">
-                  Autosuggest existing values while typing. Text fields only.
+                  Autosuggest existing values while typing. Text fields only. Suggestions are
+                  publicly visible — don&apos;t enable for sensitive fields.
                 </p>
               </div>
               <Switch

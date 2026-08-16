@@ -70,7 +70,11 @@ export function OrganizationPage() {
     setLogo(org.logoUrl ? { type: "existing", url: org.logoUrl } : { type: "none" });
   }, [org, setValue]);
 
-  const { mutate: save, isPending } = useMutation({
+  const {
+    mutate: save,
+    isPending,
+    error: saveError,
+  } = useMutation({
     mutationFn: async ({ logo: imageEntry, ...values }: FormValues & { logo: ImageEntry }) => {
       const logoUrl = await resolveImageEntry(imageEntry, ApiRoutes.ADMIN_ORGANIZATION_UPLOAD);
       return apiClient.patch<Organization>(ApiRoutes.ADMIN_ORGANIZATION, {
@@ -206,7 +210,12 @@ export function OrganizationPage() {
           </div>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-2">
+          {saveError && (
+            <p className="text-sm text-destructive">
+              {saveError instanceof Error ? saveError.message : "Failed to save changes"}
+            </p>
+          )}
           <Button type="submit" disabled={isPending}>
             {isPending ? "Saving..." : "Save changes"}
           </Button>
