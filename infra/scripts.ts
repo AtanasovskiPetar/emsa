@@ -19,6 +19,7 @@ docker network create emsa-shared 2>/dev/null || true
 interface EnvFileParams {
   appDir: string;
   envName: string;
+  appEnv: string;
   domain: string;
   dbHostPort: string;
   dbPassword: pulumi.Output<string>;
@@ -39,7 +40,7 @@ export function makeEnvFileCmd(p: EnvFileParams): pulumi.Output<string> {
 ENV_NAME=${p.envName}
 DOMAIN=${p.domain}
 PORT=3000
-ENV=${p.envName === "prod" ? "production" : "development"}
+ENV=${p.appEnv}
 DB_HOST=postgres-${p.envName}
 DB_PORT=5432
 DB_HOST_PORT=${p.dbHostPort}

@@ -1,0 +1,9 @@
+config:
+  emsa:deployType: infra
+  emsa:sshKeyName: your-ssh-key-name
+  emsa:serverName: ubuntu-4gb-nbg1-1
+  emsa:serverType: cax11
+  emsa:serverLocation: nbg1
+  emsa:serverImage: ubuntu-24.04
+  hcloud:token:
+    secure: Secret[hcloudToken]

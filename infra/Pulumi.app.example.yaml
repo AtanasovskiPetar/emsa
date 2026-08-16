@@ -1,0 +1,28 @@
+config:
+  emsa:deployType: app
+  emsa:appEnv: production
+  emsa:dbHostPort: "5432"
+  emsa:sshKeyName: your-ssh-key-name
+  emsa:domain: example.org
+  emsa:pulumiOrg: your-pulumi-org
+  emsa:r2Bucket: your-bucket
+  emsa:r2PublicUrl: https://cdn.example.org
+  emsa:enableBackup: "false"
+  emsa:r2BackupBucket: your-backup-bucket
+  emsa:fromEmail: noreply@example.org
+  emsa:dbPassword:
+    secure: Secret[dbPassword]
+  emsa:jwtSecret:
+    secure: Secret[jwtSecret]
+  emsa:googleClientId:
+    secure: Secret[googleClientId]
+  emsa:googleClientSecret:
+    secure: Secret[googleClientSecret]
+  emsa:resendApiKey:
+    secure: Secret[resendApiKey]
+  emsa:r2AccessKeyId:
+    secure: Secret[r2AccessKeyId]
+  emsa:r2SecretAccessKey:
+    secure: Secret[r2SecretAccessKey]
+  emsa:r2AccountId:
+    secure: Secret[r2AccountId]
