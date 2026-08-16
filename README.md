@@ -94,6 +94,8 @@ drizzle/              # Generated SQL migrations
 
 New members start as `USER`. Roles are promoted by a `SUPER_ADMIN` from the Users admin page.
 
+**Exception:** on a fresh install, the first account to register (email/password or Google) automatically becomes `SUPER_ADMIN` so the instance has an owner. The last remaining super admin cannot be demoted.
+
 ### Profile Completion Gate
 
 Admins define custom member fields (text or number, optionally required, optionally with value autosuggestions) from the Organization admin page. Members who haven't filled in every required field are redirected to `/profile` on every navigation until complete. The backend enforces this too — incomplete profiles receive `403` on all protected endpoints except profile read/update. With no required fields defined, all profiles are complete by default.

@@ -218,6 +218,27 @@ const updateUser = withRole<{ id: string }>(Role.SUPER_ADMIN, async (req) => {
   const { id } = req.params;
   const data = await parseBody(req, updateUserSchema);
 
+  if (data.role && data.role !== Role.SUPER_ADMIN) {
+    const [target] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!target) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+    if (target.role === Role.SUPER_ADMIN) {
+      const [other] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.role, Role.SUPER_ADMIN), ne(users.id, id)))
+        .limit(1);
+      if (!other) {
+        throw new HttpError(422, "Cannot demote the only super admin");
+      }
+    }
+  }
+
   const [updated] = await db
     .update(users)
     .set({ ...data, updatedAt: new Date() })

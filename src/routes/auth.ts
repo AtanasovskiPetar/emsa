@@ -37,6 +37,12 @@ function parseCookies(header: string): Record<string, string> {
   );
 }
 
+// The first account on a fresh install becomes SUPER_ADMIN
+async function roleForNewUser(): Promise<Role> {
+  const [existing] = await db.select({ id: users.id }).from(users).limit(1);
+  return existing ? Role.USER : Role.SUPER_ADMIN;
+}
+
 // POST /api/auth/register
 async function register(req: Request): Promise<Response> {
   const body = registerSchema.safeParse(await req.json());
@@ -69,7 +75,7 @@ async function register(req: Request): Promise<Response> {
       passwordHash,
       customFields,
       profileCompleted: computeProfileCompleted(defs, customFields),
-      role: Role.USER,
+      role: await roleForNewUser(),
     })
     .returning();
 
@@ -242,7 +248,7 @@ async function googleCallback(req: Request): Promise<Response> {
         googleId: profile.sub,
         imageUrl: profile.picture ?? null,
         profileCompleted: !requiredDef,
-        role: Role.USER,
+        role: await roleForNewUser(),
       })
       .returning();
     user = created;

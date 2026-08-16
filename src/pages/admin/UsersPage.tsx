@@ -715,6 +715,7 @@ export function UsersPage() {
   // Delete user dialog
   const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: queryKeys.admin.users(),
@@ -728,6 +729,11 @@ export function UsersPage() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
       apiClient.patch<AdminUser>(`${ApiRoutes.ADMIN_USERS}/${id}`, payload),
     onSuccess: () => {
+      setUpdateError(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+    },
+    onError: (err: unknown) => {
+      setUpdateError(err instanceof Error ? err.message : "Failed to update user");
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
     },
   });
@@ -1019,6 +1025,8 @@ export function UsersPage() {
           </div>
         </div>
       </div>
+
+      {updateError && <p className="text-sm text-destructive">{updateError}</p>}
 
       <div className="overflow-x-auto rounded-md border">
         <Table>
