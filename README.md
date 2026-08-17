@@ -13,7 +13,7 @@ Members, projects, pillars, and organisational info — one app, one process, yo
 
 [Features](#features) · [Quick Start](#quick-start) · [Make It Yours](#make-it-yours) · [Deployment](#deployment) · [Contributing](#contributing)
 
-<img src="./docs/home.png" alt="Home page" width="90%" />
+<img src="https://github.com/user-attachments/assets/3754bb7b-ad54-42f8-80c7-f844973e8b63" alt="Home page" width="90%" />
 
 </div>
 
@@ -29,7 +29,7 @@ Originally built for **EMSA Macedonia** (European Medical Students' Association)
 - **Self-contained** — a single Bun process serves both the API and the React SPA; images upload straight to any S3-compatible storage via presigned URLs
 
 <div align="center">
-  <img src="./docs/projects.png" alt="Projects page" width="90%" />
+  <img src="https://github.com/user-attachments/assets/9666aec8-f8bf-43e2-83d6-739957b79713" alt="Projects page" width="90%" />
 </div>
 
 ## Tech Stack
