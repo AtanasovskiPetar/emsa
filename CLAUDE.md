@@ -79,6 +79,15 @@ No test suite exists yet.
 - Invalidate TanStack Query cache after mutations: `queryClient.invalidateQueries({ queryKey: queryKeys.x() })`.
 - API errors are `ApiError` instances with a `.status` property.
 
+## Design System
+
+The public-facing UI follows an Apple-inspired design language built on a small token layer. Extend these tokens rather than hard-coding values.
+
+- **Tokens** (`styles/globals.css`): oklch color scale (light + `.dark`), a typography scale with size-specific tracking (`text-hero`, `text-display`, `text-title`, `text-heading`, `text-subheading`, `text-body-lg`, `text-eyebrow`), motion easing/duration tokens, and layered `--shadow-material-*` shadows.
+- **Materials** (`styles/globals.css`): `.material` / `.material-thin` / `.material-thick` utility classes for translucent, blurred surfaces (nav, menus, sheets). They fall back to solid under `prefers-reduced-transparency` / `prefers-contrast: more`.
+- **Motion** (`src/lib/motion.ts`): shared spring presets (`spring.snappy/smooth/gentle/nav`) and reusable variants (`fade`, `fadeUp`, `scaleIn`, `staggerContainer`, `revealTransition`). Prefer springs for anything interruptible. Reduced motion is handled globally via `<MotionConfig reducedMotion="user">` in `src/App.tsx`.
+- **Brand color**: defined in `styles/globals.css` (`--primary` / `--sidebar-primary` token pairs, light + `.dark`) and duplicated as hex in the `theme` object in `src/lib/email.ts` (emails can't use CSS tokens). Change both together.
+
 ## Code Style
 
 - Double quotes, semicolons, 2-space indent, 100-char line width (Prettier).
