@@ -7,6 +7,7 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { MemberFieldsSection } from "@/components/admin/MemberFieldsSection";
 import { PositionsSection } from "@/components/admin/PositionsSection";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { SupportersSection } from "@/components/admin/SupportersSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -225,6 +226,8 @@ export function OrganizationPage() {
       <PositionsSection />
 
       <MemberFieldsSection />
+
+      <SupportersSection />
     </div>
   );
 }

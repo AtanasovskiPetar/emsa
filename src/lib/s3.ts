@@ -30,7 +30,12 @@ export async function getPresignedUploadUrl(
   return { uploadUrl, fileUrl };
 }
 
+export function isManagedObjectUrl(fileUrl: string): boolean {
+  return fileUrl.startsWith(`${env.R2_PUBLIC_URL}/`);
+}
+
 export async function deleteObject(fileUrl: string): Promise<void> {
+  if (!isManagedObjectUrl(fileUrl)) return;
   const key = new URL(fileUrl).pathname.slice(1);
   await r2.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
 }

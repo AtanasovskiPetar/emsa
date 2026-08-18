@@ -2,6 +2,7 @@ export const queryKeys = {
   organization: () => ["organization"] as const,
   me: () => ["me"] as const,
   positions: () => ["positions"] as const,
+  supporters: () => ["supporters"] as const,
   publicProjects: () => ["public-projects"] as const,
   publicPillars: () => ["public-pillars"] as const,
   publicProject: (id: string) => ["public-project", id] as const,

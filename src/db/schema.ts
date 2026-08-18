@@ -326,3 +326,13 @@ export const organization = pgTable("organization", {
   pillarLabel: varchar("pillar_label", { length: 64 }).notNull().default("Pillar"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const supporters = pgTable("supporters", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 255 }).notNull(),
+  logoUrl: varchar("logo_url", { length: 2048 }).notNull(),
+  websiteUrl: varchar("website_url", { length: 2048 }),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
