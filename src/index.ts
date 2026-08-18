@@ -14,6 +14,7 @@ import { organizationRoutes } from "./routes/organization";
 import { pillarRoutes } from "./routes/pillars";
 import { positionRoutes } from "./routes/positions";
 import { projectRoutes } from "./routes/projects";
+import { supporterRoutes } from "./routes/supporters";
 import { userRoutes } from "./routes/users";
 import { workshopRoutes } from "./routes/workshops";
 
@@ -111,6 +112,7 @@ const server = serve({
     ...pillarRoutes,
     ...positionRoutes,
     ...projectRoutes,
+    ...supporterRoutes,
     ...workshopRoutes,
     ...userRoutes,
     ...dashboardRoutes,

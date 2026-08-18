@@ -146,6 +146,24 @@ export const positionReorderSchema = z.object({
 
 export type PositionFormValues = z.infer<typeof positionSchema>;
 
+const HTTP_PROTOCOL = /^https?$/;
+
+export const supporterSchema = z.object({
+  name: z.string().min(1, "Name is required").max(255, "Name is too long"),
+  logoUrl: z.url({ protocol: HTTP_PROTOCOL, error: "Logo is required" }).max(2048),
+  websiteUrl: z
+    .url({ protocol: HTTP_PROTOCOL, error: "Must be a valid http(s) URL" })
+    .max(2048, "URL is too long")
+    .nullable()
+    .optional(),
+});
+
+export const supporterReorderSchema = z.object({
+  ids: z.array(z.uuid()).min(1, "At least one supporter required"),
+});
+
+export type SupporterFormValues = z.infer<typeof supporterSchema>;
+
 export const pillarSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),

@@ -21,7 +21,7 @@ Originally built for **EMSA Macedonia** (European Medical Students' Association)
 
 ## Features
 
-- **Public site** — landing page, project pages with image galleries, organisational pillars, board positions, all editable from the admin panel
+- **Public site** — landing page, project pages with image galleries, organisational pillars, board positions, and a scrolling supporter logo strip, all editable from the admin panel
 - **Members** — email/password and Google OAuth login, profiles with avatars, admin-defined custom profile fields with a completion gate
 - **Projects** — registration windows, participant caps, self-service sign-up, attendance tracking
 - **Roles** — `USER` → `ADMIN` → `SUPER_ADMIN`, enforced server-side; the first registered account becomes the instance owner
@@ -62,7 +62,7 @@ bun start
 
 ## Make It Yours
 
-Almost everything is configured at runtime from the **Organization** admin page: name, logo, tagline, description, socials, board positions, custom member fields, and the label used for pillars.
+Almost everything is configured at runtime from the **Organization** admin page: name, logo, tagline, description, socials, board positions, supporters, custom member fields, and the label used for pillars.
 
 The only code change for a full rebrand is the brand color (default: red), in two places:
 

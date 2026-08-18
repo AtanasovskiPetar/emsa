@@ -227,6 +227,15 @@ export interface Position {
   createdAt: string;
 }
 
+export interface Supporter {
+  id: string;
+  name: string;
+  logoUrl: string;
+  websiteUrl: string | null;
+  order: number;
+  createdAt: string;
+}
+
 export type RegistrationStatus = "none" | "not_open" | "open" | "full" | "closed";
 
 export interface Workshop {

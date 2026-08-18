@@ -8,6 +8,7 @@ import { PillarCard } from "@/components/PillarCard";
 import { PinnedProjectSpotlight } from "@/components/PinnedProjectSpotlight";
 import { PositionCard } from "@/components/PositionCard";
 import { ProjectCard } from "@/components/ProjectCard";
+import { SupportersMarquee } from "@/components/SupportersMarquee";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryKeys } from "@/constants/query-keys";
@@ -379,6 +380,8 @@ export function HomePage() {
           </div>
         </section>
       )}
+
+      <SupportersMarquee />
     </div>
   );
 }
